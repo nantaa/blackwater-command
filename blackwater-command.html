@@ -222,28 +222,142 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 .upgrade-card h4{color:#d4a843;font-size:.85rem}
 .upgrade-type{font-size:.62rem;letter-spacing:.1em;color:#50a0c0;text-transform:uppercase}
 .upgrade-desc{font-size:.72rem;color:#8aa8c8;line-height:1.5;flex:1}
+
+/* ROUTE MAP SCREEN */
+#scr-route-map{flex-direction:column;align-items:center;background:radial-gradient(ellipse at 50% 20%,#091a2c 0%,#040a12 85%);padding:1rem;overflow-y:auto}
+.route-header{display:flex;justify-content:space-between;align-items:center;max-width:960px;width:100%;background:#0a1628;border:1px solid #1a3a5a;padding:.6rem 1rem;border-radius:4px;margin-bottom:1rem}
+.route-map-container{display:flex;flex-direction:column;gap:18px;max-width:960px;width:100%;align-items:center;position:relative}
+.route-tier{display:flex;justify-content:center;gap:30px;width:100%}
+.route-node{background:#0a1628;border:2px solid #1a3a5a;border-radius:6px;padding:10px 14px;width:220px;cursor:pointer;transition:all .2s;text-align:left;position:relative}
+.route-node.available{border-color:#d4a843;box-shadow:0 0 14px rgba(212,168,67,.3);background:#10243c}
+.route-node.available:hover{transform:scale(1.04);border-color:#50c878;box-shadow:0 0 18px rgba(80,200,120,.4)}
+.route-node.visited{border-color:#50c878;background:#091e14;opacity:0.8}
+.route-node.locked{opacity:0.35;cursor:not-allowed;filter:grayscale(60%)}
+.route-node.boss{border-color:#ff1744;box-shadow:0 0 20px rgba(255,23,68,.35);width:280px}
+.node-type-badge{font-size:.6rem;font-weight:bold;letter-spacing:.1em;padding:2px 6px;border-radius:2px;display:inline-block;margin-bottom:4px;text-transform:uppercase}
+.badge-fight{background:rgba(212,168,67,.2);color:#d4a843;border:1px solid #d4a843}
+.badge-elite{background:rgba(255,61,0,.2);color:#ff3d00;border:1px solid #ff3d00}
+.badge-event{background:rgba(0,229,255,.2);color:#00e5ff;border:1px solid #00e5ff}
+.badge-repair{background:rgba(80,200,120,.2);color:#50c878;border:1px solid #50c878}
+.badge-supply{background:rgba(186,104,200,.2);color:#ba68c8;border:1px solid #ba68c8}
+.badge-boss{background:rgba(255,23,68,.25);color:#ff1744;border:1px solid #ff1744}
+
+/* EVENT & REPAIR MODAL */
+.event-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:900;opacity:0;pointer-events:none;transition:opacity .2s}
+.event-modal.active{opacity:1;pointer-events:auto}
+.event-dialog{background:#081628;border:1px solid #d4a843;border-radius:6px;width:520px;padding:22px;box-shadow:0 0 35px rgba(212,168,67,.25);display:flex;flex-direction:column;gap:12px}
+.event-choice-btn{background:#0d1e30;border:1px solid #204060;color:#c0d8f0;padding:10px 14px;border-radius:4px;cursor:pointer;text-align:left;font-family:inherit;font-size:.75rem;transition:all .15s}
+.event-choice-btn:hover{border-color:#d4a843;background:#142840;color:#fff}
+
+/* ANALYZE MODE SCREEN */
+#scr-analyze{flex-direction:column;align-items:center;background:#050c16;padding:10px}
+.analyze-wrap{display:grid;grid-template-columns:544px 380px;gap:14px;max-width:960px;width:100%;height:680px}
+.analyze-ctrls{background:#0a1628;border:1px solid #1a3a5a;padding:12px;display:flex;flex-direction:column;gap:10px}
+.heat-legend{display:flex;align-items:center;gap:8px;font-size:.65rem;color:#7a9abb;margin-top:6px}
+.heat-swatch{height:8px;border-radius:2px;flex:1}
 </style>
 </head>
 <body>
 
 <!-- ── TITLE ─────────────────────────────────────────── -->
 <div id="scr-title" class="screen active">
-  <div style="display:flex;flex-direction:column;align-items:center">
+  <div style="display:flex;flex-direction:column;align-items:center;max-width:480px;width:95%">
     <div class="t-logo">BLACKWATER COMMAND</div>
-    <div class="t-sub">NAVAL TACTICAL PROTOTYPE v0.1</div>
+    <div class="t-sub">NAVAL TACTICAL PROTOTYPE v1.0</div>
     <div class="t-pitch">
-      Command a hidden destroyer through fog-filled waters.<br>
+      Command a hidden destroyer task force through fog-filled waters.<br>
       Use sonar, torpedoes, and deception to outmaneuver an AI admiral<br>
       that infers your position — <em>without cheating.</em>
     </div>
-    <div class="seed-row">
-      <label>SEED:</label>
+    <div class="seed-row" style="margin-bottom:12px">
+      <label>RUN SEED:</label>
       <input type="text" id="seed-in" class="seed-in" placeholder="random">
       <button class="btn" onclick="rollSeed()">ROLL</button>
     </div>
-    <button class="btn" style="width:100%" onclick="startGame()">▶ DEPLOY</button>
-    <div style="font-size:.6rem;color:#1e3040;margin-top:.8rem">
-      Phase 1–3 prototype · Phase 4–5 coming soon
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+      <button class="btn" id="btn-campaign" style="width:100%;padding:10px;font-size:.82rem" onclick="startCampaignRun()">▶ START CAMPAIGN RUN (ROGUE-LITE)</button>
+      <button class="btn" id="btn-multiplayer" style="width:100%;border-color:#d4a843;color:#d4a843" onclick="openMultiplayerArena()">🌐 TACTICAL MULTIPLAYER ARENA (24×24)</button>
+      <button class="btn" style="width:100%" onclick="startGame()">⚡ SKIRMISH DUEL</button>
+      <button class="btn" style="width:100%" onclick="showTut()">📖 TACTICAL BRIEFING & RULES</button>
+    </div>
+    <div style="font-size:.65rem;color:#4a6a8a;margin-top:1rem">
+      Offline Single-Player Roguelite + 4-Player Tactical Simulator
+    </div>
+  </div>
+</div>
+
+<!-- ── ROUTE MAP SCREEN ───────────────────────────────── -->
+<div id="scr-route-map" class="screen">
+  <div class="route-header">
+    <div>
+      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#d4a843;font-size:.9rem">REGION 1: THE IRON STRAITS</span>
+      <span style="font-size:.7rem;color:#7a9ab8;margin-left:8px" id="route-tier-lbl">TIER 1 OF 4</span>
+    </div>
+    <div style="display:flex;gap:14px;font-size:.75rem;font-family:'Share Tech Mono',monospace">
+      <span id="route-hull-status">HULL: 20/20</span>
+      <span id="route-torpedo-status">TORP: 6</span>
+      <span id="route-sonar-status">SONAR: 5</span>
+    </div>
+    <button class="btn" onclick="showScreen('scr-title')">BRIDGE MENU</button>
+  </div>
+
+  <div class="route-map-container" id="route-map-container">
+    <!-- Rendered dynamically by renderRouteMap() -->
+  </div>
+</div>
+
+<!-- ── DECISION EVENT MODAL ────────────────────────────── -->
+<div class="event-modal" id="event-modal">
+  <div class="event-dialog">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #204060;padding-bottom:8px">
+      <h3 style="color:#d4a843;font-size:.9rem" id="event-title">ENCOUNTER EVENT</h3>
+      <span class="node-type-badge badge-event" id="event-badge">EVENT</span>
+    </div>
+    <p style="font-size:.75rem;color:#a0b8d0;line-height:1.5" id="event-desc">An uncharted contact signals through the mist.</p>
+    <div style="display:flex;flex-direction:column;gap:8px" id="event-choices-wrap">
+      <!-- Generated dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- ── ANALYZE MODE SCREEN ────────────────────────────── -->
+<div id="scr-analyze" class="screen">
+  <div class="route-header">
+    <div>
+      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#00e5ff;font-size:.9rem">TACTICAL REPLAY & AI PROBABILITY HEATMAP</span>
+      <span style="font-size:.7rem;color:#7a9ab8;margin-left:8px" id="analyze-turn-lbl">TURN 1</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="btn-toggle-vision" onclick="toggleAnalyzeVision()">TOGGLE: AI PERSPECTIVE</button>
+      <button class="btn" onclick="closeAnalyzeMode()">RETURN</button>
+    </div>
+  </div>
+
+  <div class="analyze-wrap">
+    <div style="position:relative;background:#02060b;border:2px solid #1a3a5a;border-radius:4px">
+      <canvas id="analyze-canvas" width="544" height="544"></canvas>
+    </div>
+    <div class="analyze-ctrls">
+      <div style="font-size:.78rem;font-weight:bold;color:#d4a843">TIMELINE SCRUBBER</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn" onclick="stepAnalyzeTurn(-1)">◀ PREV</button>
+        <input type="range" id="analyze-scrubber" min="1" max="1" value="1" style="flex:1" oninput="onAnalyzeScrub(this.value)">
+        <button class="btn" onclick="stepAnalyzeTurn(1)">NEXT ▶</button>
+      </div>
+
+      <div style="font-size:.75rem;color:#7a9ab8;margin-top:10px;font-weight:bold">AI INFERENCE & MOTIVATION</div>
+      <div id="analyze-reason-box" style="background:#06101c;border:1px solid #162a42;border-radius:4px;padding:10px;font-size:.72rem;color:#c0d8f0;line-height:1.5;min-height:90px">
+        No action selected.
+      </div>
+
+      <div style="margin-top:auto">
+        <div style="font-size:.65rem;color:#7a9abb;margin-bottom:4px">PROBABILITY HEATMAP DENSITY:</div>
+        <div class="heat-legend">
+          <span>0% (Cold)</span>
+          <div class="heat-swatch" style="background:linear-gradient(to right, rgba(0,50,100,.3), rgba(0,229,255,.5), rgba(255,214,0,.7), rgba(255,23,68,.9))"></div>
+          <span>100% (Hot)</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -364,6 +478,7 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:1rem">
       <button class="btn" onclick="showTitle()">ABANDON RUN</button>
+      <button class="btn" style="border-color:#00e5ff;color:#00e5ff" onclick="openAnalyzeMode()">🔍 ANALYZE REPLAY &amp; HEATMAP</button>
       <button class="btn g" onclick="showUpgradeScreen()">PROCEED TO REWARDS ▶</button>
     </div>
   </div>
@@ -419,11 +534,1724 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
   </div>
 </div>
 
+<!-- ── MULTIPLAYER ARENA SCREEN ────────────────────────── -->
+<div id="scr-mp" class="screen">
+  <div style="display:flex;flex-direction:column;width:960px;height:752px;background:#050d18;border:1px solid #1a3a5a;overflow:hidden">
+    <!-- Header with Perspective Tabs -->
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#081628;border-bottom:1px solid #1a3a5a;padding:8px 14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'Cinzel',serif;font-weight:bold;color:#d4a843;font-size:1rem">TACTICAL MULTIPLAYER ARENA (24×24)</span>
+        <span id="mp-round-lbl" style="font-size:.7rem;color:#7a9ab8">ROUND 1 · TURN P1</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.65rem;color:#4a6a8a">PERSPECTIVE:</span>
+        <button class="btn" id="mp-tab-0" style="padding:3px 8px;font-size:.68rem" onclick="setMPPerspective(0)">[P1: NW]</button>
+        <button class="btn" id="mp-tab-1" style="padding:3px 8px;font-size:.68rem" onclick="setMPPerspective(1)">[P2: NE]</button>
+        <button class="btn" id="mp-tab-2" style="padding:3px 8px;font-size:.68rem" onclick="setMPPerspective(2)">[P3: SW]</button>
+        <button class="btn" id="mp-tab-3" style="padding:3px 8px;font-size:.68rem" onclick="setMPPerspective(3)">[P4: SE]</button>
+        <button class="btn r" style="padding:3px 8px;font-size:.68rem;margin-left:8px" onclick="closeMPArena()">TITLE</button>
+      </div>
+    </div>
+
+    <!-- Main Body: 24x24 Board + Sidebar -->
+    <div style="display:grid;grid-template-columns:544px 1fr;gap:12px;padding:12px;flex:1">
+      <div style="position:relative;background:#02060b;border:2px solid #1a3a5a;border-radius:4px;display:flex;align-items:center;justify-content:center">
+        <canvas id="mp-board" width="544" height="544"></canvas>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;background:#0a1628;border:1px solid #1a3a5a;border-radius:4px;padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #162a42;padding-bottom:6px">
+          <span id="mp-player-status" style="font-weight:bold;color:#00e5ff;font-size:.82rem">P1: NW FLEET</span>
+          <span id="mp-timer-val" style="color:#50c878;font-weight:bold;font-size:1.1rem">30s</span>
+        </div>
+        <div id="mp-fleet-summary" style="font-size:.7rem;color:#8aa8c8;line-height:1.6">
+          <div>FLAGSHIP: 20/20 HP</div>
+          <div>PATROL BOAT: 8/8 HP</div>
+          <div>MINELAYER: 10/10 HP</div>
+          <div>COMMAND POINTS: 4 CP</div>
+        </div>
+
+        <div style="font-size:.72rem;color:#d4a843;font-weight:bold;margin-top:4px">TACTICAL ORDERS</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button class="btn" style="font-size:.68rem;padding:6px" onclick="execMPAction('torpedo')">TORPEDO (2 CP)</button>
+          <button class="btn" style="font-size:.68rem;padding:6px" onclick="execMPAction('sonar')">ACTIVE SONAR (1 CP)</button>
+          <button class="btn" style="font-size:.68rem;padding:6px" onclick="execMPAction('depth_charge')">DEPTH CHARGE (2 CP)</button>
+          <button class="btn" style="font-size:.68rem;padding:6px" onclick="execMPAction('decoy')">DECOY BUOY (1 CP)</button>
+          <button class="btn" style="font-size:.68rem;padding:6px" onclick="execMPAction('smoke')">SMOKE CLOUD (1 CP)</button>
+          <button class="btn g" style="font-size:.68rem;padding:6px" onclick="execMPAction('pass')">END TURN (PASS)</button>
+        </div>
+
+        <div style="font-size:.72rem;color:#d4a843;font-weight:bold;margin-top:6px">PUBLIC TACTICAL FEED (ZERO LEAK)</div>
+        <div id="mp-intel-feed" style="flex:1;background:#06101c;border:1px solid #162a42;border-radius:4px;padding:8px;font-size:.65rem;color:#7a9ab8;overflow-y:auto;line-height:1.5;max-height:180px">
+          [00:00] Match initiated. All fleets deployed in home quadrants.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── CARD TOOLTIP ───────────────────────────────────── -->
 <div id="card-tip"></div>
 
 <script>
 'use strict';
+
+/* ════════════════════════════════════════════════════════════════
+   §0A  INLINED ROUTE ENGINE (Roguelite DAG & Replay Analysis)
+════════════════════════════════════════════════════════════════ */
+const RouteEngine = (function () {
+
+  'use strict';
+
+  function mkRng(seed) {
+    let s = (seed >>> 0) || 123456789;
+    return {
+      next: function () {
+        s = (s + 0x6D2B79F5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      },
+      int: function (min, max) {
+        return Math.floor(this.next() * (max - min + 1)) + min;
+      },
+      pick: function (arr) {
+        return arr[this.int(0, arr.length - 1)];
+      }
+    };
+  }
+
+  const NODE_ARCHETYPES = {
+    fight: [
+      { archetype: 'Hunt', title: 'Standard Recon Patrol', risk: 'Standard', desc: 'Engage enemy flotilla in standard tactical waters.' },
+      { archetype: 'Silent Duel', title: 'Silent Duel', risk: 'Medium', desc: 'Both fleets have reduced sensor access. Rely on wake trails.' },
+      { archetype: 'Convoy Raid', title: 'Convoy Interception', risk: 'Medium', desc: 'Hostile transport escaping within a limited operational window.' }
+    ],
+    elite: [
+      { archetype: 'Carrier Patrol', title: 'Elite: Carrier Task Group', risk: 'High', desc: 'Extensive aircraft reconnaissance and aggressive artillery.' },
+      { archetype: 'Submarine Ambush', title: 'Elite: Submersible Wolfpack', risk: 'High', desc: 'Deep-water stealth units. High value for depth charges.' }
+    ],
+    event: [
+      { archetype: 'Distress Signal', title: 'Uncharted Distress Signal', risk: 'Event', desc: 'Faint SOS ping detected from contested waters.' },
+      { archetype: 'Derelict Vessel', title: 'Drifting Hull Salvage', risk: 'Event', desc: 'Abandoned vessel adrift amidst coastal reefs.' },
+      { archetype: 'Smuggler Dock', title: 'Black-Market Harbor', risk: 'Event', desc: 'Clandestine dock offering munitions for specialized tech.' }
+    ],
+    repair: [
+      { archetype: 'Safe Harbor', title: 'Allied Repair Mooring', risk: 'Safe', desc: 'Safe anchorage allowing flagship hull restoration and deck tuning.' }
+    ],
+    supply: [
+      { archetype: 'Depot', title: 'Naval Munitions Depot', risk: 'Supply', desc: 'Restock scarce torpedoes, depth charges, and install field upgrades.' }
+    ],
+    boss: [
+      { archetype: 'Mirage Carrier', title: 'Regional Flagship: Mirage Carrier', risk: 'Boss', desc: 'High Command target emitting deceptive radar phantoms. 60s timer.' }
+    ]
+  };
+
+  function generateRouteMap(seed, regionNumber) {
+    const rng = mkRng(seed || 12345);
+    regionNumber = regionNumber || 1;
+
+    // Region 1 DAG Structure:
+    // Tier 0: 3 nodes (Start) -> Available
+    // Tier 1: 3 nodes (Branch)
+    // Tier 2: 3 nodes (Pre-Boss: Elite/Repair/Supply)
+    // Tier 3: 1 Boss node (Mirage Carrier)
+    const tiers = [];
+
+    // --- Tier 0: 3 Starting Encounters ---
+    const tier0 = [
+      createNode('t0_n0', 0, 0, 'fight', rng.pick(NODE_ARCHETYPES.fight), 'available'),
+      createNode('t0_n1', 0, 1, 'fight', rng.pick(NODE_ARCHETYPES.fight), 'available'),
+      createNode('t0_n2', 0, 2, 'event', rng.pick(NODE_ARCHETYPES.event), 'available')
+    ];
+
+    // --- Tier 1: 3 Mid Encounters ---
+    const tier1 = [
+      createNode('t1_n0', 1, 0, 'fight', rng.pick(NODE_ARCHETYPES.fight), 'locked'),
+      createNode('t1_n1', 1, 1, 'supply', rng.pick(NODE_ARCHETYPES.supply), 'locked'),
+      createNode('t1_n2', 1, 2, 'event', rng.pick(NODE_ARCHETYPES.event), 'locked')
+    ];
+
+    // --- Tier 2: 3 Pre-Boss Encounters ---
+    const tier2 = [
+      createNode('t2_n0', 2, 0, 'elite', rng.pick(NODE_ARCHETYPES.elite), 'locked'),
+      createNode('t2_n1', 2, 1, 'repair', rng.pick(NODE_ARCHETYPES.repair), 'locked'),
+      createNode('t2_n2', 2, 2, 'fight', rng.pick(NODE_ARCHETYPES.fight), 'locked')
+    ];
+
+    // --- Tier 3: 1 Boss Encounter ---
+    const bossTemplate = NODE_ARCHETYPES.boss[0];
+    const tier3 = [
+      createNode('t3_boss', 3, 0, 'boss', bossTemplate, 'locked')
+    ];
+
+    // Wire forward connections deterministically
+    // Tier 0 -> Tier 1:
+    // n0 -> n0, n1
+    // n1 -> n1, n2
+    // n2 -> n2, n0 (or n1, n2)
+    tier0[0].next = ['t1_n0', 't1_n1'];
+    tier0[1].next = ['t1_n1', 't1_n2'];
+    tier0[2].next = ['t1_n2', 't1_n0'];
+
+    // Tier 1 -> Tier 2:
+    tier1[0].next = ['t2_n0', 't2_n1'];
+    tier1[1].next = ['t2_n1', 't2_n2'];
+    tier1[2].next = ['t2_n2', 't2_n0'];
+
+    // Tier 2 -> Tier 3: All connect into the Boss gate
+    tier2[0].next = ['t3_boss'];
+    tier2[1].next = ['t3_boss'];
+    tier2[2].next = ['t3_boss'];
+
+    tiers.push(tier0, tier1, tier2, tier3);
+
+    return {
+      seed: seed || 12345,
+      region: regionNumber,
+      currentTier: 0,
+      currentNodeId: null,
+      history: [],
+      tiers: tiers
+    };
+  }
+
+  function createNode(id, tier, colIndex, type, template, status) {
+    return {
+      id: id,
+      tier: tier,
+      colIndex: colIndex,
+      type: type,
+      archetype: template.archetype,
+      title: template.title,
+      risk: template.risk,
+      desc: template.desc,
+      next: [],
+      status: status // 'available' | 'locked' | 'visited' | 'fogged'
+    };
+  }
+
+  function canVisitNode(routeMap, nodeId) {
+    for (const tier of routeMap.tiers) {
+      const node = tier.find(n => n.id === nodeId);
+      if (node) {
+        return node.status === 'available';
+      }
+    }
+    return false;
+  }
+
+  function visitRouteNode(routeMap, nodeId) {
+    let targetNode = null;
+    let targetTier = -1;
+
+    for (let t = 0; t < routeMap.tiers.length; t++) {
+      const node = routeMap.tiers[t].find(n => n.id === nodeId);
+      if (node) {
+        targetNode = node;
+        targetTier = t;
+        break;
+      }
+    }
+
+    if (!targetNode || targetNode.status !== 'available') {
+      return null;
+    }
+
+    // Mark current node as visited
+    targetNode.status = 'visited';
+    routeMap.currentNodeId = targetNode.id;
+    routeMap.history.push(targetNode.id);
+
+    // Lock other nodes in the same tier (no backtracking)
+    routeMap.tiers[targetTier].forEach(n => {
+      if (n.id !== targetNode.id) {
+        n.status = 'locked';
+      }
+    });
+
+    // Advance tier
+    routeMap.currentTier = targetTier + 1;
+
+    // Enable reachable nodes in next tier
+    if (routeMap.currentTier < routeMap.tiers.length) {
+      routeMap.tiers[routeMap.currentTier].forEach(n => {
+        if (targetNode.next.includes(n.id)) {
+          n.status = 'available';
+        } else {
+          n.status = 'locked';
+        }
+      });
+    }
+
+    return targetNode;
+  }
+
+  function resolveEventChoice(run, eventType, choiceIndex, extraArg) {
+    if (!run) return { success: false, reason: 'Invalid run' };
+    run.ammo = run.ammo || { torpedo: 6, depthCharge: 4, sonar: 5, smoke: 3, mine: 2, fuel: 2 };
+    run.deck = run.deck || [];
+    run.modules = run.modules || [];
+
+    if (eventType === 'Distress Signal') {
+      if (choiceIndex === 0) {
+        // Investigate: Ambush (-3 HP) but gain munitions (+2 torpedo, +1 sonar)
+        run.flagshipHull = Math.max(1, (run.flagshipHull || 20) - 3);
+        run.ammo.torpedo = (run.ammo.torpedo || 0) + 2;
+        run.ammo.sonar = (run.ammo.sonar || 0) + 1;
+        return { success: true, message: 'Ambush survived (-3 HP). Salvaged 2 torpedoes & 1 sonar charge.' };
+      } else if (choiceIndex === 1) {
+        // Ignore: Safe
+        return { success: true, message: 'Signal ignored. Maintained tactical stealth.' };
+      } else if (choiceIndex === 2) {
+        // Remote scan: Costs 1 sonar, reveals next node modifier
+        if (run.ammo.sonar >= 1) {
+          run.ammo.sonar--;
+          return { success: true, message: 'Acoustic sweep analyzed surrounding sector.' };
+        }
+        return { success: false, reason: 'Insufficient sonar charges' };
+      }
+    } else if (eventType === 'Derelict Vessel') {
+      if (choiceIndex === 0) {
+        // Board: Risk hull (-2 HP), gain rare card
+        run.flagshipHull = Math.max(1, (run.flagshipHull || 20) - 2);
+        run.deck.push('precision_salvo');
+        return { success: true, message: 'Vessel boarded (-2 HP). Secured Precision Salvo doctrine card.' };
+      } else if (choiceIndex === 1) {
+        // Salvage: Gain 2 torpedoes
+        run.ammo.torpedo = (run.ammo.torpedo || 0) + 2;
+        return { success: true, message: 'Ammunition lockers salvaged (+2 torpedoes).' };
+      } else if (choiceIndex === 2) {
+        return { success: true, message: 'Derelict left undisturbed.' };
+      }
+    } else if (eventType === 'Smuggler Dock') {
+      if (choiceIndex === 0) {
+        // Card remove: Costs 3 HP
+        run.flagshipHull = Math.max(1, (run.flagshipHull || 20) - 3);
+        const cardToRemove = extraArg || run.deck[0];
+        const idx = run.deck.indexOf(cardToRemove);
+        if (idx !== -1) run.deck.splice(idx, 1);
+        return { success: true, message: `Removed ${cardToRemove} from deck (-3 HP).` };
+      } else if (choiceIndex === 1) {
+        // Tech trade: Costs 2 torpedoes, gain module
+        if (run.ammo.torpedo >= 2) {
+          run.ammo.torpedo -= 2;
+          run.modules.push('salvage_crane');
+          return { success: true, message: 'Traded 2 torpedoes for Salvage Crane module.' };
+        }
+        return { success: false, reason: 'Insufficient torpedoes' };
+      } else if (choiceIndex === 2) {
+        return { success: true, message: 'Clandestine dock bypassed.' };
+      }
+    }
+
+    return { success: false, reason: 'Unknown event' };
+  }
+
+  function setupEncounter(run, archetype) {
+    const isBoss = archetype === 'Mirage Carrier';
+    const timer = isBoss ? 60 : 75; // Boss timer is 60s per Section 10/15
+
+    let objective = 'Destroy Hostile Flagship';
+    let enemyFlagshipHP = isBoss ? 32 : 28;
+    let specialRule = null;
+    let sensorPenalty = 1.0;
+    let transportTarget = null;
+    let turnsToEscape = null;
+
+    if (archetype === 'Silent Duel') {
+      objective = 'Destroy Hostile Flagship in Low-Sensor Waters';
+      sensorPenalty = 0.5;
+      specialRule = 'Sensor Suppression';
+    } else if (archetype === 'Convoy Raid') {
+      objective = 'Intercept Hostile Transport Before Escape';
+      transportTarget = { id: 'transport', hp: 12, maxHp: 12, alive: true };
+      turnsToEscape = 5;
+      specialRule = 'Escape Clock';
+    } else if (archetype === 'Mirage Carrier') {
+      objective = 'Neutralize Mirage Carrier Flagship';
+      specialRule = 'Acoustic Mirage Phantoms';
+    }
+
+    function triggerPhantoms(seed) {
+      const rng = mkRng(seed || 999);
+      return [
+        { x: rng.int(10, 18), y: rng.int(2, 8), type: 'phantom', radius: 1 },
+        { x: rng.int(10, 18), y: rng.int(12, 18), type: 'phantom', radius: 1 }
+      ];
+    }
+
+    return {
+      archetype: archetype,
+      isBoss: isBoss,
+      timer: timer,
+      objective: objective,
+      enemyFlagshipHP: enemyFlagshipHP,
+      specialRule: specialRule,
+      sensorPenalty: sensorPenalty,
+      transportTarget: transportTarget,
+      turnsToEscape: turnsToEscape,
+      triggerPhantoms: triggerPhantoms
+    };
+  }
+
+  function createAnalyzeSession(battleRecord) {
+    battleRecord = battleRecord || { seed: 1234, turns: [] };
+    return {
+      seed: battleRecord.seed,
+      turns: battleRecord.turns || [],
+      totalTurns: battleRecord.turns ? battleRecord.turns.length : 0,
+      currentTurn: 1,
+      visionMode: 'ground_truth' // 'ai_vision' | 'ground_truth'
+    };
+  }
+
+  function getTurnSnapshot(session, turnNumber) {
+    if (!session || !session.turns) return null;
+    return session.turns.find(t => t.turn === turnNumber) || session.turns[0] || null;
+  }
+
+  function getHeatmapColor(prob) {
+    if (prob < 0.1) {
+      return 'rgba(0, 50, 100, 0.2)';
+    } else if (prob < 0.3) {
+      return 'rgba(0, 229, 255, 0.4)'; // cyan
+    } else if (prob < 0.6) {
+      return 'rgba(255, 214, 0, 0.6)'; // amber/yellow
+    } else {
+      return 'rgba(255, 23, 68, 0.85)'; // hot red
+    }
+  }
+
+  function explainAIAction(action, evidence) {
+    if (!action) return 'No action recorded.';
+    if (evidence && evidence.decoys && evidence.decoys.some(d => d.x === action.x && d.y === action.y)) {
+      return `Targeted (${action.x}, ${action.y}): Decoy buoy acoustic phantom created false positive peak.`;
+    }
+    if (evidence && evidence.hits && evidence.hits.some(h => Math.abs(h.x - action.x) <= 1 && Math.abs(h.y - action.y) <= 1)) {
+      return `Targeted (${action.x}, ${action.y}): Prior confirmed hit in adjacent water. Probability algorithm prioritized contiguous hull expansion.`;
+    }
+    return action.reason || `Targeted (${action.x}, ${action.y}): Highest legal probability density in unexplored sector.`;
+  }
+
+  return {
+    generateRouteMap: generateRouteMap,
+    canVisitNode: canVisitNode,
+    visitRouteNode: visitRouteNode,
+    resolveEventChoice: resolveEventChoice,
+    setupEncounter: setupEncounter,
+    createAnalyzeSession: createAnalyzeSession,
+    getTurnSnapshot: getTurnSnapshot,
+    getHeatmapColor: getHeatmapColor,
+    explainAIAction: explainAIAction,
+    NODE_ARCHETYPES: NODE_ARCHETYPES
+  };
+
+})();
+
+/* ════════════════════════════════════════════════════════════════
+   §0B  INLINED MULTIPLAYER ENGINE (24×24 Quadrant Hotseat)
+════════════════════════════════════════════════════════════════ */
+const MP = (function () {
+
+  'use strict';
+
+  // ----------------------------------------------------
+  // §1. CONSTANTS & GRID SETUP
+  // ----------------------------------------------------
+  const GW = 24;
+  const GH = 24;
+  const COLS = 'ABCDEFGHIJKLMNOPQRSTUVWX'.split('');
+
+  const T = {
+    OPEN: 'o',
+    ISLAND: 'i',
+    SHALLOW: 's',
+    DEEP: 'd',
+    REEF: 'r',
+    RADAR: 'R',
+    SUPPLY: 'S'
+  };
+
+  const QUADRANTS = {
+    NW: { x0: 0, x1: 11, y0: 0, y1: 11, colStart: 'A', colEnd: 'L', rowStart: 1, rowEnd: 12 },
+    NE: { x0: 12, x1: 23, y0: 0, y1: 11, colStart: 'M', colEnd: 'X', rowStart: 1, rowEnd: 12 },
+    SW: { x0: 0, x1: 11, y0: 12, y1: 23, colStart: 'A', colEnd: 'L', rowStart: 13, rowEnd: 24 },
+    SE: { x0: 12, x1: 23, y0: 12, y1: 23, colStart: 'M', colEnd: 'X', rowStart: 13, rowEnd: 24 }
+  };
+
+  const MP_SHIPS = {
+    flagship: { id: 'flagship', name: 'Destroyer Flagship', len: 3, hp: 20, maxHp: 20 },
+    patrol: { id: 'patrol', name: 'Patrol Boat', len: 2, hp: 8, maxHp: 8 },
+    minelayer: { id: 'minelayer', name: 'Minelayer', len: 2, hp: 10, maxHp: 10 }
+  };
+
+  // ----------------------------------------------------
+  // §2. DETERMINISTIC RNG (Mulberry32)
+  // ----------------------------------------------------
+  function mkRng(seed) {
+    let s = (seed >>> 0) || 1;
+    function nx() {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    return {
+      nx,
+      int: (a, b) => Math.floor(nx() * (b - a + 1)) + a,
+      pick: a => a[Math.floor(nx() * a.length)],
+      shuffle(a) {
+        const r = [...a];
+        for (let i = r.length - 1; i > 0; i--) {
+          const j = Math.floor(nx() * (i + 1));
+          [r[i], r[j]] = [r[j], r[i]];
+        }
+        return r;
+      }
+    };
+  }
+
+  // ----------------------------------------------------
+  // §3. COORDINATES & QUADRANTS
+  // ----------------------------------------------------
+  function cid(x, y) {
+    if (x < 0 || x >= GW || y < 0 || y >= GH) return '??';
+    return `${COLS[x]}${y + 1}`;
+  }
+
+  function parseCid(str) {
+    if (!str || str.length < 2) return null;
+    const colChar = str.charAt(0).toUpperCase();
+    const rowNum = parseInt(str.slice(1), 10);
+    const x = COLS.indexOf(colChar);
+    const y = rowNum - 1;
+    if (x < 0 || x >= GW || isNaN(rowNum) || y < 0 || y >= GH) return null;
+    return { x, y };
+  }
+
+  function getQuadrant(x, y) {
+    if (x >= 0 && x <= 11 && y >= 0 && y <= 11) return 'NW';
+    if (x >= 12 && x <= 23 && y >= 0 && y <= 11) return 'NE';
+    if (x >= 0 && x <= 11 && y >= 12 && y <= 23) return 'SW';
+    if (x >= 12 && x <= 23 && y >= 12 && y <= 23) return 'SE';
+    return null;
+  }
+
+  function canShipMoveTo(quadrantKey, targetX, targetY) {
+    return getQuadrant(targetX, targetY) === quadrantKey;
+  }
+
+  // ----------------------------------------------------
+  // §4. 24x24 TERRAIN GENERATOR
+  // ----------------------------------------------------
+  function genMPGrid(rng) {
+    const g = Array.from({ length: GH }, () => Array(GW).fill(T.OPEN));
+
+    // Place 2-3 island clusters per quadrant
+    for (const qKey of Object.keys(QUADRANTS)) {
+      const q = QUADRANTS[qKey];
+      const clusterCount = rng.int(2, 3);
+      for (let c = 0; c < clusterCount; c++) {
+        let cx = rng.int(q.x0 + 2, q.x1 - 2);
+        let cy = rng.int(q.y0 + 2, q.y1 - 2);
+        const sz = rng.int(2, 5);
+        g[cy][cx] = T.ISLAND;
+        for (let i = 1; i < sz; i++) {
+          const d = rng.pick([[0, 1], [0, -1], [1, 0], [-1, 0]]);
+          const nx = cx + d[0];
+          const ny = cy + d[1];
+          if (nx >= q.x0 + 1 && nx <= q.x1 - 1 && ny >= q.y0 + 1 && ny <= q.y1 - 1) {
+            g[ny][nx] = T.ISLAND;
+            cx = nx;
+            cy = ny;
+          }
+        }
+      }
+
+      // One radar station per quadrant
+      let placedRadar = false;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const rx = rng.int(q.x0 + 2, q.x1 - 2);
+        const ry = rng.int(q.y0 + 2, q.y1 - 2);
+        if (g[ry][rx] === T.OPEN) {
+          g[ry][rx] = T.RADAR;
+          placedRadar = true;
+          break;
+        }
+      }
+      if (!placedRadar) g[q.y0 + 5][q.x0 + 5] = T.RADAR;
+    }
+
+    return g;
+  }
+
+  // ----------------------------------------------------
+  // §5. MULTI-CELL SHIP CALCULATIONS & VALIDATION
+  // ----------------------------------------------------
+  function getShipCells(shipId, x, y, orientation) {
+    const def = MP_SHIPS[shipId];
+    if (!def) return [];
+    const len = def.len;
+    const cells = [];
+    const orient = orientation === 'V' ? 'V' : 'H';
+    for (let i = 0; i < len; i++) {
+      cells.push({
+        x: orient === 'H' ? x + i : x,
+        y: orient === 'V' ? y + i : y
+      });
+    }
+    return cells;
+  }
+
+  function validateMPShipPlacement(grid, quadrantKey, shipId, x, y, orientation) {
+    const q = QUADRANTS[quadrantKey];
+    if (!q) return { valid: false, reason: `Unknown quadrant ${quadrantKey}` };
+    const cells = getShipCells(shipId, x, y, orientation);
+
+    for (const c of cells) {
+      // Quadrant bounds check
+      if (c.x < q.x0 || c.x > q.x1 || c.y < q.y0 || c.y > q.y1) {
+        return {
+          valid: false,
+          reason: `Ship segment at ${cid(c.x, c.y)} is outside assigned home quadrant (${q.colStart}${q.rowStart}–${q.colEnd}${q.rowEnd}).`
+        };
+      }
+      // Terrain restriction check
+      const tile = grid[c.y][c.x];
+      if (tile === T.ISLAND || tile === T.RADAR) {
+        return { valid: false, reason: `Cannot place ship over land or radar station at ${cid(c.x, c.y)}.` };
+      }
+      if ((shipId === 'flagship' || shipId === 'minelayer') && tile === T.REEF) {
+        return { valid: false, reason: `Only Patrol Boat can navigate reefs at ${cid(c.x, c.y)}.` };
+      }
+    }
+
+    return { valid: true, reason: 'Valid multi-cell placement.', cells };
+  }
+
+  function getShipSurroundingWaterRoutes(grid, cells) {
+    const deltas = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+    const shipSet = new Set(cells.map(c => `${c.x},${c.y}`));
+    let routes = 0;
+
+    for (const c of cells) {
+      for (const [dx, dy] of deltas) {
+        const nx = c.x + dx;
+        const ny = c.y + dy;
+        const key = `${nx},${ny}`;
+        if (nx >= 0 && nx < GW && ny >= 0 && ny < GH && !shipSet.has(key)) {
+          if (grid[ny][nx] !== T.ISLAND && grid[ny][nx] !== T.RADAR) {
+            routes++;
+          }
+        }
+      }
+    }
+    return routes;
+  }
+
+  function validateMPFleet(grid, quadrantKey, fleet) {
+    const errors = [];
+    if (!fleet || !fleet.flagship || !fleet.patrol || !fleet.minelayer) {
+      return { valid: false, errors: ['Fleet must contain flagship, patrol, and minelayer.'] };
+    }
+
+    const occupied = new Map();
+    const ships = ['flagship', 'patrol', 'minelayer'];
+
+    for (const sId of ships) {
+      const p = fleet[sId];
+      if (!p) {
+        errors.push(`Missing placement for ${sId}`);
+        continue;
+      }
+      const val = validateMPShipPlacement(grid, quadrantKey, sId, p.x, p.y, p.o || 'H');
+      if (!val.valid) {
+        errors.push(`${sId}: ${val.reason}`);
+        continue;
+      }
+      for (const c of val.cells) {
+        const key = `${c.x},${c.y}`;
+        if (occupied.has(key)) {
+          errors.push(`Ship collision at ${cid(c.x, c.y)} between ${occupied.get(key)} and ${sId}.`);
+        }
+        occupied.set(key, sId);
+      }
+    }
+
+    // Flagship safety check: ≥ 2 legal adjacent water routes
+    if (fleet.flagship) {
+      const fCells = getShipCells('flagship', fleet.flagship.x, fleet.flagship.y, fleet.flagship.o || 'H');
+      if (getShipSurroundingWaterRoutes(grid, fCells) < 2) {
+        errors.push('Flagship requires at least 2 open adjacent water routes.');
+      }
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  function quickDeployMP(grid, quadrantKey, rng) {
+    const q = QUADRANTS[quadrantKey];
+    if (!q) return null;
+
+    for (let attempts = 0; attempts < 200; attempts++) {
+      const fOrient = rng.pick(['H', 'V']);
+      const fx = rng.int(q.x0 + 1, fOrient === 'H' ? q.x1 - 3 : q.x1 - 1);
+      const fy = rng.int(q.y0 + 1, fOrient === 'V' ? q.y1 - 3 : q.y1 - 1);
+
+      const pOrient = rng.pick(['H', 'V']);
+      const px = rng.int(q.x0 + 1, pOrient === 'H' ? q.x1 - 2 : q.x1 - 1);
+      const py = rng.int(q.y0 + 1, pOrient === 'V' ? q.y1 - 2 : q.y1 - 1);
+
+      const mOrient = rng.pick(['H', 'V']);
+      const mx = rng.int(q.x0 + 1, mOrient === 'H' ? q.x1 - 2 : q.x1 - 1);
+      const my = rng.int(q.y0 + 1, mOrient === 'V' ? q.y1 - 2 : q.y1 - 1);
+
+      const candidateFleet = {
+        flagship: { x: fx, y: fy, o: fOrient },
+        patrol: { x: px, y: py, o: pOrient },
+        minelayer: { x: mx, y: my, o: mOrient }
+      };
+
+      const check = validateMPFleet(grid, quadrantKey, candidateFleet);
+      if (check.valid) {
+        return candidateFleet;
+      }
+    }
+
+    // Deterministic fallback inside quadrant
+    return {
+      flagship: { x: q.x0 + 2, y: q.y0 + 2, o: 'H' },
+      patrol: { x: q.x0 + 2, y: q.y0 + 5, o: 'H' },
+      minelayer: { x: q.x0 + 2, y: q.y0 + 8, o: 'H' }
+    };
+  }
+
+  // ----------------------------------------------------
+  // §6. STARTER DECK & MATCH STATE
+  // ----------------------------------------------------
+  const MP_START_DECK = [
+    'narrow_sonar', 'narrow_sonar',
+    'torpedo_line', 'torpedo_line',
+    'thermal_wake', 'depth_pattern',
+    'flank_speed', 'go_silent',
+    'decoy_buoy', 'patrol_plane',
+    'sector_sweep', 'radar_jammer'
+  ];
+
+  function createMPMatch(seed, mode, playerConfigs) {
+    if (typeof seed === 'object' && seed !== null) {
+      const opts = seed;
+      seed = opts.seed;
+      mode = opts.mode;
+      playerConfigs = opts.playerConfigs;
+    }
+    seed = seed || 12345;
+    mode = mode || '1v1v1v1';
+    if (!playerConfigs || !Array.isArray(playerConfigs)) {
+      playerConfigs = [
+        { id: 'p1', name: 'Player 1', team: 'T1' },
+        { id: 'p2', name: 'Player 2', team: 'T2' },
+        { id: 'p3', name: 'Player 3', team: 'T1' },
+        { id: 'p4', name: 'Player 4', team: 'T2' }
+      ];
+    }
+    const rng = mkRng(seed);
+    const grid = genMPGrid(rng);
+    const qKeys = ['NW', 'NE', 'SW', 'SE'];
+
+    const players = playerConfigs.map((cfg, idx) => {
+      const qKey = qKeys[idx];
+      const team = mode === '2v2' ? (cfg.team || (idx % 2 === 0 ? 'T1' : 'T2')) : `P${idx + 1}`;
+      const deck = rng.shuffle([...MP_START_DECK]);
+      const hand = deck.slice(0, 5);
+      const drawPile = deck.slice(5);
+
+      return {
+        id: cfg.id,
+        name: cfg.name || `Player ${idx + 1}`,
+        quadrant: qKey,
+        team,
+        cp: 3,
+        maxCp: 6,
+        hand,
+        deck: drawPile,
+        discard: [],
+        ammo: { torpedo: 6, depthCharge: 4, sonar: 5, smoke: 3, mine: 2, fuel: 2 },
+        fleet: null,
+        deployed: false,
+        alive: true,
+        eliminated: false,
+        supportSpent: { patrol: false, minelayer: false },
+        surrenderPending: false
+      };
+    });
+
+    return {
+      seed,
+      mode,
+      grid,
+      rng,
+      phase: 'DEPLOYMENT', // 'DEPLOYMENT' | 'BATTLE' | 'STORM' | 'FINISHED'
+      players,
+      turnOrder: [],
+      activePlayerId: null,
+      turnIndex: 0,
+      round: 1,
+      maxRounds: 20,
+      sharedIntel: { T1: [], T2: [] },
+      eventsLog: [],
+      winner: null
+    };
+  }
+
+  function submitDeployment(match, playerId, fleetPlacements) {
+    const player = match.players.find(p => p.id === playerId);
+    if (!player) return { success: false, reason: 'Player not found' };
+
+    const check = validateMPFleet(match.grid, player.quadrant, fleetPlacements);
+    if (!check.valid) {
+      return { success: false, reason: check.errors[0] };
+    }
+
+    // Hydrate fleet ship structures with HP and cells
+    player.fleet = {
+      flagship: {
+        id: 'flagship',
+        x: fleetPlacements.flagship.x,
+        y: fleetPlacements.flagship.y,
+        o: fleetPlacements.flagship.o || 'H',
+        cells: getShipCells('flagship', fleetPlacements.flagship.x, fleetPlacements.flagship.y, fleetPlacements.flagship.o || 'H'),
+        hp: 20,
+        maxHp: 20,
+        alive: true
+      },
+      patrol: {
+        id: 'patrol',
+        x: fleetPlacements.patrol.x,
+        y: fleetPlacements.patrol.y,
+        o: fleetPlacements.patrol.o || 'H',
+        cells: getShipCells('patrol', fleetPlacements.patrol.x, fleetPlacements.patrol.y, fleetPlacements.patrol.o || 'H'),
+        hp: 8,
+        maxHp: 8,
+        alive: true
+      },
+      minelayer: {
+        id: 'minelayer',
+        x: fleetPlacements.minelayer.x,
+        y: fleetPlacements.minelayer.y,
+        o: fleetPlacements.minelayer.o || 'H',
+        cells: getShipCells('minelayer', fleetPlacements.minelayer.x, fleetPlacements.minelayer.y, fleetPlacements.minelayer.o || 'H'),
+        hp: 10,
+        maxHp: 10,
+        alive: true
+      }
+    };
+    player.deployed = true;
+
+    // If all players deployed, roll initiative and start battle
+    if (match.players.every(p => p.deployed)) {
+      match.phase = 'BATTLE';
+
+      // Roll initiative
+      let rolls = match.players.map(p => ({ id: p.id, roll: match.rng.int(1, 6) }));
+      rolls.sort((a, b) => b.roll - a.roll);
+
+      const winnerIdx = match.players.findIndex(p => p.id === rolls[0].id);
+      // Fixed clockwise turn order starting from winner
+      match.turnOrder = [];
+      for (let i = 0; i < match.players.length; i++) {
+        match.turnOrder.push(match.players[(winnerIdx + i) % match.players.length].id);
+      }
+      match.turnIndex = 0;
+      match.activePlayerId = match.turnOrder[0];
+    }
+
+    return { success: true };
+  }
+
+  function handleTurnTimeoutOrSkip(match, playerId) {
+    const player = match.players.find(p => p.id === playerId);
+    if (!player) return;
+
+    if (player.cp >= 1) {
+      player.cp -= 1;
+    } else if (player.hand.length > 0) {
+      player.discard.push(player.hand.pop());
+    }
+    endMPTurn(match, playerId, true);
+  }
+
+  function endMPTurn(match, playerId, isSkip) {
+    if (match.activePlayerId !== playerId) return;
+
+    const currentIdx = match.turnOrder.indexOf(playerId);
+    let nextIdx = (currentIdx + 1) % match.turnOrder.length;
+
+    // Check if wrapped around to complete a full round
+    if (nextIdx === 0) {
+      match.round++;
+      // Round refresh: all alive supports refresh
+      match.players.forEach(p => {
+        if (p.alive && !p.eliminated) {
+          if (p.fleet && p.fleet.patrol && p.fleet.patrol.alive) p.supportSpent.patrol = false;
+          if (p.fleet && p.fleet.minelayer && p.fleet.minelayer.alive) p.supportSpent.minelayer = false;
+        }
+      });
+    }
+
+    // Advance to next non-eliminated player
+    let loops = 0;
+    while (loops < match.turnOrder.length) {
+      const candidateId = match.turnOrder[nextIdx];
+      const candidatePlayer = match.players.find(p => p.id === candidateId);
+      if (candidatePlayer && !candidatePlayer.eliminated) {
+        match.activePlayerId = candidateId;
+        match.turnIndex = nextIdx;
+
+        // Resource grant at start of active player's turn:
+        // Carry over CP + 2 (capped at 6)
+        candidatePlayer.cp = Math.min(candidatePlayer.maxCp, candidatePlayer.cp + 2);
+
+        // Draw 2 cards (hand limit 8)
+        for (let d = 0; d < 2; d++) {
+          if (candidatePlayer.hand.length < 8) {
+            if (candidatePlayer.deck.length === 0 && candidatePlayer.discard.length > 0) {
+              candidatePlayer.deck = match.rng.shuffle([...candidatePlayer.discard]);
+              candidatePlayer.discard = [];
+            }
+            if (candidatePlayer.deck.length > 0) {
+              candidatePlayer.hand.push(candidatePlayer.deck.pop());
+            }
+          }
+        }
+        break;
+      }
+      nextIdx = (nextIdx + 1) % match.turnOrder.length;
+      loops++;
+    }
+  }
+
+  function usePlatformAction(match, playerId, shipId) {
+    const player = match.players.find(p => p.id === playerId);
+    if (!player) return { success: false, reason: 'Player not found' };
+
+    if (!player.fleet || !player.fleet[shipId] || !player.fleet[shipId].alive) {
+      return { success: false, reason: 'Ship platform destroyed or unavailable' };
+    }
+
+    if (player.supportSpent[shipId]) {
+      return { success: false, reason: 'Platform action already used this round' };
+    }
+
+    player.supportSpent[shipId] = true;
+    return { success: true };
+  }
+
+  function addSharedIntel(match, teamId, intelItem) {
+    if (!match.sharedIntel[teamId]) {
+      match.sharedIntel[teamId] = [];
+    }
+    match.sharedIntel[teamId].push(intelItem);
+  }
+
+  function getFilteredState(match, viewerId) {
+    const viewer = match.players.find((p, idx) => p.id === viewerId || idx === viewerId || p.id === 'p' + (viewerId + 1));
+    if (!viewer) return null;
+
+    const selfState = {
+      id: viewer.id,
+      name: viewer.name,
+      team: viewer.team,
+      quadrant: viewer.quadrant,
+      cp: viewer.cp,
+      maxCp: viewer.maxCp,
+      hand: [...viewer.hand],
+      ammo: { ...viewer.ammo },
+      fleet: viewer.fleet,
+      supportSpent: { ...viewer.supportSpent },
+      alive: viewer.alive,
+      eliminated: viewer.eliminated
+    };
+
+    const opponentsState = match.players
+      .filter(p => p.id !== viewer.id)
+      .map(p => {
+        let flagshipHp = 0;
+        let survivingSupports = 0;
+        if (p.fleet) {
+          if (p.fleet.flagship && p.fleet.flagship.alive) flagshipHp = p.fleet.flagship.hp;
+          if (p.fleet.patrol && p.fleet.patrol.alive) survivingSupports++;
+          if (p.fleet.minelayer && p.fleet.minelayer.alive) survivingSupports++;
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          team: p.team,
+          quadrant: p.quadrant,
+          alive: p.alive,
+          eliminated: p.eliminated,
+          flagshipHp,
+          survivingSupports
+        };
+      });
+
+    const sharedIntel = match.mode === '2v2' ? (match.sharedIntel[viewer.team] || []) : [];
+
+    return {
+      phase: match.phase,
+      mode: match.mode,
+      round: match.round,
+      turnOrder: match.turnOrder,
+      activePlayerId: match.activePlayerId,
+      self: selfState,
+      opponents: opponentsState,
+      sharedIntel
+    };
+  }
+
+  // ----------------------------------------------------
+  // §7. COMBAT, ELIMINATION, SURRENDER & STORM COLLAPSE
+  // ----------------------------------------------------
+  function resolveAttack(match, attackerId, tx, ty, damage) {
+    const attacker = match.players.find(p => p.id === attackerId);
+    let hitShip = null;
+    let targetPlayer = null;
+
+    for (const p of match.players) {
+      if (!p.alive || p.eliminated || !p.fleet) continue;
+      for (const sId of ['flagship', 'patrol', 'minelayer']) {
+        const ship = p.fleet[sId];
+        if (ship && ship.alive && ship.cells.some(c => c.x === tx && c.y === ty)) {
+          hitShip = ship;
+          targetPlayer = p;
+          break;
+        }
+      }
+      if (hitShip) break;
+    }
+
+    if (hitShip && targetPlayer) {
+      hitShip.hp = Math.max(0, hitShip.hp - damage);
+      const sunk = hitShip.hp <= 0;
+      if (sunk) hitShip.alive = false;
+
+      // Public event: zero coordinates leaked to bystanders
+      match.eventsLog.push({
+        type: 'HIT',
+        turn: match.round,
+        attackerId,
+        targetPlayerId: targetPlayer.id,
+        publicText: `${attacker ? attacker.name : 'Attacker'} hit ${targetPlayer.name}.`,
+        sunkShipId: sunk ? hitShip.id : null
+      });
+
+      checkEliminationsAndVictory(match);
+
+      return {
+        hit: true,
+        targetPlayerId: targetPlayer.id,
+        shipId: hitShip.id,
+        sunk,
+        damage
+      };
+    } else {
+      match.eventsLog.push({
+        type: 'MISS',
+        turn: match.round,
+        attackerId,
+        publicText: `${attacker ? attacker.name : 'Attacker'} missed.`
+      });
+
+      return { hit: false };
+    }
+  }
+
+  function checkEliminationsAndVictory(match) {
+    // Check player eliminations
+    for (const p of match.players) {
+      if (p.fleet) {
+        const anyAlive = (p.fleet.flagship && p.fleet.flagship.alive) ||
+                         (p.fleet.patrol && p.fleet.patrol.alive) ||
+                         (p.fleet.minelayer && p.fleet.minelayer.alive);
+        if (!anyAlive) {
+          p.alive = false;
+          p.eliminated = true;
+        }
+      }
+    }
+
+    // Check Victory condition
+    if (match.mode === '1v1v1v1') {
+      const active = match.players.filter(p => p.alive && !p.eliminated);
+      if (active.length === 1) {
+        match.phase = 'FINISHED';
+        match.winner = active[0].id;
+      }
+    } else if (match.mode === '2v2') {
+      const t1Alive = match.players.some(p => p.team === 'T1' && p.alive && !p.eliminated);
+      const t2Alive = match.players.some(p => p.team === 'T2' && p.alive && !p.eliminated);
+
+      if (t1Alive && !t2Alive) {
+        match.phase = 'FINISHED';
+        match.winner = 'T1';
+      } else if (t2Alive && !t1Alive) {
+        match.phase = 'FINISHED';
+        match.winner = 'T2';
+      }
+    }
+  }
+
+  function submitSurrender(match, playerId) {
+    const player = match.players.find(p => p.id === playerId);
+    if (!player || player.eliminated) return { status: 'INVALID' };
+
+    if (match.mode === '1v1v1v1') {
+      player.alive = false;
+      player.eliminated = true;
+      checkEliminationsAndVictory(match);
+      return { status: 'SURRENDERED' };
+    } else if (match.mode === '2v2') {
+      const teammate = match.players.find(p => p.team === player.team && p.id !== player.id);
+      if (teammate && teammate.surrenderPending) {
+        // Both teammates confirmed surrender!
+        player.alive = false;
+        player.eliminated = true;
+        teammate.alive = false;
+        teammate.eliminated = true;
+        match.winner = player.team === 'T1' ? 'T2' : 'T1';
+        match.phase = 'FINISHED';
+        return { status: 'TEAM_SURRENDERED' };
+      } else {
+        player.surrenderPending = true;
+        return { status: 'SURRENDER_PENDING' };
+      }
+    }
+  }
+
+  function processStormCollapse(match) {
+    if (match.round >= 20) {
+      match.phase = 'STORM';
+      match.stormUnsafeRings = Math.max(1, (match.round - 20) + 1);
+    }
+  }
+
+  return {
+    GW,
+    GH,
+    COLS,
+    T,
+    QUADRANTS,
+    MP_SHIPS,
+    MP_START_DECK,
+    mkRng,
+    cid,
+    parseCid,
+    getQuadrant,
+    getCellQuadrant: getQuadrant,
+    canShipMoveTo,
+    genMPGrid,
+    getShipCells,
+    validateMPShipPlacement,
+    validateMPFleet,
+    quickDeployMP,
+    createMPMatch,
+    submitDeployment,
+    endMPTurn,
+    handleTurnTimeoutOrSkip,
+    usePlatformAction,
+    addSharedIntel,
+    getFilteredState,
+    resolveAttack,
+    checkEliminationsAndVictory,
+    submitSurrender,
+    processStormCollapse,
+    MP_CONSTANTS: { GW, GH, COLS, T, QUADRANTS, MP_SHIPS, MP_START_DECK },
+    submitAction: usePlatformAction,
+    advanceMPTurn: endMPTurn
+  };
+
+})();
+const MPEngine = MP;
+
+/* ════════════════════════════════════════════════════════════════
+   §0C  ROGUELITE CAMPAIGN & ROUTE MAP STATE MACHINE
+════════════════════════════════════════════════════════════════ */
+let campaignRun = null;
+let currentSelectedNode = null;
+let currentEventData = null;
+let activeEncounterArchetype = null;
+
+function startCampaignRun(seed) {
+  let s = parseInt(seed) || 0;
+  if (!s || isNaN(s)) {
+    const inp = document.getElementById('seed-in');
+    s = parseInt(inp ? inp.value : '') || Math.floor(Math.random() * 99998) + 1;
+  }
+  campaignRun = {
+    seed: s,
+    region: 1,
+    currentTier: 0,
+    currentNodeId: null,
+    flagshipHull: 20,
+    maxHull: 20,
+    ammo: { torpedo: 6, depthCharge: 4, sonar: 5, smoke: 3, mine: 2, fuel: 2 },
+    deck: ['torpedo_salvo', 'acoustic_sweep', 'evasive_rudder', 'depth_charge', 'decoy_buoy', 'smoke_screen'],
+    modules: [],
+    cardUpgrades: {},
+    map: RouteEngine.generateRouteMap(s, 1),
+    history: []
+  };
+  updateRouteHUD();
+  renderRouteMap();
+  showScreen('scr-route-map');
+}
+
+function updateRouteHUD() {
+  if (!campaignRun) return;
+  const hullEl = document.getElementById('route-hull-status');
+  const torpEl = document.getElementById('route-torpedo-status');
+  const sonEl = document.getElementById('route-sonar-status');
+  const tierEl = document.getElementById('route-tier-lbl');
+  if (hullEl) hullEl.textContent = 'HULL: ' + campaignRun.flagshipHull + '/' + campaignRun.maxHull;
+  if (torpEl) torpEl.textContent = 'TORP: ' + (campaignRun.ammo.torpedo || 0);
+  if (sonEl) sonEl.textContent = 'SONAR: ' + (campaignRun.ammo.sonar || 0);
+  if (tierEl) tierEl.textContent = 'TIER ' + ((campaignRun.map ? campaignRun.map.currentTier : 0) + 1) + ' OF 4';
+}
+
+function renderRouteMap() {
+  const container = document.getElementById('route-map-container');
+  if (!container || !campaignRun || !campaignRun.map) return;
+  const tiers = campaignRun.map.tiers;
+  const tierLabels = ['TIER 1: RECON OUTPOST', 'TIER 2: PATROL LANES', 'TIER 3: PRE-BOSS APPROACH', 'TIER 4: REGIONAL FLAGSHIP'];
+
+  let htmlOut = '';
+  for (let t = 0; t < tiers.length; t++) {
+    const tier = tiers[t];
+    htmlOut += '<div style="display:flex;flex-direction:column;align-items:center;width:100%">';
+    htmlOut += '<div style="font-size:.65rem;color:#4a6a8a;letter-spacing:.15em;margin-bottom:6px">' + (tierLabels[t] || ('TIER ' + (t + 1))) + '</div>';
+    htmlOut += '<div class="route-tier">';
+    for (let i = 0; i < tier.length; i++) {
+      const node = tier[i];
+      const isAvailable = node.status === 'available';
+      const isVisited = node.status === 'visited';
+      const isBoss = node.type === 'boss';
+
+      const statusClass = isVisited ? 'visited' : isAvailable ? 'available' : 'locked';
+      const badgeClass = 'badge-' + node.type;
+
+      htmlOut += '<div class="route-node ' + statusClass + (isBoss ? ' boss' : '') + '" onclick="selectRouteNode(\'' + node.id + '\')">';
+      htmlOut += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+      htmlOut += '<span class="node-type-badge ' + badgeClass + '">' + node.type.toUpperCase() + '</span>';
+      htmlOut += '<span style="font-size:.6rem;color:' + (isAvailable ? '#50c878' : '#3a5a7a') + '">' + node.status.toUpperCase() + '</span>';
+      htmlOut += '</div>';
+      htmlOut += '<div style="font-size:.78rem;font-weight:bold;color:#d4a843;margin-bottom:3px">' + node.title + '</div>';
+      htmlOut += '<div style="font-size:.65rem;color:#8aa8c8;line-height:1.4">' + node.desc + '</div>';
+      htmlOut += '</div>';
+    }
+    htmlOut += '</div>';
+    if (t < tiers.length - 1) {
+      htmlOut += '<div style="color:#1a3a5a;font-size:.9rem;margin:4px 0">▼ &nbsp; ▼ &nbsp; ▼</div>';
+    }
+    htmlOut += '</div>';
+  }
+  container.innerHTML = htmlOut;
+}
+
+function selectRouteNode(nodeId) {
+  if (!campaignRun || !campaignRun.map) return;
+  const node = RouteEngine.visitRouteNode(campaignRun.map, nodeId);
+  if (!node) return;
+
+  currentSelectedNode = node;
+  updateRouteHUD();
+  renderRouteMap();
+
+  if (node.type === 'event') {
+    openEventModal(node);
+  } else if (node.type === 'repair') {
+    openRepairModal(node);
+  } else if (node.type === 'supply') {
+    openSupplyModal(node);
+  } else if (node.type === 'fight' || node.type === 'elite' || node.type === 'boss') {
+    launchEncounterNode(node);
+  }
+}
+
+function openEventModal(node) {
+  const modal = document.getElementById('event-modal');
+  const title = document.getElementById('event-title');
+  const badge = document.getElementById('event-badge');
+  const desc = document.getElementById('event-desc');
+  const wrap = document.getElementById('event-choices-wrap');
+  if (!modal) return;
+
+  currentEventData = node.archetype;
+  if (title) title.textContent = node.title;
+  if (badge) {
+    badge.textContent = 'DECISION EVENT';
+    badge.className = 'node-type-badge badge-event';
+  }
+  if (desc) desc.textContent = node.desc;
+
+  let choices = [];
+  if (node.archetype === 'Distress Signal') {
+    choices = [
+      { text: '1. Investigate coordinates (Risk ambush, salvage munitions)', idx: 0 },
+      { text: '2. Ignore distress signal (Maintain stealth)', idx: 1 },
+      { text: '3. Acoustic sensor ping (-1 Sonar charge)', idx: 2 }
+    ];
+  } else if (node.archetype === 'Derelict Vessel') {
+    choices = [
+      { text: '1. Board drifting hulk (Risk crew -2 HP, gain rare card)', idx: 0 },
+      { text: '2. Strip external munitions (+2 Torpedoes)', idx: 1 },
+      { text: '3. Pass without contact', idx: 2 }
+    ];
+  } else if (node.archetype === 'Smuggler Dock') {
+    choices = [
+      { text: '1. Scrap damaged hull section to streamline deck (-3 HP, remove card)', idx: 0 },
+      { text: '2. Trade 2 Torpedoes for Salvage Crane passive module', idx: 1 },
+      { text: '3. Refuse transaction and depart', idx: 2 }
+    ];
+  } else {
+    choices = [
+      { text: '1. Proceed with caution', idx: 0 },
+      { text: '2. Bypass sector', idx: 1 }
+    ];
+  }
+
+  if (wrap) {
+    wrap.innerHTML = choices.map(c => '<button class="event-choice-btn" onclick="onSelectEventChoice(' + c.idx + ')">' + c.text + '</button>').join('');
+  }
+  modal.classList.add('active');
+}
+
+function onSelectEventChoice(choiceIdx) {
+  if (!campaignRun) return;
+  const res = RouteEngine.resolveEventChoice(campaignRun, currentEventData, choiceIdx);
+  const wrap = document.getElementById('event-choices-wrap');
+  if (wrap) {
+    wrap.innerHTML = '<div style="padding:10px;background:#0d2438;border:1px solid #50c878;color:#50c878;font-size:.78rem;border-radius:4px;line-height:1.5">' +
+      (res.message || res.reason || 'Decision resolved.') +
+      '</div><button class="btn g" style="margin-top:10px" onclick="closeEventModal()">RETURN TO ROUTE MAP</button>';
+  }
+  updateRouteHUD();
+  renderRouteMap();
+}
+
+function closeEventModal() {
+  const modal = document.getElementById('event-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function openRepairModal(node) {
+  const modal = document.getElementById('event-modal');
+  const title = document.getElementById('event-title');
+  const badge = document.getElementById('event-badge');
+  const desc = document.getElementById('event-desc');
+  const wrap = document.getElementById('event-choices-wrap');
+  if (!modal) return;
+
+  if (title) title.textContent = 'ALLIED REPAIR MOORING';
+  if (badge) {
+    badge.textContent = 'REPAIR & REFIT';
+    badge.className = 'node-type-badge badge-repair';
+  }
+  if (desc) desc.textContent = 'Moored alongside an allied tender ship. Repair damaged hull plating or reconfigure weapon systems.';
+
+  if (wrap) {
+    wrap.innerHTML = '<button class="event-choice-btn" onclick="applyFieldRepair(5)">1. Field Patch (+5 Flagship Hull Integrity)</button>' +
+      '<button class="event-choice-btn" onclick="applyHullTuning()">2. Reconfigure Munitions (+2 Torpedoes, +1 Sonar)</button>';
+  }
+  modal.classList.add('active');
+}
+
+function applyFieldRepair(amount) {
+  if (campaignRun) {
+    campaignRun.flagshipHull = Math.min(campaignRun.maxHull, (campaignRun.flagshipHull || 20) + amount);
+    updateRouteHUD();
+  }
+  closeEventModal();
+}
+
+function applyHullTuning() {
+  if (campaignRun) {
+    campaignRun.ammo.torpedo = (campaignRun.ammo.torpedo || 0) + 2;
+    campaignRun.ammo.sonar = (campaignRun.ammo.sonar || 0) + 1;
+    updateRouteHUD();
+  }
+  closeEventModal();
+}
+
+function openSupplyModal(node) {
+  const modal = document.getElementById('event-modal');
+  const title = document.getElementById('event-title');
+  const badge = document.getElementById('event-badge');
+  const desc = document.getElementById('event-desc');
+  const wrap = document.getElementById('event-choices-wrap');
+  if (!modal) return;
+
+  if (title) title.textContent = 'NAVAL MUNITIONS DEPOT';
+  if (badge) {
+    badge.textContent = 'SUPPLY CACHE';
+    badge.className = 'node-type-badge badge-supply';
+  }
+  if (desc) desc.textContent = 'Restock vital ordnance and surveillance charges before entering hostile waters.';
+
+  if (wrap) {
+    wrap.innerHTML = '<button class="event-choice-btn" onclick="applySupplyChoice(\'ammo\')">1. Restock Torpedoes & Depth Charges (+3 Torpedoes, +2 Charges)</button>' +
+      '<button class="event-choice-btn" onclick="applySupplyChoice(\'sensors\')">2. Replenish Reconnaissance Suite (+3 Sonar Charges, +2 Decoy Buoys)</button>';
+  }
+  modal.classList.add('active');
+}
+
+function applySupplyChoice(type) {
+  if (campaignRun) {
+    if (type === 'ammo') {
+      campaignRun.ammo.torpedo = (campaignRun.ammo.torpedo || 0) + 3;
+      campaignRun.ammo.depthCharge = (campaignRun.ammo.depthCharge || 0) + 2;
+    } else {
+      campaignRun.ammo.sonar = (campaignRun.ammo.sonar || 0) + 3;
+      campaignRun.ammo.smoke = (campaignRun.ammo.smoke || 0) + 2;
+    }
+    updateRouteHUD();
+  }
+  closeEventModal();
+}
+
+function launchEncounterNode(node) {
+  const enc = RouteEngine.setupEncounter(campaignRun, node.archetype);
+  activeEncounterArchetype = enc;
+  startPreparation(campaignRun.seed + (campaignRun.map.currentTier * 1337));
+}
+
+function returnToRouteMap() {
+  if (campaignRun) {
+    updateRouteHUD();
+    renderRouteMap();
+    showScreen('scr-route-map');
+  } else {
+    showTitle();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §0D  ANALYZE MODE & PROBABILITY HEATMAP REPLAY
+════════════════════════════════════════════════════════════════ */
+let analyzeSession = null;
+let analyzeVisionMode = 'ai_vision';
+
+function openAnalyzeMode() {
+  let record = (G && G.battleRecord && G.battleRecord.turns && G.battleRecord.turns.length > 0)
+    ? G.battleRecord
+    : null;
+
+  if (!record) {
+    const dummyTurns = [];
+    for (let t = 1; t <= 3; t++) {
+      const probGrid = [];
+      for (let i = 0; i < 400; i++) {
+        const x = i % 20, y = Math.floor(i / 20);
+        let p = 0.05;
+        if (x >= 4 && x <= 8 && y >= 4 && y <= 8) p = 0.25 * t;
+        probGrid.push({ x, y, prob: Math.min(0.95, p) });
+      }
+      dummyTurns.push({
+        turn: t,
+        pFleet: [{ id: 'flagship', x: 6, y: 6, len: 3, alive: true }],
+        eFleet: [{ id: 'enemy', x: 14, y: 14, len: 3, alive: true }],
+        aiProbGrid: probGrid,
+        aiAction: { x: 6, y: 7, reason: 'Acoustic bearing search pattern' },
+        evidence: { hits: [{ x: 6, y: 6 }], decoys: [] }
+      });
+    }
+    record = { seed: (G ? G.seed : 1234), turns: dummyTurns };
+  }
+
+  analyzeSession = RouteEngine.createAnalyzeSession(record);
+  analyzeSession.currentTurn = 1;
+
+  const scrubber = document.getElementById('analyze-scrubber');
+  if (scrubber) {
+    scrubber.min = 1;
+    scrubber.max = Math.max(1, analyzeSession.totalTurns);
+    scrubber.value = 1;
+  }
+
+  renderAnalyzeHeatmap(1);
+  showScreen('scr-analyze');
+}
+
+function onAnalyzeScrub(turnVal) {
+  const t = parseInt(turnVal, 10);
+  if (!analyzeSession) return;
+  analyzeSession.currentTurn = t;
+  renderAnalyzeHeatmap(t);
+}
+
+function stepAnalyzeTurn(delta) {
+  if (!analyzeSession) return;
+  const newT = Math.max(1, Math.min(analyzeSession.totalTurns, analyzeSession.currentTurn + delta));
+  analyzeSession.currentTurn = newT;
+  const scrubber = document.getElementById('analyze-scrubber');
+  if (scrubber) scrubber.value = newT;
+  renderAnalyzeHeatmap(newT);
+}
+
+function toggleAnalyzeVision() {
+  analyzeVisionMode = analyzeVisionMode === 'ai_vision' ? 'ground_truth' : 'ai_vision';
+  const btn = document.getElementById('btn-toggle-vision');
+  if (btn) {
+    btn.textContent = analyzeVisionMode === 'ai_vision' ? 'TOGGLE: AI PERSPECTIVE' : 'TOGGLE: GROUND TRUTH';
+  }
+  if (analyzeSession) {
+    renderAnalyzeHeatmap(analyzeSession.currentTurn);
+  }
+}
+
+function closeAnalyzeMode() {
+  showScreen('scr-debrief');
+}
+
+function renderAnalyzeHeatmap(turnNumber) {
+  const canvas = document.getElementById('analyze-canvas');
+  if (!canvas || !analyzeSession) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const snap = RouteEngine.getTurnSnapshot(analyzeSession, turnNumber) || analyzeSession.turns[0];
+  if (!snap) return;
+
+  const lbl = document.getElementById('analyze-turn-lbl');
+  if (lbl) lbl.textContent = 'TURN ' + snap.turn + ' OF ' + analyzeSession.totalTurns;
+
+  const reasonBox = document.getElementById('analyze-reason-box');
+  if (reasonBox) {
+    reasonBox.textContent = RouteEngine.explainAIAction(snap.aiAction, snap.evidence);
+  }
+
+  ctx.fillStyle = '#060e1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const cellSz = 26;
+  const offset = 12;
+
+  // Draw Heatmap Probability Grid
+  if (snap.aiProbGrid && snap.aiProbGrid.length > 0) {
+    for (let i = 0; i < snap.aiProbGrid.length; i++) {
+      const tile = snap.aiProbGrid[i];
+      const color = RouteEngine.getHeatmapColor(tile.prob);
+      ctx.fillStyle = color;
+      ctx.fillRect(offset + tile.x * cellSz, offset + tile.y * cellSz, cellSz - 1, cellSz - 1);
+    }
+  }
+
+  // Draw Grid Lines
+  ctx.strokeStyle = 'rgba(26, 58, 90, 0.4)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 20; i++) {
+    ctx.beginPath();
+    ctx.moveTo(offset + i * cellSz, offset);
+    ctx.lineTo(offset + i * cellSz, offset + 20 * cellSz);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(offset, offset + i * cellSz);
+    ctx.lineTo(offset + 20 * cellSz, offset + i * cellSz);
+    ctx.stroke();
+  }
+
+  // Draw ships: Ground truth vs AI perception
+  if (analyzeVisionMode === 'ground_truth') {
+    if (snap.pFleet) {
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.8)';
+      for (let i = 0; i < snap.pFleet.length; i++) {
+        const s = snap.pFleet[i];
+        if (s.alive) {
+          ctx.fillRect(offset + s.x * cellSz + 3, offset + s.y * cellSz + 3, cellSz - 6, (s.len || 2) * cellSz - 6);
+        }
+      }
+    }
+    if (snap.eFleet) {
+      ctx.fillStyle = 'rgba(255, 23, 68, 0.8)';
+      for (let i = 0; i < snap.eFleet.length; i++) {
+        const s = snap.eFleet[i];
+        if (s.alive) {
+          ctx.fillRect(offset + s.x * cellSz + 3, offset + s.y * cellSz + 3, cellSz - 6, (s.len || 2) * cellSz - 6);
+        }
+      }
+    }
+  } else {
+    if (snap.evidence && snap.evidence.confirmed) {
+      ctx.fillStyle = '#ff1744';
+      for (let i = 0; i < snap.evidence.confirmed.length; i++) {
+        const c = snap.evidence.confirmed[i];
+        ctx.fillRect(offset + c.x * cellSz + 5, offset + c.y * cellSz + 5, cellSz - 10, cellSz - 10);
+      }
+    }
+    if (snap.evidence && snap.evidence.decoys) {
+      ctx.fillStyle = '#ba68c8';
+      for (let i = 0; i < snap.evidence.decoys.length; i++) {
+        const d = snap.evidence.decoys[i];
+        ctx.beginPath();
+        ctx.arc(offset + d.x * cellSz + cellSz / 2, offset + d.y * cellSz + cellSz / 2, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // Crosshair on AI targeted cell
+  if (snap.aiAction) {
+    const ax = offset + snap.aiAction.x * cellSz + cellSz / 2;
+    const ay = offset + snap.aiAction.y * cellSz + cellSz / 2;
+    ctx.strokeStyle = '#ff1744';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ax, ay, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax - 14, ay);
+    ctx.lineTo(ax + 14, ay);
+    ctx.moveTo(ax, ay - 14);
+    ctx.lineTo(ax, ay + 14);
+    ctx.stroke();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §0E  TACTICAL MULTIPLAYER ARENA (24×24 HOTSEAT)
+════════════════════════════════════════════════════════════════ */
+let mpMatch = null;
+let currentMPPerspective = 0;
+
+function openMultiplayerArena() {
+  mpMatch = MP.createMPMatch({
+    seed: Math.floor(Math.random() * 99998) + 1,
+    mode: 'ffa'
+  });
+
+  for (let i = 0; i < 4; i++) {
+    const qKey = Object.keys(MP.QUADRANTS)[i];
+    const fleet = MP.quickDeployMP(qKey, mpMatch.rng);
+    MP.submitDeployment(mpMatch, i, fleet);
+  }
+
+  setMPPerspective(0);
+  renderMPBoard();
+  showScreen('scr-mp');
+}
+
+function setMPPerspective(pIdx) {
+  currentMPPerspective = pIdx;
+  for (let i = 0; i < 4; i++) {
+    const tab = document.getElementById('mp-tab-' + i);
+    if (tab) {
+      tab.style.borderColor = i === pIdx ? '#00e5ff' : '#2a4a6a';
+      tab.style.background = i === pIdx ? 'rgba(0,229,255,0.2)' : 'transparent';
+    }
+  }
+  const qNames = ['NW (P1)', 'NE (P2)', 'SW (P3)', 'SE (P4)'];
+  const statusEl = document.getElementById('mp-player-status');
+  if (statusEl) statusEl.textContent = 'PERSPECTIVE: ' + qNames[pIdx] + ' FLEET';
+  renderMPBoard();
+}
+
+function renderMPBoard() {
+  const canvas = document.getElementById('mp-board');
+  if (!canvas || !mpMatch) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const cellSz = 21;
+  const offset = 18;
+
+  ctx.fillStyle = '#040d18';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Quadrant dividers
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(offset + 12 * cellSz, offset);
+  ctx.lineTo(offset + 12 * cellSz, offset + 24 * cellSz);
+  ctx.moveTo(offset, offset + 12 * cellSz);
+  ctx.lineTo(offset + 24 * cellSz, offset + 12 * cellSz);
+  ctx.stroke();
+
+  // Storm collapse warning rings (round >= 20)
+  if (mpMatch.stormUnsafeRings > 0) {
+    ctx.fillStyle = 'rgba(255, 23, 68, 0.2)';
+    const r = mpMatch.stormUnsafeRings;
+    ctx.fillRect(offset, offset, 24 * cellSz, r * cellSz);
+    ctx.fillRect(offset, offset + (24 - r) * cellSz, 24 * cellSz, r * cellSz);
+    ctx.fillRect(offset, offset, r * cellSz, 24 * cellSz);
+    ctx.fillRect(offset + (24 - r) * cellSz, offset, r * cellSz, 24 * cellSz);
+  }
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(25, 45, 70, 0.5)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 24; i++) {
+    ctx.beginPath();
+    ctx.moveTo(offset + i * cellSz, offset);
+    ctx.lineTo(offset + i * cellSz, offset + 24 * cellSz);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(offset, offset + i * cellSz);
+    ctx.lineTo(offset + 24 * cellSz, offset + i * cellSz);
+    ctx.stroke();
+  }
+
+  const filtered = MP.getFilteredState(mpMatch, currentMPPerspective);
+
+  // Friendly ships for active perspective
+  if (filtered && filtered.friendlyFleet) {
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.85)';
+    for (let s = 0; s < filtered.friendlyFleet.length; s++) {
+      const ship = filtered.friendlyFleet[s];
+      if (ship.alive && ship.cells) {
+        for (let c = 0; c < ship.cells.length; c++) {
+          const pt = ship.cells[c];
+          ctx.fillRect(offset + pt.x * cellSz + 2, offset + pt.y * cellSz + 2, cellSz - 4, cellSz - 4);
+        }
+      }
+    }
+  }
+
+  // Hits and confirmed intel
+  if (filtered && filtered.publicIntel) {
+    for (let k = 0; k < filtered.publicIntel.length; k++) {
+      const item = filtered.publicIntel[k];
+      if (item.type === 'hit') {
+        ctx.fillStyle = '#ff1744';
+        ctx.fillRect(offset + item.x * cellSz + 4, offset + item.y * cellSz + 4, cellSz - 8, cellSz - 8);
+      }
+    }
+  }
+}
+
+function execMPAction(actionType) {
+  if (!mpMatch) return;
+  const pIdx = mpMatch.turn;
+  const feed = document.getElementById('mp-intel-feed');
+
+  if (actionType === 'pass') {
+    MP.advanceMPTurn(mpMatch);
+    if (feed) feed.innerHTML += '<div>[R' + mpMatch.round + '] P' + (pIdx + 1) + ' passed turn. Active: P' + (mpMatch.turn + 1) + '</div>';
+  } else {
+    const res = MP.submitAction(mpMatch, pIdx, 'flagship', actionType, { x: 12, y: 12 });
+    if (feed) feed.innerHTML += '<div>[R' + mpMatch.round + '] P' + (pIdx + 1) + ' ordered ' + actionType.toUpperCase() + ': ' + (res.msg || (res.success ? 'Confirmed' : 'Failed')) + '</div>';
+  }
+
+  const roundLbl = document.getElementById('mp-round-lbl');
+  if (roundLbl) roundLbl.textContent = 'ROUND ' + mpMatch.round + ' · TURN P' + (mpMatch.turn + 1);
+  renderMPBoard();
+}
+
+function closeMPArena() {
+  showScreen('scr-title');
+}
+
 /* ════════════════════════════════════════════════════════════════
    §1  CONSTANTS
 ════════════════════════════════════════════════════════════════ */

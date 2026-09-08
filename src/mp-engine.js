@@ -722,6 +722,9 @@
     resolveAttack,
     checkEliminationsAndVictory,
     submitSurrender,
-    processStormCollapse
+    processStormCollapse,
+    MP_CONSTANTS: { GW, GH, COLS, T, QUADRANTS, MP_SHIPS, MP_START_DECK },
+    submitAction: usePlatformAction,
+    advanceMPTurn: endMPTurn
   };
 });
