@@ -108,6 +108,73 @@ if (RouteEngine) {
       }
     });
   });
+
+  console.log('\n--- Test Suite 2: Decision Events & Meaningful Tradeoffs ---');
+
+  runTest('resolveEventChoice processes Distress Signal tradeoffs', () => {
+    assert(typeof RouteEngine.resolveEventChoice === 'function', 'resolveEventChoice required');
+    const runA = { flagshipHull: 20, maxHull: 20, ammo: { torpedo: 4, sonar: 3 }, deck: [] };
+    const resA = RouteEngine.resolveEventChoice(runA, 'Distress Signal', 0); // Investigate
+    assert(resA.success, 'Event choice must resolve');
+    assert(runA.flagshipHull === 17, 'Ambush deals 3 damage');
+    assert(runA.ammo.torpedo === 6, 'Gains 2 torpedoes');
+    assert(runA.ammo.sonar === 4, 'Gains 1 sonar');
+
+    const runB = { flagshipHull: 20, maxHull: 20, ammo: { torpedo: 4, sonar: 3 }, deck: [] };
+    const resB = RouteEngine.resolveEventChoice(runB, 'Distress Signal', 1); // Ignore
+    assert(runB.flagshipHull === 20 && runB.ammo.torpedo === 4, 'Ignore leaves state intact');
+  });
+
+  runTest('resolveEventChoice processes Derelict Vessel board vs salvage', () => {
+    const runA = { flagshipHull: 20, deck: ['narrow_sonar'], ammo: { torpedo: 2 } };
+    const resA = RouteEngine.resolveEventChoice(runA, 'Derelict Vessel', 0); // Board
+    assert(runA.flagshipHull === 18, 'Boarding costs 2 hull');
+    assert(runA.deck.length === 2, 'Adds a rare card to deck');
+
+    const runB = { flagshipHull: 20, deck: ['narrow_sonar'], ammo: { torpedo: 2 } };
+    const resB = RouteEngine.resolveEventChoice(runB, 'Derelict Vessel', 1); // Salvage
+    assert(runB.flagshipHull === 20, 'Salvage leaves hull intact');
+    assert(runB.ammo.torpedo === 4, 'Gains 2 torpedoes');
+  });
+
+  runTest('resolveEventChoice processes Smuggler Dock card remove for hull', () => {
+    const run = { flagshipHull: 20, deck: ['strike', 'decoy', 'sonar'], ammo: { torpedo: 4 } };
+    const res = RouteEngine.resolveEventChoice(run, 'Smuggler Dock', 0, 'strike'); // Remove strike
+    assert(run.flagshipHull === 17, 'Card removal costs 3 hull');
+    assert(!run.deck.includes('strike'), 'Card removed from deck');
+  });
+
+  console.log('\n--- Test Suite 3: Encounter Archetypes & Regional Boss ---');
+
+  runTest('setupEncounter configures Hunt, Silent Duel, and Convoy Raid accurately', () => {
+    assert(typeof RouteEngine.setupEncounter === 'function', 'setupEncounter required');
+    const hunt = RouteEngine.setupEncounter({ modules: [] }, 'Hunt');
+    assert(hunt.timer === 75, 'Standard hunt timer is 75s');
+    assert(hunt.enemyFlagshipHP === 28, 'Standard flagship HP is 28');
+    assert(hunt.objective === 'Destroy Hostile Flagship', 'Hunt objective');
+
+    const silent = RouteEngine.setupEncounter({ modules: [] }, 'Silent Duel');
+    assert(silent.timer === 75, 'Silent duel timer is 75s');
+    assert(silent.sensorPenalty === 0.5, 'Sensor coverage halved');
+    assert(silent.enemyFlagshipHP === 28, 'Standard enemy HP');
+
+    const convoy = RouteEngine.setupEncounter({ modules: [] }, 'Convoy Raid');
+    assert(convoy.transportTarget !== null, 'Must include transport target');
+    assert(convoy.turnsToEscape === 5, 'Transport escapes in 5 turns');
+  });
+
+  runTest('setupEncounter configures Mirage Carrier boss encounter per Section 15', () => {
+    const boss = RouteEngine.setupEncounter({ modules: [] }, 'Mirage Carrier');
+    assert(boss.isBoss === true, 'Must flag as boss encounter');
+    assert(boss.timer === 60, 'Boss turn timer is strictly 60s per Section 10/15');
+    assert(boss.enemyFlagshipHP === 32, 'Boss flagship has 32 HP');
+    assert(boss.specialRule === 'Acoustic Mirage Phantoms', 'Special rule matches spec');
+    assert(typeof boss.triggerPhantoms === 'function', 'Must have triggerPhantoms method');
+
+    // Trigger phantoms adds 2 fake contacts
+    const fakeContacts = boss.triggerPhantoms(12345);
+    assert(fakeContacts.length === 2, 'Mirage Carrier spawns 2 phantom acoustic signatures');
+  });
 }
 
 console.log('\n====================================================');
@@ -117,6 +184,7 @@ console.log('====================================================');
 if (passed < total) {
   process.exit(1);
 } else {
-  console.log(' ALL ROUTE MAP TESTS PASSED (GREEN)!\n');
+  console.log(' ALL ROUTELITE TESTS PASSED (GREEN)!\n');
   process.exit(0);
 }
+

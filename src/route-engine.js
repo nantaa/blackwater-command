@@ -192,10 +192,120 @@
     return targetNode;
   }
 
+  function resolveEventChoice(run, eventType, choiceIndex, extraArg) {
+    if (!run) return { success: false, reason: 'Invalid run' };
+    run.ammo = run.ammo || { torpedo: 6, depthCharge: 4, sonar: 5, smoke: 3, mine: 2, fuel: 2 };
+    run.deck = run.deck || [];
+    run.modules = run.modules || [];
+
+    if (eventType === 'Distress Signal') {
+      if (choiceIndex === 0) {
+        // Investigate: Ambush (-3 HP) but gain munitions (+2 torpedo, +1 sonar)
+        run.flagshipHull = Math.max(1, (run.flagshipHull || 20) - 3);
+        run.ammo.torpedo = (run.ammo.torpedo || 0) + 2;
+        run.ammo.sonar = (run.ammo.sonar || 0) + 1;
+        return { success: true, message: 'Ambush survived (-3 HP). Salvaged 2 torpedoes & 1 sonar charge.' };
+      } else if (choiceIndex === 1) {
+        // Ignore: Safe
+        return { success: true, message: 'Signal ignored. Maintained tactical stealth.' };
+      } else if (choiceIndex === 2) {
+        // Remote scan: Costs 1 sonar, reveals next node modifier
+        if (run.ammo.sonar >= 1) {
+          run.ammo.sonar--;
+          return { success: true, message: 'Acoustic sweep analyzed surrounding sector.' };
+        }
+        return { success: false, reason: 'Insufficient sonar charges' };
+      }
+    } else if (eventType === 'Derelict Vessel') {
+      if (choiceIndex === 0) {
+        // Board: Risk hull (-2 HP), gain rare card
+        run.flagshipHull = Math.max(1, (run.flagshipHull || 20) - 2);
+        run.deck.push('precision_salvo');
+        return { success: true, message: 'Vessel boarded (-2 HP). Secured Precision Salvo doctrine card.' };
+      } else if (choiceIndex === 1) {
+        // Salvage: Gain 2 torpedoes
+        run.ammo.torpedo = (run.ammo.torpedo || 0) + 2;
+        return { success: true, message: 'Ammunition lockers salvaged (+2 torpedoes).' };
+      } else if (choiceIndex === 2) {
+        return { success: true, message: 'Derelict left undisturbed.' };
+      }
+    } else if (eventType === 'Smuggler Dock') {
+      if (choiceIndex === 0) {
+        // Card remove: Costs 3 HP
+        run.flagshipHull = Math.max(1, (run.flagshipHull || 20) - 3);
+        const cardToRemove = extraArg || run.deck[0];
+        const idx = run.deck.indexOf(cardToRemove);
+        if (idx !== -1) run.deck.splice(idx, 1);
+        return { success: true, message: `Removed ${cardToRemove} from deck (-3 HP).` };
+      } else if (choiceIndex === 1) {
+        // Tech trade: Costs 2 torpedoes, gain module
+        if (run.ammo.torpedo >= 2) {
+          run.ammo.torpedo -= 2;
+          run.modules.push('salvage_crane');
+          return { success: true, message: 'Traded 2 torpedoes for Salvage Crane module.' };
+        }
+        return { success: false, reason: 'Insufficient torpedoes' };
+      } else if (choiceIndex === 2) {
+        return { success: true, message: 'Clandestine dock bypassed.' };
+      }
+    }
+
+    return { success: false, reason: 'Unknown event' };
+  }
+
+  function setupEncounter(run, archetype) {
+    const isBoss = archetype === 'Mirage Carrier';
+    const timer = isBoss ? 60 : 75; // Boss timer is 60s per Section 10/15
+
+    let objective = 'Destroy Hostile Flagship';
+    let enemyFlagshipHP = isBoss ? 32 : 28;
+    let specialRule = null;
+    let sensorPenalty = 1.0;
+    let transportTarget = null;
+    let turnsToEscape = null;
+
+    if (archetype === 'Silent Duel') {
+      objective = 'Destroy Hostile Flagship in Low-Sensor Waters';
+      sensorPenalty = 0.5;
+      specialRule = 'Sensor Suppression';
+    } else if (archetype === 'Convoy Raid') {
+      objective = 'Intercept Hostile Transport Before Escape';
+      transportTarget = { id: 'transport', hp: 12, maxHp: 12, alive: true };
+      turnsToEscape = 5;
+      specialRule = 'Escape Clock';
+    } else if (archetype === 'Mirage Carrier') {
+      objective = 'Neutralize Mirage Carrier Flagship';
+      specialRule = 'Acoustic Mirage Phantoms';
+    }
+
+    function triggerPhantoms(seed) {
+      const rng = mkRng(seed || 999);
+      return [
+        { x: rng.int(10, 18), y: rng.int(2, 8), type: 'phantom', radius: 1 },
+        { x: rng.int(10, 18), y: rng.int(12, 18), type: 'phantom', radius: 1 }
+      ];
+    }
+
+    return {
+      archetype: archetype,
+      isBoss: isBoss,
+      timer: timer,
+      objective: objective,
+      enemyFlagshipHP: enemyFlagshipHP,
+      specialRule: specialRule,
+      sensorPenalty: sensorPenalty,
+      transportTarget: transportTarget,
+      turnsToEscape: turnsToEscape,
+      triggerPhantoms: triggerPhantoms
+    };
+  }
+
   return {
     generateRouteMap: generateRouteMap,
     canVisitNode: canVisitNode,
     visitRouteNode: visitRouteNode,
+    resolveEventChoice: resolveEventChoice,
+    setupEncounter: setupEncounter,
     NODE_ARCHETYPES: NODE_ARCHETYPES
   };
 });
