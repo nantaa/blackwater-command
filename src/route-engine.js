@@ -300,12 +300,55 @@
     };
   }
 
+  function createAnalyzeSession(battleRecord) {
+    battleRecord = battleRecord || { seed: 1234, turns: [] };
+    return {
+      seed: battleRecord.seed,
+      turns: battleRecord.turns || [],
+      totalTurns: battleRecord.turns ? battleRecord.turns.length : 0,
+      currentTurn: 1,
+      visionMode: 'ground_truth' // 'ai_vision' | 'ground_truth'
+    };
+  }
+
+  function getTurnSnapshot(session, turnNumber) {
+    if (!session || !session.turns) return null;
+    return session.turns.find(t => t.turn === turnNumber) || session.turns[0] || null;
+  }
+
+  function getHeatmapColor(prob) {
+    if (prob < 0.1) {
+      return 'rgba(0, 50, 100, 0.2)';
+    } else if (prob < 0.3) {
+      return 'rgba(0, 229, 255, 0.4)'; // cyan
+    } else if (prob < 0.6) {
+      return 'rgba(255, 214, 0, 0.6)'; // amber/yellow
+    } else {
+      return 'rgba(255, 23, 68, 0.85)'; // hot red
+    }
+  }
+
+  function explainAIAction(action, evidence) {
+    if (!action) return 'No action recorded.';
+    if (evidence && evidence.decoys && evidence.decoys.some(d => d.x === action.x && d.y === action.y)) {
+      return `Targeted (${action.x}, ${action.y}): Decoy buoy acoustic phantom created false positive peak.`;
+    }
+    if (evidence && evidence.hits && evidence.hits.some(h => Math.abs(h.x - action.x) <= 1 && Math.abs(h.y - action.y) <= 1)) {
+      return `Targeted (${action.x}, ${action.y}): Prior confirmed hit in adjacent water. Probability algorithm prioritized contiguous hull expansion.`;
+    }
+    return action.reason || `Targeted (${action.x}, ${action.y}): Highest legal probability density in unexplored sector.`;
+  }
+
   return {
     generateRouteMap: generateRouteMap,
     canVisitNode: canVisitNode,
     visitRouteNode: visitRouteNode,
     resolveEventChoice: resolveEventChoice,
     setupEncounter: setupEncounter,
+    createAnalyzeSession: createAnalyzeSession,
+    getTurnSnapshot: getTurnSnapshot,
+    getHeatmapColor: getHeatmapColor,
+    explainAIAction: explainAIAction,
     NODE_ARCHETYPES: NODE_ARCHETYPES
   };
 });

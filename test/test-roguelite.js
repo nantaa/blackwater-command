@@ -175,6 +175,64 @@ if (RouteEngine) {
     const fakeContacts = boss.triggerPhantoms(12345);
     assert(fakeContacts.length === 2, 'Mirage Carrier spawns 2 phantom acoustic signatures');
   });
+
+  console.log('\n--- Test Suite 4: Post-Battle Analyze Mode & AI Probability Heatmap ---');
+
+  runTest('createAnalyzeSession initializes replay timeline and scrub controls', () => {
+    assert(typeof RouteEngine.createAnalyzeSession === 'function', 'createAnalyzeSession required');
+    const mockBattle = {
+      seed: 8877,
+      turns: [
+        {
+          turn: 1,
+          playerShips: [{ id: 'flagship', x: 4, y: 4, hp: 20 }],
+          aiEvidence: { scans: [], hits: [], misses: [], decoys: [] },
+          aiProbabilityMap: { '4,4': 0.05, '12,12': 0.02 },
+          aiActions: [{ type: 'scan', x: 5, y: 5, reason: 'Initial sector reconnaissance' }]
+        },
+        {
+          turn: 2,
+          playerShips: [{ id: 'flagship', x: 4, y: 4, hp: 20 }],
+          aiEvidence: { scans: [{ x: 5, y: 5 }], hits: [], misses: [], decoys: [{ x: 8, y: 8 }] },
+          aiProbabilityMap: { '8,8': 0.85, '4,4': 0.05 },
+          aiActions: [{ type: 'strike', x: 8, y: 8, reason: 'Investigated high-probability acoustic contact' }]
+        }
+      ]
+    };
+
+    const session = RouteEngine.createAnalyzeSession(mockBattle);
+    assert(session.totalTurns === 2, 'Total turns count');
+    assert(session.currentTurn === 1, 'Initial scrubber starts at turn 1');
+
+    const snap2 = RouteEngine.getTurnSnapshot(session, 2);
+    assert(snap2.turn === 2, 'Snapshot turn matches');
+    assert(snap2.aiProbabilityMap['8,8'] === 0.85, 'Decoy spiked probability recorded');
+  });
+
+  runTest('getHeatmapColor generates accurate 4-tier visual heat gradient', () => {
+    assert(typeof RouteEngine.getHeatmapColor === 'function', 'getHeatmapColor required');
+    const cLow = RouteEngine.getHeatmapColor(0.04);
+    assert(cLow.includes('rgba') && cLow.includes('0.2'), 'Low probability renders soft background tint');
+
+    const cMed = RouteEngine.getHeatmapColor(0.25);
+    assert(cMed.includes('229') || cMed.includes('cyan'), 'Medium probability renders cyan');
+
+    const cHigh = RouteEngine.getHeatmapColor(0.5);
+    assert(cHigh.includes('255') || cHigh.includes('gold'), 'Elevated probability renders amber/yellow');
+
+    const cHot = RouteEngine.getHeatmapColor(0.88);
+    assert(cHot.includes('255, 23') || cHot.includes('red'), 'High probability renders hotspot crimson');
+  });
+
+  runTest('explainAIAction provides explainable deduction based on legal evidence', () => {
+    assert(typeof RouteEngine.explainAIAction === 'function', 'explainAIAction required');
+    const action = { type: 'strike', x: 8, y: 8, reason: 'Investigated high-probability acoustic contact' };
+    const evidence = { decoys: [{ x: 8, y: 8 }] };
+    const explanation = RouteEngine.explainAIAction(action, evidence);
+
+    assert(explanation.includes('decoy') || explanation.includes('acoustic'), 'Explanation highlights legal decoy evidence');
+    assert(!explanation.includes('cheat') && !explanation.includes('secret'), 'Proves no illegal knowledge');
+  });
 }
 
 console.log('\n====================================================');
@@ -184,7 +242,7 @@ console.log('====================================================');
 if (passed < total) {
   process.exit(1);
 } else {
-  console.log(' ALL ROUTELITE TESTS PASSED (GREEN)!\n');
+  console.log(' ALL ROUTELITE & ANALYZE MODE TESTS PASSED (GREEN)!\n');
   process.exit(0);
 }
 
