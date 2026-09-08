@@ -1167,10 +1167,107 @@
       document.getElementById('btn-close-modal').addEventListener('click', () => {
         modal.classList.remove('open');
       });
+      // WebSocket Network Client
+      let socket = null;
+      let isRemoteSession = false;
+      let myPlayerId = null;
+
+      function connectSocket(onOpen) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          onOpen();
+          return;
+        }
+        const wsUrl = `ws://${location.hostname || 'localhost'}:8090`;
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+          logIntel(`Connected to authoritative server at ${wsUrl}`, 'scan');
+          onOpen();
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleServerMessage(data);
+          } catch (e) {}
+        };
+
+        socket.onclose = () => {
+          logIntel('WebSocket disconnected from server.', 'miss');
+          document.getElementById('lobby-status').textContent = 'Disconnected from server.';
+          isRemoteSession = false;
+        };
+
+        socket.onerror = () => {
+          document.getElementById('lobby-status').textContent = 'Cannot connect to ws://localhost:8090. Start server first.';
+        };
+      }
+
+      function handleServerMessage(msg) {
+        switch(msg.type) {
+          case 'ROOM_CREATED':
+            isRemoteSession = true;
+            myPlayerId = msg.playerId;
+            viewerIndex = msg.slot;
+            document.getElementById('lobby-status').textContent = `Room created: [${msg.roomCode}]. Waiting for players...`;
+            logIntel(`Room [${msg.roomCode}] created. You are assigned to ${msg.playerId.toUpperCase()} [${msg.slot === 0 ? 'NW' : ''}].`, 'scan');
+            break;
+
+          case 'ROOM_JOINED':
+            isRemoteSession = true;
+            myPlayerId = msg.playerId;
+            viewerIndex = msg.slot;
+            document.getElementById('lobby-status').textContent = `Joined Room [${msg.roomCode}] as Player ${msg.slot + 1}!`;
+            logIntel(`Joined room [${msg.roomCode}]. Assigned to ${msg.playerId.toUpperCase()}.`, 'scan');
+            break;
+
+          case 'PLAYER_JOINED':
+            logIntel(`${msg.playerName} entered the lobby (${msg.count}/4 ready).`, 'normal');
+            break;
+
+          case 'MATCH_READY':
+            logIntel('All 4 commanders assembled! Secret deployment authorized.', 'scan');
+            // Auto submit deployment in remote mode for seamless hotstart
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({ type: 'SUBMIT_DEPLOYMENT', quickDeploy: true }));
+            }
+            break;
+
+          case 'STATE_UPDATE':
+            if (msg.state) {
+              timerRemaining = msg.timer || 30;
+              updateTimerDisplay();
+              // Apply filtered state directly
+              if (match) {
+                match.phase = msg.state.phase;
+                match.round = msg.state.round;
+                match.activePlayerId = msg.state.activePlayerId;
+                if (msg.state.turnOrder) match.turnOrder = msg.state.turnOrder;
+              }
+              renderUI();
+            }
+            break;
+
+          case 'ACTION_RESOLVED':
+            if (msg.result) {
+              logIntel(`Command action resolved by authoritative server.`, msg.result.hit ? 'hit' : 'miss');
+            }
+            break;
+        }
+      }
+
       document.getElementById('btn-create-room').addEventListener('click', () => {
-        const code = 'BW' + Math.floor(10 + Math.random() * 89);
-        document.getElementById('lobby-status').textContent = `Room created: [${code}]. Ready for WebSocket connect.`;
+        const mode = document.getElementById('mode-select').value;
+        document.getElementById('lobby-status').textContent = 'Connecting to server...';
+        connectSocket(() => {
+          socket.send(JSON.stringify({
+            type: 'CREATE_ROOM',
+            mode,
+            playerName: `Commander ${Math.floor(10 + Math.random() * 89)}`
+          }));
+        });
       });
+
       document.getElementById('btn-join-room').addEventListener('click', () => {
         const code = document.getElementById('input-room-code').value.trim();
         if (!code) {
@@ -1178,6 +1275,13 @@
           return;
         }
         document.getElementById('lobby-status').textContent = `Connecting to room [${code.toUpperCase()}]...`;
+        connectSocket(() => {
+          socket.send(JSON.stringify({
+            type: 'JOIN_ROOM',
+            roomCode: code.toUpperCase(),
+            playerName: `Commander ${Math.floor(10 + Math.random() * 89)}`
+          }));
+        });
       });
 
       // Run on startup
