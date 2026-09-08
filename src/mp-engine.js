@@ -297,7 +297,23 @@
   ];
 
   function createMPMatch(seed, mode, playerConfigs) {
-    const rng = mkRng(seed || 12345);
+    if (typeof seed === 'object' && seed !== null) {
+      const opts = seed;
+      seed = opts.seed;
+      mode = opts.mode;
+      playerConfigs = opts.playerConfigs;
+    }
+    seed = seed || 12345;
+    mode = mode || '1v1v1v1';
+    if (!playerConfigs || !Array.isArray(playerConfigs)) {
+      playerConfigs = [
+        { id: 'p1', name: 'Player 1', team: 'T1' },
+        { id: 'p2', name: 'Player 2', team: 'T2' },
+        { id: 'p3', name: 'Player 3', team: 'T1' },
+        { id: 'p4', name: 'Player 4', team: 'T2' }
+      ];
+    }
+    const rng = mkRng(seed);
     const grid = genMPGrid(rng);
     const qKeys = ['NW', 'NE', 'SW', 'SE'];
 
@@ -497,7 +513,7 @@
   }
 
   function getFilteredState(match, viewerId) {
-    const viewer = match.players.find(p => p.id === viewerId);
+    const viewer = match.players.find((p, idx) => p.id === viewerId || idx === viewerId || p.id === 'p' + (viewerId + 1));
     if (!viewer) return null;
 
     const selfState = {
@@ -516,7 +532,7 @@
     };
 
     const opponentsState = match.players
-      .filter(p => p.id !== viewerId)
+      .filter(p => p.id !== viewer.id)
       .map(p => {
         let flagshipHp = 0;
         let survivingSupports = 0;
@@ -689,6 +705,7 @@
     cid,
     parseCid,
     getQuadrant,
+    getCellQuadrant: getQuadrant,
     canShipMoveTo,
     genMPGrid,
     getShipCells,
