@@ -1,0 +1,130 @@
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e51]:
+    - heading "⚓ BRIEFING — OPERATION BLACKWATER" [level=2] [ref=f5e52]
+    - paragraph [ref=f5e53]: The enemy fleet is hiding in fog-filled waters. Locate and destroy their flagship.
+    - list [ref=f5e54]:
+      - listitem [ref=f5e55]: Click a card to select it, then click the board to target.
+      - listitem [ref=f5e56]:
+        - text: Press
+        - generic [ref=f5e57]: R
+        - text: to rotate line cards between Horizontal / Vertical.
+      - listitem [ref=f5e58]:
+        - text: Sonar cards reveal contact
+        - emphasis [ref=f5e59]: count
+        - text: — not exact positions.
+      - listitem [ref=f5e60]: Torpedo fires from your flagship along a row or column (≤6 cells).
+      - listitem [ref=f5e61]: Decoy Buoy — watch the AI Intel Panel update on the right. The AI does not know it's false.
+      - listitem [ref=f5e62]:
+        - text: Press
+        - generic [ref=f5e63]: ENTER
+        - text: or click
+        - generic [ref=f5e64]: END TURN
+        - text: when done.
+      - listitem [ref=f5e65]:
+        - text: The AI only knows what
+        - emphasis [ref=f5e66]: you let it observe
+        - text: . Check the Reason Log to verify.
+    - paragraph [ref=f5e67]: ⊘ Enable the timer once you're comfortable. It starts disabled.
+    - button "UNDERSTOOD — DEPLOY" [ref=f5e69] [cursor=pointer]
+  - generic [ref=f5e71]:
+    - generic [ref=f5e72]:
+      - generic [ref=f5e73]:
+        - generic [ref=f5e74]: DESTROYER
+        - generic [ref=f5e77]: 20/20
+      - generic [ref=f5e78]:
+        - generic [ref=f5e79]: PAT.BOAT
+        - generic [ref=f5e82]: 8/8
+      - generic [ref=f5e83]:
+        - generic [ref=f5e84]: MINELAYER
+        - generic [ref=f5e87]: 10/10
+    - generic [ref=f5e88]:
+      - generic [ref=f5e89]:
+        - generic [ref=f5e90]: TURN
+        - generic [ref=f5e91]: "1"
+      - generic [ref=f5e92]: 3/6 CP
+      - generic [ref=f5e101]:
+        - generic [ref=f5e102]: —
+        - generic [ref=f5e103]: TIMER OFF
+      - generic [ref=f5e104]:
+        - generic [ref=f5e105]: PL
+        - generic [ref=f5e106]: "HUNT: Destroy enemy flagship"
+      - generic [ref=f5e107]:
+        - button "⏱ OFF" [ref=f5e108] [cursor=pointer]
+        - button "END TURN ▶" [ref=f5e109] [cursor=pointer]
+    - generic [ref=f5e110]:
+      - generic [ref=f5e111]: ◈ AI INTEL PANEL
+      - generic [ref=f5e112]:
+        - generic [ref=f5e113]: Confirmed contacts
+        - generic [ref=f5e114]: "0"
+      - generic [ref=f5e115]:
+        - generic [ref=f5e116]: Suspected zones
+        - generic [ref=f5e117]: "0"
+      - generic [ref=f5e118]:
+        - generic [ref=f5e119]: Active trails
+        - generic [ref=f5e120]: "0"
+      - generic [ref=f5e121]:
+        - generic [ref=f5e122]: Decoys deployed
+        - generic [ref=f5e123]: "0"
+      - generic [ref=f5e124]:
+        - generic [ref=f5e125]: AI confidence
+        - generic [ref=f5e126]: Low
+      - generic [ref=f5e127]:
+        - generic [ref=f5e128]: ENEMY STATUS
+        - generic [ref=f5e129]:
+          - generic [ref=f5e130]: ENEMY FLAG
+          - generic [ref=f5e131]: UNKNOWN
+        - generic [ref=f5e132]:
+          - generic [ref=f5e133]: SCOUT
+          - generic [ref=f5e134]: UNKNOWN
+        - generic [ref=f5e135]:
+          - generic [ref=f5e136]: STRIKE
+          - generic [ref=f5e137]: UNKNOWN
+      - generic [ref=f5e138]:
+        - generic [ref=f5e139]: AMMUNITION
+        - generic [ref=f5e140]: TORPEDO
+        - generic [ref=f5e149]: DEPTH CHARGE
+        - generic [ref=f5e156]: SONAR
+        - generic [ref=f5e164]: SMOKE
+        - generic [ref=f5e170]: MINE
+        - generic [ref=f5e175]: FUEL
+      - generic [ref=f5e180]: ▸ AI REASON LOG
+      - generic [ref=f5e181]: No AI actions yet.
+    - generic [ref=f5e182]:
+      - generic [ref=f5e183] [cursor=pointer]: T1 Use sonar to locate contacts, torpedoes to strike. The AI acts from evidence only.
+      - generic [ref=f5e184] [cursor=pointer]: "T1 Mission start. Seed: 66456. Objective: HUNT — destroy enemy flagship."
+      - generic [ref=f5e185] [cursor=pointer]: "T1 Doctrine FORWARD RECON: initial area scouted around Patrol Boat."
+    - button "HEATMAP" [ref=f5e188] [cursor=pointer]
+    - generic [ref=f5e189]:
+      - generic [ref=f5e190] [cursor=pointer]:
+        - generic [ref=f5e191]:
+          - generic [ref=f5e192]: Decoy Buoy
+          - generic [ref=f5e193]: 1◆
+        - generic [ref=f5e194]: Deception
+        - generic [ref=f5e197]: Deploy false high-confidence contact in your sector. Watch AI Intel Panel update — it has no idea this is fake.
+      - generic [ref=f5e198] [cursor=pointer]:
+        - generic [ref=f5e199]:
+          - generic [ref=f5e200]: Depth Pattern
+          - generic [ref=f5e201]: 2◆
+        - generic [ref=f5e202]: Direct fire
+        - generic [ref=f5e205]: Attack 3×3 area. +2 bonus damage to submarines.
+        - generic [ref=f5e206]: ⚙ 1 depth charge
+      - generic [ref=f5e207] [cursor=pointer]:
+        - generic [ref=f5e208]:
+          - generic [ref=f5e209]: Patrol Plane
+          - generic [ref=f5e210]: 2◆
+        - generic [ref=f5e211]: Air ops
+        - generic [ref=f5e214]: Reveal 5×5 zone. Reveals and confirms any enemy ships inside until next enemy turn.
+        - generic [ref=f5e215]: ⚙ 1 fuel
+      - generic [ref=f5e216] [cursor=pointer]:
+        - generic [ref=f5e217]:
+          - generic [ref=f5e218]: Thermal Wake
+          - generic [ref=f5e219]: 1◆
+        - generic [ref=f5e220]: Intelligence
+        - generic [ref=f5e223]: Check if any ship moved through this cell last turn.
+      - generic [ref=f5e224] [cursor=pointer]:
+        - generic [ref=f5e225]:
+          - generic [ref=f5e226]: Narrow Sonar
+          - generic [ref=f5e227]: 1◆
+        - generic [ref=f5e228]: Intelligence
+        - generic [ref=f5e231]: Scan 5-cell line (H/V). Returns contact count only — not exact positions.
+        - generic [ref=f5e232]: ⚙ 1 sonar

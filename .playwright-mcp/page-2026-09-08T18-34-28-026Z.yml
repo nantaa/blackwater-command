@@ -1,0 +1,35 @@
+- generic [ref=f5e15]:
+  - generic [ref=f5e18]:
+    - text: Click Allied sector (A–J) to place selected ship · Press
+    - generic [ref=f5e19]: R
+    - text: to rotate
+  - generic [ref=f5e20]:
+    - generic [ref=f5e21]:
+      - heading "⚓ DEPLOYMENT FLEET" [level=3] [ref=f5e22]
+      - button "DESTROYER FLAGSHIP H5" [ref=f5e23] [cursor=pointer]:
+        - generic [ref=f5e24]: DESTROYER FLAGSHIP
+        - generic [ref=f5e25]: H5
+      - button "PATROL BOAT C7" [ref=f5e26] [cursor=pointer]:
+        - generic [ref=f5e27]: PATROL BOAT
+        - generic [ref=f5e28]: C7
+      - button "MINELAYER E20" [ref=f5e29] [cursor=pointer]:
+        - generic [ref=f5e30]: MINELAYER
+        - generic [ref=f5e31]: E20
+      - generic [ref=f5e32]:
+        - button "HORIZONTAL ↔" [ref=f5e33] [cursor=pointer]
+        - button "QUICK DEPLOY" [ref=f5e34] [cursor=pointer]
+        - button "CLEAR" [ref=f5e35] [cursor=pointer]
+      - generic [ref=f5e36]: Fleet deployment ready and validated.
+    - generic [ref=f5e37]:
+      - heading "⚔ PRE-BATTLE DOCTRINE" [level=3] [ref=f5e38]
+      - button "SILENT START Start with -1 CP on turn 1. Flagship evidence signature reduced for 2 turns." [ref=f5e39] [cursor=pointer]:
+        - generic [ref=f5e40]: SILENT START
+        - generic [ref=f5e41]: Start with -1 CP on turn 1. Flagship evidence signature reduced for 2 turns.
+      - button "FORWARD RECON Patrol Boat executes free sonar sweep at start. Begins more exposed." [ref=f5e42] [cursor=pointer]:
+        - generic [ref=f5e43]: FORWARD RECON
+        - generic [ref=f5e44]: Patrol Boat executes free sonar sweep at start. Begins more exposed.
+    - generic [ref=f5e45]:
+      - generic [ref=f5e46]:
+        - generic [ref=f5e47]: "ENCOUNTER:"
+        - generic [ref=f5e48]: HUNT — STANDARD RISK
+      - button "▶ CONFIRM DEPLOYMENT" [ref=f5e49] [cursor=pointer]

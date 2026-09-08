@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=960">
+<title>Blackwater Command — Naval Tactical Prototype</title>
+<meta name="description" content="Naval hidden-information tactics. Find the enemy fleet through deduction, not luck.">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:'Courier New',monospace;color:#b8c8d8}
+
+/* ── SCREENS ─────────────────────────────────────────── */
+.screen{display:none;position:absolute;inset:0;align-items:center;justify-content:center}
+.screen.active{display:flex}
+
+/* ── TITLE ───────────────────────────────────────────── */
+#scr-title{flex-direction:column;align-items:center;
+  background:radial-gradient(ellipse at 50% 40%,#0d1f35 0%,#060e1a 70%)}
+.t-logo{font-size:2.6rem;font-weight:bold;letter-spacing:.35em;color:#d4a843;
+  text-shadow:0 0 24px rgba(212,168,67,.45);margin-bottom:.25rem}
+.t-sub{font-size:.8rem;color:#4a6a8a;letter-spacing:.25em;margin-bottom:1.6rem}
+.t-pitch{max-width:460px;text-align:center;font-size:.78rem;color:#6a8a70;
+  line-height:1.7;margin-bottom:1.8rem;border:1px solid #1a3a5a;padding:1rem}
+.seed-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1.2rem}
+.seed-row label{font-size:.72rem;color:#4a6a8a;letter-spacing:.1em}
+.seed-in{background:#0a1628;border:1px solid #2a4a6a;color:#d4a843;
+  font-family:inherit;font-size:.88rem;padding:.3rem .6rem;width:110px}
+.btn{background:transparent;border:1px solid #d4a843;color:#d4a843;
+  font-family:inherit;font-size:.82rem;padding:.45rem 1.4rem;cursor:pointer;
+  letter-spacing:.12em;transition:background .2s}
+.btn:hover{background:rgba(212,168,67,.1)}
+.btn.g{border-color:#50c878;color:#50c878}.btn.g:hover{background:rgba(80,200,120,.1)}
+.btn.r{border-color:#e05050;color:#e05050}.btn.r:hover{background:rgba(224,80,80,.1)}
+
+/* ── TUTORIAL OVERLAY ────────────────────────────────── */
+#tut-overlay{display:none;position:absolute;inset:0;background:rgba(4,10,20,.92);
+  z-index:100;align-items:center;justify-content:center}
+#tut-overlay.open{display:flex}
+.tut-box{border:1px solid #2a4a6a;background:#0a1628;padding:1.4rem;max-width:540px;width:92%}
+.tut-box h2{color:#d4a843;font-size:1rem;margin-bottom:.9rem;letter-spacing:.08em}
+.tut-box p{font-size:.76rem;color:#8aa8c8;line-height:1.65;margin-bottom:.6rem}
+.tut-box ul{padding-left:1.1rem;margin-bottom:.9rem}
+.tut-box li{font-size:.73rem;color:#8aa8c8;line-height:1.9}
+.key{display:inline-block;background:#1a3a5a;border:1px solid #2a5a8a;
+  padding:0 .3rem;font-size:.67rem;color:#b8c8d8}
+.tut-note{font-size:.7rem;color:#7040a0;margin-top:.5rem}
+
+/* ── BATTLE SCREEN ───────────────────────────────────── */
+#scr-battle{flex-direction:column;background:#060e1a}
+.battle-wrap{
+  display:grid;
+  grid-template-columns:175px 544px 233px;
+  grid-template-rows:52px 544px 148px;
+  grid-template-areas:
+    "st   tmr  intel"
+    "log  brd  intel"
+    "log  hand hand";
+  gap:3px;width:960px;height:752px
+}
+
+/* ── PANELS ──────────────────────────────────────────── */
+.pnl{background:#0a1628;border:1px solid #192f4a;padding:.4rem .5rem;overflow:hidden}
+
+/* STATUS */
+#pnl-st{grid-area:st;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.s-row{display:flex;align-items:center;gap:.35rem;font-size:.68rem}
+.s-name{color:#4a6a8a;min-width:68px;white-space:nowrap}
+.hp-bar{height:7px;flex:1;background:#0d1e30;position:relative}
+.hp-fill{height:100%;background:#50c878;transition:width .3s}
+.hp-fill.mid{background:#d4a843}.hp-fill.low{background:#e05050}
+.hp-txt{font-size:.63rem;color:#4a6a8a;min-width:34px;text-align:right}
+
+/* TIMER */
+#pnl-tmr{grid-area:tmr;display:flex;align-items:center;
+  justify-content:space-between;gap:.4rem;padding:.3rem .6rem}
+.turn-blk{text-align:center}
+.turn-lbl{font-size:.58rem;color:#3a5a7a;letter-spacing:.1em}
+.turn-n{font-size:1.1rem;color:#d4a843;line-height:1}
+.phase-tag{font-size:.55rem;color:#2a4a6a;letter-spacing:.1em}
+.cp-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cp-dots{display:flex;gap:2px}
+.cp-dot{width:9px;height:9px;border-radius:50%;background:#d4a843;border:1px solid #7a5a10}
+.cp-dot.e{background:transparent;border-color:#1e3348}
+.cp-lbl{font-size:.56rem;color:#3a5a7a}
+.tmr-blk{text-align:center;min-width:52px}
+.tmr-val{font-size:1.3rem;color:#50c878}
+.tmr-val.warn{color:#d4a843}.tmr-val.urg{color:#e05050;animation:blink .5s step-end infinite}
+@keyframes blink{50%{opacity:.2}}
+.tmr-lbl{font-size:.56rem;color:#3a5a7a}
+.obj-blk{max-width:130px}
+.obj-txt{font-size:.6rem;color:#6a8a58;line-height:1.45}
+.ctrl-blk{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+#tmr-tog{font-size:.6rem;color:#3a5a7a;background:transparent;
+  border:1px solid #1e3348;font-family:inherit;padding:2px 6px;cursor:pointer}
+#tmr-tog:hover{color:#d4a843;border-color:#d4a843}
+#tmr-tog.on{color:#50c878;border-color:#50c878}
+#end-turn-btn{font-size:.68rem;background:transparent;border:1px solid #2a4a6a;
+  color:#3a6a9a;font-family:inherit;padding:3px 9px;cursor:pointer;letter-spacing:.08em}
+#end-turn-btn:hover{border-color:#d4a843;color:#d4a843}
+
+/* LOG */
+#pnl-log{grid-area:log;overflow-y:auto;font-size:.66rem;line-height:1.55}
+#pnl-log::-webkit-scrollbar{width:3px}
+#pnl-log::-webkit-scrollbar-track{background:#060e1a}
+#pnl-log::-webkit-scrollbar-thumb{background:#1e3348}
+.log-e{padding:2px 0;border-bottom:1px solid #0c1c2e;cursor:pointer}
+.log-e:hover{background:#0c1c2e}
+.log-e.sys{color:#2a4a6a}.log-e.ply{color:#6a9a58}
+.log-e.emy{color:#b05040}.log-e.hit{color:#d07828}
+.log-e.mis{color:#2a4060}.log-e.int{color:#7040a0}
+.log-e .cr{color:#d4a843;text-decoration:underline dotted}
+
+/* INTEL */
+#pnl-intel{grid-area:intel;overflow-y:auto;padding:.4rem .5rem}
+#pnl-intel::-webkit-scrollbar{width:3px}
+#pnl-intel::-webkit-scrollbar-track{background:#060e1a}
+#pnl-intel::-webkit-scrollbar-thumb{background:#1e3348}
+.i-ttl{font-size:.62rem;color:#5a3a90;letter-spacing:.1em;margin-bottom:.35rem}
+.i-row{display:flex;justify-content:space-between;font-size:.65rem;
+  margin-bottom:2px;padding-bottom:2px;border-bottom:1px solid #0c1c2e}
+.i-lbl{color:#2a4a6a}.i-val{color:#b8c8d8}
+.i-val.conf{color:#e03030}.i-val.susp{color:#d07820}.i-val.dec{color:#8030b8}
+.cf-lo{color:#2a4a6a}.cf-me{color:#d4a843}.cf-hi{color:#e03030}
+.r-ttl{font-size:.6rem;color:#2a4060;letter-spacing:.1em;margin:.45rem 0 .25rem}
+.r-e{font-size:.63rem;color:#5a6a7a;line-height:1.5;padding:2px 0;
+  border-bottom:1px solid #0c1c2e}
+.r-e .cr{color:#8030b8}
+.ammo-sec{margin-top:.4rem}
+.a-row{display:flex;justify-content:space-between;font-size:.65rem;margin-bottom:2px}
+.a-nm{color:#2a4a6a;text-transform:uppercase;font-size:.58rem}
+.a-pips{display:flex;gap:2px}
+.a-pip{width:6px;height:6px;border-radius:50%;background:#d4a843}
+.a-pip.e{background:transparent;border:1px solid #1e3348}
+.e-fleet-sec{margin-top:.4rem}
+.ef-row{display:flex;justify-content:space-between;font-size:.64rem;
+  margin-bottom:2px;padding-bottom:2px;border-bottom:1px solid #0c1c2e}
+.ef-nm{color:#5a3030}.ef-st{color:#5a6a7a}
+.ef-st.sunk{color:#e03030;text-decoration:line-through}
+.ef-st.hit{color:#d07820}
+
+/* BOARD */
+#brd-area{grid-area:brd;position:relative;background:#040c18}
+#board{display:block;cursor:crosshair;image-rendering:pixelated}
+#tgt-help{position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  background:rgba(8,18,34,.92);border:1px solid #2a4060;
+  font-size:.67rem;color:#d4a843;padding:2px 10px;pointer-events:none;display:none}
+#orient-btn{position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  background:#080e1a;border:1px solid #1e3040;color:#4a6a8a;
+  font-family:inherit;font-size:.62rem;padding:2px 8px;cursor:pointer;display:none;
+  letter-spacing:.08em}
+#heat-btn{position:absolute;top:4px;right:4px;background:rgba(8,18,34,.85);
+  border:1px solid #1e3040;color:#4a3a7a;font-family:inherit;
+  font-size:.6rem;padding:2px 6px;cursor:pointer;letter-spacing:.08em}
+#heat-btn.on{color:#9040c0;border-color:#6030a0}
+
+/* HAND */
+#pnl-hand{grid-area:hand;display:flex;align-items:flex-start;
+  gap:4px;padding:5px;overflow-x:auto;background:#08111e}
+#pnl-hand::-webkit-scrollbar{height:3px}
+#pnl-hand::-webkit-scrollbar-track{background:#060e1a}
+#pnl-hand::-webkit-scrollbar-thumb{background:#1e3348}
+.card{min-width:96px;max-width:96px;height:136px;border:1px solid #1e3040;
+  background:#0c1825;cursor:pointer;display:flex;flex-direction:column;
+  padding:4px 5px;position:relative;transition:transform .15s,border-color .15s;
+  flex-shrink:0;user-select:none}
+.card:hover:not(.dis){transform:translateY(-5px);border-color:#3a5a70}
+.card.sel{border-color:#d4a843!important;transform:translateY(-7px)!important;
+  box-shadow:0 0 10px rgba(212,168,67,.3)}
+.card.dis{opacity:.32;cursor:not-allowed}
+.card-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px}
+.card-nm{font-size:.6rem;color:#c8d8e8;font-weight:bold;line-height:1.3;flex:1}
+.card-cp{font-size:.68rem;color:#d4a843;font-weight:bold;white-space:nowrap}
+.card-fam{font-size:.53rem;margin-bottom:3px;display:flex;align-items:center;gap:3px}
+.fam-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.card-desc{font-size:.56rem;color:#4a6a8a;line-height:1.4;flex:1}
+.card-ammo{font-size:.57rem;color:#6a4820;margin-top:auto;padding-top:3px;
+  border-top:1px solid #0f1e30}
+
+/* RESULT SCREENS */
+#scr-vic,#scr-def,#scr-cs{flex-direction:column;align-items:center;
+  background:radial-gradient(ellipse at 50% 40%,#0d1f35 0%,#060e1a 70%)}
+.res-ttl{font-size:1.9rem;letter-spacing:.2em;margin-bottom:.8rem}
+.res-ttl.v{color:#50c878;text-shadow:0 0 20px rgba(80,200,120,.4)}
+.res-ttl.d{color:#e05050;text-shadow:0 0 20px rgba(224,80,80,.4)}
+.res-ttl.c{color:#d4a843}
+.res-stats{font-size:.78rem;color:#4a6a8a;text-align:center;line-height:2.1;margin-bottom:1.4rem}
+.res-btns{display:flex;gap:.8rem}
+
+/* PREP SCREEN */
+#scr-prep{flex-direction:column;align-items:center;background:#060e1a;padding:10px}
+.prep-layout{display:flex;gap:12px;max-width:950px;width:100%;height:680px}
+.prep-sidebar{display:flex;flex-direction:column;gap:10px;width:370px}
+.prep-card{background:#0a1628;border:1px solid #1a3a5a;padding:.75rem}
+.prep-card h3{color:#d4a843;font-size:.82rem;letter-spacing:.08em;margin-bottom:.5rem}
+.prep-ship-btn{display:flex;justify-content:space-between;align-items:center;
+  background:#0d1e30;border:1px solid #204060;color:#c0d0e0;
+  padding:6px 10px;font-family:inherit;font-size:.72rem;cursor:pointer;margin-bottom:4px;
+  width:100%;transition:all .15s}
+.prep-ship-btn:hover{background:#142840;border-color:#d4a843}
+.prep-ship-btn.active{background:#1a3858;border-color:#d4a843;box-shadow:0 0 8px rgba(212,168,67,.3)}
+.doctrine-btn{display:flex;flex-direction:column;gap:3px;background:#0d1e30;
+  border:1px solid #204060;color:#8aa8c8;padding:6px 8px;cursor:pointer;
+  font-family:inherit;font-size:.66rem;text-align:left;margin-bottom:6px;width:100%}
+.doctrine-btn:hover{border-color:#3a6a9a}
+.doctrine-btn.active{border-color:#50c878;background:#0a2418;color:#c0e8d0}
+.doctrine-title{font-weight:bold;color:#d4a843}
+.prep-err{color:#e05050;font-size:.66rem;min-height:1.2rem;line-height:1.3}
+
+/* DEBRIEF & UPGRADE SCREENS */
+#scr-debrief,#scr-upgrade{flex-direction:column;align-items:center;
+  background:radial-gradient(ellipse at 50% 30%,#0e223a 0%,#060e1a 75%);padding:1.5rem}
+.debrief-box{background:#0a1628;border:1px solid #204060;padding:1.2rem;
+  max-width:760px;width:95%;margin-bottom:1.2rem}
+.debrief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:1rem 0}
+.debrief-col{display:flex;flex-direction:column;gap:5px;font-size:.73rem;color:#8aa8c8}
+.debrief-row{display:flex;justify-content:space-between;border-bottom:1px solid #142840;padding-bottom:3px}
+.upgrade-grid{display:flex;gap:15px;justify-content:center;margin:1.5rem 0;max-width:860px}
+.upgrade-card{background:#0a1628;border:1px solid #2a4a6a;padding:1rem;
+  width:260px;cursor:pointer;display:flex;flex-direction:column;gap:8px;
+  transition:all .2s;text-align:left;user-select:none}
+.upgrade-card:hover{transform:translateY(-6px);border-color:#d4a843;box-shadow:0 0 16px rgba(212,168,67,.25)}
+.upgrade-card h4{color:#d4a843;font-size:.85rem}
+.upgrade-type{font-size:.62rem;letter-spacing:.1em;color:#50a0c0;text-transform:uppercase}
+.upgrade-desc{font-size:.72rem;color:#8aa8c8;line-height:1.5;flex:1}
+</style>
+</head>
+<body>
+
+<!-- ── TITLE ─────────────────────────────────────────── -->
+<div id="scr-title" class="screen active">
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <div class="t-logo">BLACKWATER COMMAND</div>
+    <div class="t-sub">NAVAL TACTICAL PROTOTYPE v0.1</div>
+    <div class="t-pitch">
+      Command a hidden destroyer through fog-filled waters.<br>
+      Use sonar, torpedoes, and deception to outmaneuver an AI admiral<br>
+      that infers your position — <em>without cheating.</em>
+    </div>
+    <div class="seed-row">
+      <label>SEED:</label>
+      <input type="text" id="seed-in" class="seed-in" placeholder="random">
+      <button class="btn" onclick="rollSeed()">ROLL</button>
+    </div>
+    <button class="btn" style="width:100%" onclick="startGame()">▶ DEPLOY</button>
+    <div style="font-size:.6rem;color:#1e3040;margin-top:.8rem">
+      Phase 1–3 prototype · Phase 4–5 coming soon
+    </div>
+  </div>
+</div>
+
+<!-- ── TUTORIAL OVERLAY ───────────────────────────────── -->
+<div id="tut-overlay">
+  <div class="tut-box">
+    <h2>⚓ BRIEFING — OPERATION BLACKWATER</h2>
+    <p>The enemy fleet is hiding in fog-filled waters. Locate and destroy their flagship.</p>
+    <ul>
+      <li><b>Click a card</b> to select it, then <b>click the board</b> to target.</li>
+      <li>Press <span class="key">R</span> to rotate line cards between Horizontal / Vertical.</li>
+      <li><b>Sonar</b> cards reveal contact <em>count</em> — not exact positions.</li>
+      <li><b>Torpedo</b> fires from your flagship along a row or column (≤6 cells).</li>
+      <li><b>Decoy Buoy</b> — watch the AI Intel Panel update on the right. The AI does not know it's false.</li>
+      <li>Press <span class="key">ENTER</span> or click <span class="key">END TURN</span> when done.</li>
+      <li>The AI only knows what <em>you let it observe</em>. Check the Reason Log to verify.</li>
+    </ul>
+    <p class="tut-note">⊘ Enable the timer once you're comfortable. It starts disabled.</p>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+      <button class="btn" onclick="dismissTut()">UNDERSTOOD — DEPLOY</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── BATTLE ─────────────────────────────────────────── -->
+<div id="scr-battle" class="screen">
+  <div class="battle-wrap">
+    <div class="pnl" id="pnl-st"></div>
+    <div class="pnl" id="pnl-tmr"></div>
+    <div class="pnl" id="pnl-intel"></div>
+    <div class="pnl" id="pnl-log"></div>
+    <div id="brd-area">
+      <canvas id="board" width="544" height="544"></canvas>
+      <div id="tgt-help">SELECT TARGET</div>
+      <button id="orient-btn" onclick="toggleOrient()">HORIZONTAL ↔</button>
+      <button id="heat-btn" onclick="toggleHeat()">HEATMAP</button>
+    </div>
+    <div class="pnl" id="pnl-hand"></div>
+  </div>
+</div>
+
+<!-- ── PREPARATION SCREEN (§3) ───────────────────────── -->
+<div id="scr-prep" class="screen">
+  <div class="prep-layout">
+    <div style="display:flex;flex-direction:column;align-items:center">
+      <canvas id="prep-board" width="544" height="544" style="background:#040c18;cursor:crosshair"></canvas>
+      <div style="font-size:.64rem;color:#4a6a8a;margin-top:6px">
+        Click Allied sector (A–J) to place selected ship · Press <span class="key">R</span> to rotate
+      </div>
+    </div>
+    <div class="prep-sidebar">
+      <div class="prep-card">
+        <h3>⚓ DEPLOYMENT FLEET</h3>
+        <button class="prep-ship-btn active" id="btn-ship-flagship" onclick="selectPrepShip('flagship')">
+          <span>DESTROYER FLAGSHIP</span><span id="st-ship-flagship">UNPLACED</span>
+        </button>
+        <button class="prep-ship-btn" id="btn-ship-patrol" onclick="selectPrepShip('patrol')">
+          <span>PATROL BOAT</span><span id="st-ship-patrol">UNPLACED</span>
+        </button>
+        <button class="prep-ship-btn" id="btn-ship-minelayer" onclick="selectPrepShip('minelayer')">
+          <span>MINELAYER</span><span id="st-ship-minelayer">UNPLACED</span>
+        </button>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn" style="flex:1;padding:.35rem" onclick="togglePrepOrient()" id="prep-orient-btn">HORIZONTAL ↔</button>
+          <button class="btn" style="flex:1;padding:.35rem" onclick="prepQuickDeploy()">QUICK DEPLOY</button>
+          <button class="btn r" style="padding:.35rem" onclick="prepClear()">CLEAR</button>
+        </div>
+        <div class="prep-err" id="prep-err-msg"></div>
+      </div>
+
+      <div class="prep-card">
+        <h3>⚔ PRE-BATTLE DOCTRINE</h3>
+        <button class="doctrine-btn active" id="doc-silent" onclick="selectDoctrine('silent_start')">
+          <span class="doctrine-title">SILENT START</span>
+          <span>Start with -1 CP on turn 1. Flagship evidence signature reduced for 2 turns.</span>
+        </button>
+        <button class="doctrine-btn" id="doc-recon" onclick="selectDoctrine('forward_recon')">
+          <span class="doctrine-title">FORWARD RECON</span>
+          <span>Patrol Boat executes free sonar sweep at start. Begins more exposed.</span>
+        </button>
+      </div>
+
+      <div class="prep-card" style="margin-top:auto">
+        <div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:8px">
+          <span style="color:#4a6a8a">ENCOUNTER:</span>
+          <span style="color:#d4a843;font-weight:bold">HUNT — STANDARD RISK</span>
+        </div>
+        <button class="btn g" id="btn-confirm-deploy" style="width:100%;padding:.6rem" onclick="confirmDeployment()">
+          ▶ CONFIRM DEPLOYMENT
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DEBRIEF SCREEN (§5) ────────────────────────────── -->
+<div id="scr-debrief" class="screen">
+  <div class="debrief-box">
+    <div class="res-ttl v" style="text-align:center">◆ MISSION DEBRIEF ◆</div>
+    <div style="text-align:center;font-size:.75rem;color:#4a6a8a;margin-bottom:.8rem" id="db-sub">HUNT ENCOUNTER COMPLETE</div>
+    <div class="debrief-grid">
+      <div class="debrief-col">
+        <div style="color:#d4a843;font-size:.78rem;font-weight:bold;margin-bottom:4px">FLEET &amp; RESOURCE STATUS</div>
+        <div class="debrief-row"><span>Flagship Hull:</span><span id="db-hp-flag" style="color:#50c878">20/20</span></div>
+        <div class="debrief-row"><span>Support Ships Surviving:</span><span id="db-supports">2/2</span></div>
+        <div class="debrief-row"><span>Torpedoes Expended:</span><span id="db-torps">0</span></div>
+        <div class="debrief-row"><span>Sonar Scans Used:</span><span id="db-sonar">0</span></div>
+        <div class="debrief-row"><span>Turns Elapsed:</span><span id="db-turns">0</span></div>
+      </div>
+      <div class="debrief-col">
+        <div style="color:#d4a843;font-size:.78rem;font-weight:bold;margin-bottom:4px">INTELLIGENCE &amp; AI DEDUCTION</div>
+        <div class="debrief-row"><span>Decoys That Fooled AI:</span><span id="db-decoys" style="color:#8030b8">0</span></div>
+        <div class="debrief-row"><span>Confirmed Contacts:</span><span id="db-conf" style="color:#e05050">0</span></div>
+        <div class="debrief-row"><span>AI Strongest Inference:</span><span id="db-ai-inf" style="color:#b8c8d8">Decoy Trap</span></div>
+        <div class="debrief-row"><span>Encounter Result:</span><span style="color:#50c878">FLAGSHIP SUNK</span></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:1rem">
+      <button class="btn" onclick="showTitle()">ABANDON RUN</button>
+      <button class="btn g" onclick="showUpgradeScreen()">PROCEED TO REWARDS ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── UPGRADE SELECTION SCREEN (§6) ─────────────────── -->
+<div id="scr-upgrade" class="screen">
+  <div style="text-align:center">
+    <div class="res-ttl c">FIELD REQUISITION</div>
+    <div style="font-size:.76rem;color:#4a6a8a;margin-bottom:1.5rem">CHOOSE ONE REWARD FOR YOUR FLEET</div>
+    <div class="upgrade-grid" id="upgrade-cards-container"></div>
+  </div>
+</div>
+
+<!-- ── VICTORY ────────────────────────────────────────── -->
+<div id="scr-vic" class="screen">
+  <div style="text-align:center">
+    <div class="res-ttl v">◆ VICTORY ◆</div>
+    <div class="res-stats" id="vic-stats"></div>
+    <div class="res-btns">
+      <button class="btn g" onclick="showDebrief()">▶ MISSION DEBRIEF</button>
+      <button class="btn" onclick="showTitle()">TITLE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── DEFEAT ─────────────────────────────────────────── -->
+<div id="scr-def" class="screen">
+  <div style="text-align:center">
+    <div class="res-ttl d">◆ FLAGSHIP LOST ◆</div>
+    <div class="res-stats" id="def-stats"></div>
+    <div class="res-btns">
+      <button class="btn g" onclick="startGame()">▶ NEW RUN</button>
+      <button class="btn" onclick="showTitle()">TITLE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMING SOON ────────────────────────────────────── -->
+<div id="scr-cs" class="screen">
+  <div style="text-align:center">
+    <div class="res-ttl c">ROUTE MAP</div>
+    <div style="font-size:.75rem;color:#2a4060;letter-spacing:.12em;margin-bottom:.5rem">PHASE 4 — IN DEVELOPMENT</div>
+    <div style="font-size:.73rem;color:#4a6a8a;max-width:380px;line-height:1.9;margin-bottom:1.4rem">
+      The roguelite route map arrives in the next build.<br>
+      Your hull, ammo, deck &amp; modules would carry forward.<br>
+      <span style="font-size:.65rem;color:#1e3040">Prototype: Phase 1–3 complete.</span>
+    </div>
+    <div class="res-btns">
+      <button class="btn" onclick="startGame()">▶ PLAY AGAIN (NEW SEED)</button>
+      <button class="btn" onclick="showTitle()">TITLE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CARD TOOLTIP ───────────────────────────────────── -->
+<div id="card-tip"></div>
+
+<script>
+'use strict';
+/* ════════════════════════════════════════════════════════════════
+   §1  CONSTANTS
+════════════════════════════════════════════════════════════════ */
+const GW=20,GH=20,CELL=26,LBL=24;   // grid dims, cell px, label px
+const CW=LBL+GW*CELL, CH=LBL+GH*CELL; // canvas 544×544
+const COLS='ABCDEFGHIJKLMNOPQRST'.split('');
+
+const T={OPEN:'o',ISLAND:'i',SHALLOW:'s',DEEP:'d',REEF:'r',RADAR:'R',SUPPLY:'S'};
+const CS={UNK:'unk',SUSP:'susp',CONT:'cont',CONF:'conf',LOST:'lost',DCOY:'dcoy'};
+const PH={UP:'UP',DRAW:'DR',PLAN:'PL',TO:'TO',AI:'AI',RPT:'RP'};
+
+const FC={ // family colors
+  'Intelligence':'#1a6b8a','Direct fire':'#8a1a1a','Mobility':'#2a6a2a',
+  'Deception':'#6a2a6a','Air ops':'#6a5a1a','Land ops':'#3a3a3a','Sustain':'#2a4a4a'
+};
+
+// Terrain paint colors
+const TC={
+  o:'#0c1e35',i:'#3a4825',s:'#142a42',d:'#071525',
+  r:'#2a3a1a',R:'#243320',S:'#243a24'
+};
+
+/* ════════════════════════════════════════════════════════════════
+   §2  RNG — mulberry32
+════════════════════════════════════════════════════════════════ */
+function mkRng(seed){
+  let s=(seed>>>0)||1;
+  function nx(){
+    s=(s+0x6D2B79F5)>>>0;
+    let t=Math.imul(s^s>>>15,1|s);
+    t^=t+Math.imul(t^t>>>7,61|t);
+    return((t^t>>>14)>>>0)/4294967296;
+  }
+  return{
+    nx,
+    int:(a,b)=>Math.floor(nx()*(b-a+1))+a,
+    pick:a=>a[Math.floor(nx()*a.length)],
+    shuffle(a){
+      const r=[...a];
+      for(let i=r.length-1;i>0;i--){const j=Math.floor(nx()*(i+1));[r[i],r[j]]=[r[j],r[i]];}
+      return r;
+    }
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §3  CARD DEFINITIONS
+════════════════════════════════════════════════════════════════ */
+const CARDS={
+  narrow_sonar:{id:'narrow_sonar',name:'Narrow Sonar',fam:'Intelligence',cp:1,ammo:{sonar:1},
+    tgt:'LINE5',rot:true,
+    desc:'Scan 5-cell line (H/V). Returns contact count only — not exact positions.'},
+  sector_sweep:{id:'sector_sweep',name:'Sector Sweep',fam:'Intelligence',cp:2,ammo:{sonar:1},
+    tgt:'AREA4',rot:false,
+    desc:'Reveal contact status in a 4×4 sector.'},
+  thermal_wake:{id:'thermal_wake',name:'Thermal Wake',fam:'Intelligence',cp:1,ammo:{},
+    tgt:'SINGLE',rot:false,
+    desc:'Check if any ship moved through this cell last turn.'},
+  torpedo_line:{id:'torpedo_line',name:'Torpedo Line',fam:'Direct fire',cp:2,ammo:{torpedo:1},
+    tgt:'LINE_ATK',rot:true,
+    desc:'Fire from flagship along H/V. ≤6 cells. Stops at first ship or island.'},
+  depth_pattern:{id:'depth_pattern',name:'Depth Pattern',fam:'Direct fire',cp:2,ammo:{depthCharge:1},
+    tgt:'AREA3',rot:false,
+    desc:'Attack 3×3 area. +2 bonus damage to submarines.'},
+  precision_salvo:{id:'precision_salvo',name:'Precision Salvo',fam:'Direct fire',cp:3,ammo:{torpedo:2},
+    tgt:'SINGLE',rot:false,needConf:true,
+    desc:'High-power strike on a confirmed-contact cell. Requires active confirmed contact.'},
+  flank_speed:{id:'flank_speed',name:'Flank Speed',fam:'Mobility',cp:1,ammo:{},
+    tgt:'MOVE_SUP',rot:false,
+    desc:'Move nearest support ship to target cell.'},
+  go_silent:{id:'go_silent',name:'Go Silent',fam:'Mobility',cp:1,ammo:{smoke:1},
+    tgt:'MOVE_FLAG',rot:false,
+    desc:'Move flagship to target cell. Clears confirmed contact. Injects a wake trail into AI evidence.'},
+  decoy_buoy:{id:'decoy_buoy',name:'Decoy Buoy',fam:'Deception',cp:1,ammo:{},
+    tgt:'PLACE_DCOY',rot:false,
+    desc:'Deploy false high-confidence contact in your sector. Watch AI Intel Panel update — it has no idea this is fake.'},
+  radar_jammer:{id:'radar_jammer',name:'Radar Jammer',fam:'Deception',cp:2,ammo:{smoke:1},
+    tgt:'AREA4',rot:false,
+    desc:'Flatten AI scan confidence in a 4×4 sector for 2 turns.'},
+  patrol_plane:{id:'patrol_plane',name:'Patrol Plane',fam:'Air ops',cp:2,ammo:{fuel:1},
+    tgt:'AREA5',rot:false,
+    desc:'Reveal 5×5 zone. Reveals and confirms any enemy ships inside until next enemy turn.'},
+  coastal_radar:{id:'coastal_radar',name:'Coastal Radar',fam:'Land ops',cp:1,ammo:{},
+    tgt:'NONE',rot:false,disabled:true,
+    desc:'[Phase 4] At a radar island: reveal enemy trail or direction. Not active in this build.'},
+
+  // ── Upgraded Card Variants (§7.A) ──
+  focused_sonar:{id:'focused_sonar',name:'Focused Sonar',fam:'Intelligence',cp:1,ammo:{sonar:1},
+    tgt:'LINE6',rot:true,
+    desc:'[Upgraded] Scan 6-cell line (H/V). Returns contact count only.'},
+  guided_torpedo:{id:'guided_torpedo',name:'Guided Torpedo',fam:'Direct fire',cp:2,ammo:{torpedo:1},
+    tgt:'LINE_ATK',rot:true,guided:true,
+    desc:'[Upgraded] Fire ≤7 cells. Pierces through reefs and deals +1 dmg.'},
+  saturation_pattern:{id:'saturation_pattern',name:'Saturation Pattern',fam:'Direct fire',cp:2,ammo:{depthCharge:1},
+    tgt:'AREA3',rot:false,saturation:true,
+    desc:'[Upgraded] Attacks 3×3 area. Marks surviving enemy ships as Contact.'},
+  phantom_buoy:{id:'phantom_buoy',name:'Phantom Buoy',fam:'Deception',cp:1,ammo:{},
+    tgt:'PLACE_DCOY',rot:false,phantom:true,
+    desc:'[Upgraded] Deploys false high-confidence contact and secondary ghost echo in adjacent sector.'},
+  deep_silence:{id:'deep_silence',name:'Deep Silence',fam:'Mobility',cp:1,ammo:{smoke:1},
+    tgt:'MOVE_FLAG',rot:false,deepSilence:true,
+    desc:'[Upgraded] Move flagship to target cell. Clears confirmed contact and erases latest wake trail.'},
+  long_patrol:{id:'long_patrol',name:'Long Patrol',fam:'Air ops',cp:2,ammo:{fuel:1},
+    tgt:'AREA5',rot:false,longPatrol:true,
+    desc:'[Upgraded] Reveal 5×5 zone. Confirms contacts and persists for 2 enemy turns.'},
+};
+
+const MODULES={
+  acoustic_array:{id:'acoustic_array',name:'Acoustic Array',fam:'Intelligence',
+    desc:'First sonar card played each battle costs 0 CP.'},
+  torpedo_loader:{id:'torpedo_loader',name:'Torpedo Loader',fam:'Direct fire',
+    desc:'First two torpedoes each battle deal +1 bonus damage.'},
+  decoy_network:{id:'decoy_network',name:'Decoy Network',fam:'Deception',
+    desc:'First Decoy Buoy each battle creates two suspected contacts for AI.'},
+  flight_deck_rig:{id:'flight_deck_rig',name:'Flight Deck Rig',fam:'Air ops',
+    desc:'Patrol Plane reveals an expanded 6×6 area.'},
+  salvage_crane:{id:'salvage_crane',name:'Salvage Crane',fam:'Sustain',
+    desc:'First enemy support ship sunk restores 1 torpedo and 1 sonar.'},
+  emergency_rudder:{id:'emergency_rudder',name:'Emergency Rudder',fam:'Mobility',
+    desc:'First time flagship is confirmed, gain 1 free tactical movement.'},
+  signal_interpreter:{id:'signal_interpreter',name:'Signal Interpreter',fam:'Intelligence',
+    desc:'Enemy wake trails persist 1 additional turn in evidence tracking.'},
+  mine_computer:{id:'mine_computer',name:'Mine Computer',fam:'Land ops',
+    desc:'Minelayer placements trigger defensive sonar pings in adjacent cells.'},
+};
+
+const START_DECK=[
+  'narrow_sonar','narrow_sonar',
+  'torpedo_line','torpedo_line',
+  'thermal_wake','depth_pattern',
+  'flank_speed','go_silent',
+  'decoy_buoy','patrol_plane',
+];
+
+/* ════════════════════════════════════════════════════════════════
+   §3B  PERSISTENT RUN STATE
+════════════════════════════════════════════════════════════════ */
+let RUN=null;
+
+function initRun(){
+  RUN={
+    hull:{flagship:20,maxFlagship:20,patrol:8,maxPatrol:8,minelayer:10,maxMinelayer:10},
+    ammo:{torpedo:6,depthCharge:4,sonar:5,smoke:3,mine:2,fuel:2},
+    deck:[...START_DECK],
+    modules:[],        // max 4
+    cardUpgrades:{},   // baseId -> upgradedId
+    battleCount:0,
+    currentDoctrine:null, // 'silent_start' | 'forward_recon'
+  };
+  return RUN;
+}
+
+function getRun(){
+  if(!RUN)initRun();
+  return RUN;
+}
+
+function applyUpgrade(reward){
+  if(!RUN)initRun();
+  if(!reward)return;
+  switch(reward.type){
+    case'module':
+      if(reward.id&&MODULES[reward.id]){
+        if(RUN.modules.length<4&&!RUN.modules.includes(reward.id)){
+          RUN.modules.push(reward.id);
+        }
+      }
+      break;
+    case'card':
+    case'card_add':
+      if(reward.from&&reward.to&&CARDS[reward.to]){
+        const idx=RUN.deck.indexOf(reward.from);
+        if(idx>=0)RUN.deck[idx]=reward.to;
+        RUN.cardUpgrades[reward.from]=reward.to;
+      }else if(reward.id&&CARDS[reward.id]&&RUN.deck.length<28){
+        RUN.deck.push(reward.id);
+      }
+      break;
+    case'card_upgrade':
+      if(reward.from&&reward.to&&CARDS[reward.to]){
+        const idx=RUN.deck.indexOf(reward.from);
+        if(idx>=0)RUN.deck[idx]=reward.to;
+        RUN.cardUpgrades[reward.from]=reward.to;
+      }
+      break;
+    case'card_remove':
+      if(reward.id){
+        const idx=RUN.deck.indexOf(reward.id);
+        if(idx>=0)RUN.deck.splice(idx,1);
+      }
+      break;
+    case'ammo':
+      if(reward.ammo){
+        for(const[k,v]of Object.entries(reward.ammo)){
+          RUN.ammo[k]=(RUN.ammo[k]||0)+v;
+        }
+      }
+      break;
+    case'repair':
+      if(reward.target==='flagship'){
+        RUN.hull.flagship=Math.min(RUN.hull.maxFlagship,RUN.hull.flagship+(reward.amount||5));
+      }else if(reward.target==='patrol'&&RUN.hull.patrol>0){
+        RUN.hull.patrol=Math.min(RUN.hull.maxPatrol,RUN.hull.patrol+(reward.amount||4));
+      }else if(reward.target==='minelayer'&&RUN.hull.minelayer>0){
+        RUN.hull.minelayer=Math.min(RUN.hull.maxMinelayer,RUN.hull.minelayer+(reward.amount||4));
+      }
+      break;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §4  TERRAIN GENERATOR
+════════════════════════════════════════════════════════════════ */
+function genGrid(rng){
+  const g=Array.from({length:GH},()=>Array(GW).fill(T.OPEN));
+
+  // Island clusters (3–5)
+  const nc=rng.int(3,5);
+  for(let c=0;c<nc;c++){
+    let x=rng.int(2,GW-3),y=rng.int(2,GH-3);
+    const sz=rng.int(3,8);
+    g[y][x]=T.ISLAND;
+    for(let i=1;i<sz;i++){
+      const d=rng.pick([[0,1],[0,-1],[1,0],[-1,0]]);
+      const nx2=x+d[0],ny2=y+d[1];
+      if(nx2>=1&&nx2<GW-1&&ny2>=1&&ny2<GH-1){g[ny2][nx2]=T.ISLAND;x=nx2;y=ny2;}
+    }
+  }
+
+  // Deep water blobs (2–3)
+  for(let c=0,n=rng.int(2,3);c<n;c++){
+    let x=rng.int(0,GW-1),y=rng.int(0,GH-1);
+    for(let i=0,sz=rng.int(4,9);i<sz;i++){
+      if(g[y][x]===T.OPEN)g[y][x]=T.DEEP;
+      const d=rng.pick([[0,1],[0,-1],[1,0],[-1,0]]);
+      x=Math.max(0,Math.min(GW-1,x+d[0]));
+      y=Math.max(0,Math.min(GH-1,y+d[1]));
+    }
+  }
+
+  // Shallow blobs (1–2)
+  for(let c=0,n=rng.int(1,2);c<n;c++){
+    let x=rng.int(0,GW-1),y=rng.int(0,GH-1);
+    for(let i=0,sz=rng.int(3,6);i<sz;i++){
+      if(g[y][x]===T.OPEN)g[y][x]=T.SHALLOW;
+      const d=rng.pick([[0,1],[0,-1],[1,0],[-1,0]]);
+      x=Math.max(0,Math.min(GW-1,x+d[0]));
+      y=Math.max(0,Math.min(GH-1,y+d[1]));
+    }
+  }
+
+  // One radar island (not on existing island, not in corners)
+  for(let t=0;t<12;t++){
+    const rx=rng.int(2,GW-3),ry=rng.int(2,GH-3);
+    if(g[ry][rx]!==T.ISLAND){g[ry][rx]=T.RADAR;break;}
+  }
+
+  return g;
+}
+
+function validCells(grid,x0,x1){
+  const out=[];
+  for(let y=0;y<GH;y++)
+    for(let x=x0;x<x1;x++)
+      if(grid[y][x]!==T.ISLAND&&grid[y][x]!==T.REEF)out.push({x,y});
+  return out;
+}
+
+function validateGrid(grid){
+  if(validCells(grid,0,10).length<12)return false;
+  if(validCells(grid,10,20).length<12)return false;
+  let islands=0;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)if(grid[y][x]===T.ISLAND)islands++;
+  if(islands>GW*GH*0.38)return false;
+  return true;
+}
+
+/* ── FLEET PLACEMENT VALIDATION (§3) ── */
+function validatePlacement(grid,shipId,x,y,orientation){
+  if(x<0||x>=10||y<0||y>=GH){
+    return{valid:false,reason:'Deployment must be inside Allied sector (cols A–J).'};
+  }
+  const tile=grid[y][x];
+  if(tile===T.ISLAND||tile===T.RADAR){
+    return{valid:false,reason:'Cannot deploy ships on land or radar islands.'};
+  }
+  if((shipId==='flagship'||shipId==='minelayer')&&tile===T.REEF){
+    return{valid:false,reason:'Only Patrol Boat can navigate reefs.'};
+  }
+  return{valid:true,reason:'Legal position.'};
+}
+
+function getShipEscapeRoutes(grid,x,y){
+  const deltas=[[0,1],[0,-1],[1,0],[-1,0]];
+  let routes=0;
+  for(const[dx,dy]of deltas){
+    const nx=x+dx,ny=y+dy;
+    if(nx>=0&&nx<GW&&ny>=0&&ny<GH&&grid[ny][nx]!==T.ISLAND&&grid[ny][nx]!==T.RADAR){
+      routes++;
+    }
+  }
+  return routes;
+}
+
+function validateFullFleet(grid,placements){
+  const errors=[];
+  if(!placements||!placements.flagship||!placements.patrol||!placements.minelayer){
+    return{valid:false,errors:['All 3 ships must be deployed.']};
+  }
+  const ships=['flagship','patrol','minelayer'];
+  const occupied=new Map();
+
+  for(const s of ships){
+    const p=placements[s];
+    if(!p){errors.push(`Missing position for ${s}.`);continue;}
+    const chk=validatePlacement(grid,s,p.x,p.y,p.o||'H');
+    if(!chk.valid){errors.push(`${s}: ${chk.reason}`);continue;}
+    const key=`${p.x},${p.y}`;
+    if(occupied.has(key)){
+      errors.push(`Ship collision at ${cid(p.x,p.y)}.`);
+    }
+    occupied.set(key,s);
+  }
+
+  // Flagship safety: ≥ 2 legal adjacent escape routes
+  const f=placements.flagship;
+  if(f&&getShipEscapeRoutes(grid,f.x,f.y)<2){
+    errors.push('Flagship requires at least 2 open escape routes.');
+  }
+
+  return{valid:errors.length===0,errors};
+}
+
+function quickDeploy(grid,rng){
+  const candidates=rng.shuffle(validCells(grid,1,8));
+  for(let i=0;i<candidates.length-2;i++){
+    const f=candidates[i];
+    if(getShipEscapeRoutes(grid,f.x,f.y)<2)continue;
+    const pa=candidates[i+1];
+    const m=candidates[i+2];
+    const testP={
+      flagship:{x:f.x,y:f.y,o:'H'},
+      patrol:{x:pa.x,y:pa.y,o:'H'},
+      minelayer:{x:m.x,y:m.y,o:'H'}
+    };
+    const res=validateFullFleet(grid,testP);
+    if(res.valid)return testP;
+  }
+  // fallback guaranteed
+  return{
+    flagship:{x:2,y:5,o:'H'},
+    patrol:{x:3,y:8,o:'H'},
+    minelayer:{x:2,y:12,o:'H'}
+  };
+}
+
+function buildMap(seed){
+  for(let a=0;a<20;a++){
+    const rng=mkRng(seed+a*7919);
+    const grid=genGrid(rng);
+    if(validateGrid(grid))return{grid,rng:mkRng(seed+a*7919)};
+  }
+  // safe fallback
+  const grid=Array.from({length:GH},()=>Array(GW).fill(T.OPEN));
+  [[5,3],[6,3],[6,4],[10,8],[11,8],[11,9],[15,5],[15,14],[14,14]].forEach(([x,y])=>grid[y][x]=T.ISLAND);
+  grid[8][8]=T.RADAR;
+  return{grid,rng:mkRng(seed)};
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §5  HELPERS
+════════════════════════════════════════════════════════════════ */
+const cid=(x,y)=>`${COLS[x]}${y+1}`;
+
+function rollSeed(){
+  document.getElementById('seed-in').value=Math.floor(Math.random()*99998)+1;
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function showTitle(){
+  stopTimer();
+  showScreen('scr-title');
+}
+function showCS(){showScreen('scr-cs');}
+function dismissTut(){
+  document.getElementById('tut-overlay').classList.remove('open');
+  renderAll();
+}
+function toggleHeat(){
+  if(!G)return;
+  G.showHeat=!G.showHeat;
+  document.getElementById('heat-btn').classList.toggle('on',G.showHeat);
+  render();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §6  GAME STATE
+════════════════════════════════════════════════════════════════ */
+let G=null;
+let timerIv=null;
+
+function initGame(seed,customPlacements,chosenDoctrine){
+  stopTimer();
+  const run=getRun();
+  const{grid,rng}=buildMap(seed);
+
+  // default or manual placements
+  let fPos,paPos,mPos;
+  if(customPlacements&&customPlacements.flagship){
+    fPos={x:customPlacements.flagship.x,y:customPlacements.flagship.y};
+    paPos={x:customPlacements.patrol.x,y:customPlacements.patrol.y};
+    mPos={x:customPlacements.minelayer.x,y:customPlacements.minelayer.y};
+  }else{
+    const pCells=rng.shuffle(validCells(grid,1,8));
+    fPos=pCells[0]||{x:2,y:5};
+    paPos=pCells[1]||{x:3,y:8};
+    mPos=pCells[2]||{x:2,y:12};
+  }
+
+  // enemy ships: right third (x 12–18)
+  const eCells=rng.shuffle(validCells(grid,12,19));
+  const efPos=eCells[0]||{x:16,y:5};
+  const esPos=eCells[1]||{x:15,y:10};
+  const estPos=eCells[2]||{x:17,y:14};
+
+  // deck: use run deck (max 28)
+  const deckCards=[...(run.deck||START_DECK)];
+  const deck=rng.shuffle(deckCards);
+  const hand=deck.slice(0,5);
+  const rest=deck.slice(5);
+
+  // AI prob map: uniform over valid cells in left half (where player ships are)
+  const pv=validCells(grid,0,10);
+  const pBase=1/Math.max(1,pv.length);
+  const prob=Array.from({length:GH},(_,y)=>
+    Array.from({length:GW},(_,x)=>{
+      if(x>=10||grid[y][x]===T.ISLAND||grid[y][x]===T.REEF)return 0;
+      return pBase;
+    }));
+
+  // Apply doctrine modifiers
+  const doctrine=chosenDoctrine||run.currentDoctrine||null;
+  let startingCp=3;
+  let silentTurns=0;
+  if(doctrine==='silent_start'){
+    startingCp=2; // -1 CP on turn 1
+    silentTurns=2;
+  }
+
+  G={
+    seed,rng,turn:1,phase:PH.PLAN,result:null,showHeat:false,
+    grid,
+    revealed:new Set(),        // "x,y" keys — fog lifted
+    patrolReveal:null,         // {cells:Set, turnsLeft}
+
+    pFleet:[
+      {id:'flagship',lbl:'DESTROYER',hp:run.hull.flagship,max:run.hull.maxFlagship,pos:{...fPos},alive:run.hull.flagship>0},
+      {id:'patrol',  lbl:'PAT.BOAT', hp:run.hull.patrol,  max:run.hull.maxPatrol,  pos:{...paPos},alive:run.hull.patrol>0},
+      {id:'minelayer',lbl:'MINELAYER',hp:run.hull.minelayer,max:run.hull.maxMinelayer,pos:{...mPos},alive:run.hull.minelayer>0},
+    ],
+    eFleet:[
+      {id:'eflag',lbl:'ENEMY FLAG',hp:28,max:28,pos:{...efPos},cs:CS.UNK,alive:true,prev:null},
+      {id:'escout',lbl:'SCOUT',    hp:9, max:9, pos:{...esPos},cs:CS.UNK,alive:true,prev:null},
+      {id:'estrike',lbl:'STRIKE',  hp:10,max:10,pos:{...estPos},cs:CS.UNK,alive:true,prev:null},
+    ],
+
+    ammo:{...run.ammo},
+    deck:rest,hand,discard:[],
+    cp:startingCp,maxCp:6,
+    doctrine,
+
+    // timer
+    timerOn:false,timerSec:75,timerElapsed:0,consecTO:0,
+
+    // AI evidence (legal boundary: AI only reads this, never G.pFleet positions)
+    ev:{
+      confirmed:[],  // [{pos,sid,turn}]
+      suspected:[],  // [{cells,turn}]
+      trails:[],     // [{pos,turn}]
+      decoys:[],     // [{pos,turn,conf}]
+      jammers:[],    // [{x1,y1,x2,y2,left}]
+      hits:[],       // [{pos,turn}]
+      misses:[],     // [{pos,turn}]
+      scans:[],      // [{cells,cnt,turn}]
+      silentStartTurns:silentTurns,
+    },
+    prob,            // AI probability map [y][x]
+
+    // visual
+    effects:[],      // [{type,cells,startMs,durMs}]
+    markers:[],      // [{type,pos,lbl}]
+
+    // targeting
+    tCard:null,tOrient:'H',hov:null,
+
+    // logs
+    bLog:[],         // [{type,text,turn}]
+    rLog:[],         // [{text,turn}] AI reason log
+
+    // intel panel cache
+    intel:{conf:0,susp:0,trails:0,decoys:0,confLvl:'Low'},
+
+    stats:{torps:0,sonar:0,depth:0},
+  };
+
+  if(doctrine==='forward_recon'){
+    // free short scan around patrol boat
+    const pc=G.pFleet[1].pos;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      const cx=pc.x+dx,cy=pc.y+dy;
+      if(cx>=0&&cx<GW&&cy>=0&&cy<GH)G.revealed.add(`${cx},${cy}`);
+    }
+    pushLog('sys','Doctrine FORWARD RECON: initial area scouted around Patrol Boat.');
+  }
+
+  // initial draw already done (hand=5 cards)
+  pushLog('sys',`Mission start. Seed: ${seed}. Objective: HUNT — destroy enemy flagship.`);
+  pushLog('sys','Use sonar to locate contacts, torpedoes to strike. The AI acts from evidence only.');
+  renderAll();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §7  LOG HELPERS
+════════════════════════════════════════════════════════════════ */
+function pushLog(type,text){
+  if(!G)return;
+  G.bLog.unshift({type,text,turn:G.turn});
+  if(G.bLog.length>80)G.bLog.pop();
+}
+function pushReason(text){
+  if(!G)return;
+  G.rLog.unshift({text,turn:G.turn});
+  if(G.rLog.length>30)G.rLog.pop();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §8  TURN LOOP
+════════════════════════════════════════════════════════════════ */
+function doDraw(){
+  if(G.turn>1){
+    for(let i=0;i<2;i++){
+      if(!G.deck.length){
+        G.deck=G.rng.shuffle(G.discard.splice(0));
+        pushLog('sys','Deck reshuffled.');
+      }
+      if(G.deck.length&&G.hand.length<8)G.hand.push(G.deck.shift());
+    }
+  }
+  G.cp=Math.min(G.maxCp,G.cp+3);
+  G.phase=PH.PLAN;
+}
+
+function endPlayerTurn(){
+  if(!G||G.phase!==PH.PLAN)return;
+  cancelTgt();
+  stopTimer();
+
+  if(G.timerOn&&G.timerElapsed>=G.timerSec){
+    G.consecTO++;
+    if(G.consecTO>=2&&G.hand.length){
+      const i=G.rng.int(0,G.hand.length-1);
+      const c=G.hand.splice(i,1)[0];
+      G.discard.push(c);
+      pushLog('sys',`Timeout penalty: ${CARDS[c].name} discarded.`);
+    }
+  }else G.consecTO=0;
+
+  G.phase=PH.AI;
+  setTimeout(doAIPhase,500);
+  renderAll();
+}
+
+function doAIPhase(){
+  if(!G)return;
+  const ev=buildEv();     // ← AI ONLY sees this; never G.pFleet positions
+  const acts=aiDecide(ev,G.prob);
+  acts.forEach(resolveAct);
+  updateProb();
+  updateIntel();
+  G.phase=PH.RPT;
+  setTimeout(doReport,400);
+  renderAll();
+}
+
+function doReport(){
+  if(!G)return;
+  G.turn++;
+  // upkeep
+  if(G.patrolReveal){G.patrolReveal.left--;if(G.patrolReveal.left<=0)G.patrolReveal=null;}
+  G.ev.jammers=G.ev.jammers.filter(j=>{j.left--;return j.left>0;});
+  const now=Date.now();
+  G.effects=G.effects.filter(e=>now-e.startMs<e.durMs);
+  G.markers=G.markers.slice(-30);
+  // enemy micro-movement (hidden)
+  G.eFleet.forEach(s=>{
+    if(!s.alive)return;
+    if(mkRng(G.seed+G.turn*13+s.id.length).nx()<0.4){
+      const d=mkRng(G.seed+G.turn*17+s.id.charCodeAt(0)).pick([[0,1],[0,-1],[1,0],[-1,0]]);
+      const nx=s.pos.x+d[0],ny=s.pos.y+d[1];
+      if(nx>=0&&nx<GW&&ny>=0&&ny<GH&&G.grid[ny][nx]!==T.ISLAND&&G.grid[ny][nx]!==T.REEF){
+        s.prev={...s.pos};
+        s.pos={x:nx,y:ny};
+        if(s.cs===CS.CONF){s.cs=CS.LOST;}
+      }
+    }
+  });
+  doDraw();
+  if(G.timerOn)startTimer();
+  renderAll();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §9  AI — LEGAL BOUNDARY
+   buildEv() builds the ONLY view the AI receives.
+   aiDecide() never touches G.pFleet directly.
+════════════════════════════════════════════════════════════════ */
+function buildEv(){
+  // Public-only info the AI can legally observe
+  return{
+    confirmed:G.ev.confirmed.map(c=>({...c})),
+    suspected:G.ev.suspected.map(s=>({cells:[...s.cells],turn:s.turn})),
+    trails:G.ev.trails.map(t=>({...t})),
+    decoys:G.ev.decoys.map(d=>({...d})),
+    jammers:G.ev.jammers.map(j=>({...j})),
+    hits:G.ev.hits.map(h=>({...h})),
+    misses:G.ev.misses.map(m=>({...m})),
+    scans:G.ev.scans.map(s=>({cells:[...s.cells],cnt:s.cnt,turn:s.turn})),
+    turn:G.turn,
+    grid:G.grid,  // public terrain
+    ownFleet:G.eFleet.map(s=>({id:s.id,alive:s.alive,hp:s.hp})),
+  };
+}
+
+function aiDecide(ev,prob){
+  const acts=[];
+  const rng=mkRng(ev.turn*41+7);
+  if(ev.ownFleet[0]&&ev.ownFleet[0].alive)acts.push(aiAtk(ev,prob,rng,'flag'));
+  if(ev.ownFleet[1]&&ev.ownFleet[1].alive)acts.push(aiScan(ev,prob,rng));
+  if(ev.ownFleet[2]&&ev.ownFleet[2].alive)acts.push(aiAtk(ev,prob,rng,'strike'));
+  return acts;
+}
+
+function aiAtk(ev,prob,rng,src){
+  // 1. Fresh confirmed contact?
+  const fresh=ev.confirmed.filter(c=>ev.turn-c.turn<=2);
+  if(fresh.length){
+    const t=rng.pick(fresh);
+    return{type:'atk',pos:{...t.pos},src,
+      reason:`Attacking ${cid(t.pos.x,t.pos.y)}: confirmed contact from turn ${t.turn}.`};
+  }
+  // 2. Suspected zone?
+  const freshS=ev.suspected.filter(s=>ev.turn-s.turn<=3&&s.cells.length);
+  if(freshS.length&&rng.nx()<0.55){
+    const z=rng.pick(freshS);
+    const cell=rng.pick(z.cells);
+    return{type:'atk',pos:{...cell},src,
+      reason:`Targeting ${cid(cell.x,cell.y)}: suspected zone from turn ${z.turn}.`};
+  }
+  // 3. Probability map peak + noise (Recruit/Hunter tier)
+  let best=null,bestP=-1;
+  const noise=0.12;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    if(ev.misses.some(m=>m.pos.x===x&&m.pos.y===y))continue;
+    if(ev.hits.some(h=>h.pos.x===x&&h.pos.y===y))continue;
+    const p=prob[y][x]+rng.nx()*noise;
+    if(p>bestP){bestP=p;best={x,y};}
+  }
+  if(!best){const f=validCells(ev.grid,0,10);best=rng.pick(f)||{x:3,y:10};}
+  const raw=prob[best.y][best.x];
+  const reason=raw>0.04
+    ?`Attacking ${cid(best.x,best.y)}: prob-map peak (${(raw*100).toFixed(1)}% weight).`
+    :`Broad sweep at ${cid(best.x,best.y)}: low-evidence sector search.`;
+  return{type:'atk',pos:{x:best.x,y:best.y},src,reason};
+}
+
+function aiScan(ev,prob,rng){
+  let best=null,bestS=-1;
+  for(let y=1;y<GH-1;y++)for(let x=1;x<9;x++){
+    if(ev.scans.some(sc=>sc.cells.some(c=>c.x===x&&c.y===y)))continue;
+    let s=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
+      s+=(prob[y+dy]&&prob[y+dy][x+dx])||0;
+    if(s>bestS){bestS=s;best={x,y};}
+  }
+  if(!best)best={x:rng.int(1,8),y:rng.int(1,GH-2)};
+  return{type:'scan',pos:best,
+    reason:`Scanning around ${cid(best.x,best.y)}: highest unresolved probability density.`};
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §10  ENEMY ACTION RESOLVER
+════════════════════════════════════════════════════════════════ */
+function resolveAct(act){
+  pushReason(act.reason);
+  if(act.type==='atk')resolveAtk(act.pos,act.src);
+  else resolveAiScan(act.pos);
+}
+
+function resolveAtk(pos,src){
+  const{x,y}=pos;
+  const hit=G.pFleet.find(s=>s.alive&&s.pos.x===x&&s.pos.y===y);
+  if(hit){
+    const dmg=src==='flag'?4:3;
+    hit.hp=Math.max(0,hit.hp-dmg);
+    pushLog('emy',`Enemy attacked ${cid(x,y)}: HIT ${hit.lbl} for ${dmg}!`);
+    pushReason(`↳ Result: hit ${hit.lbl} at ${cid(x,y)}.`);
+    addMark('hit',pos,`${dmg}`);
+    addFx('explosion',[pos],1200);
+    G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!==hit.id);
+    G.ev.confirmed.push({pos:{...pos},sid:hit.id,turn:G.turn});
+    G.ev.hits.push({pos:{...pos},turn:G.turn});
+    probSpike(pos,0.12);
+    playAudio('hit');
+    if(hit.id==='flagship'&&hit.hp<=0){hit.alive=false;setTimeout(()=>endBattle('def'),800);}
+    else if(hit.hp<=0){hit.alive=false;pushLog('emy',`${hit.lbl} destroyed!`);}
+  }else{
+    pushLog('mis',`Enemy attacked ${cid(x,y)}: miss.`);
+    addMark('miss',pos,'');
+    addFx('splash',[pos],800);
+    G.ev.misses.push({pos:{...pos},turn:G.turn});
+    G.prob[y][x]=0;normProb();
+    playAudio('miss');
+  }
+  renderAll();
+}
+
+function resolveAiScan(pos){
+  const{x,y}=pos;
+  const cells=[];
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const cx=x+dx,cy=y+dy;
+    if(cx>=0&&cx<GW&&cy>=0&&cy<GH)cells.push({x:cx,y:cy});
+  }
+  const found=G.pFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y));
+  if(found.length){
+    G.ev.suspected.push({cells,turn:G.turn});
+    cells.forEach(c=>{if(G.grid[c.y][c.x]!==T.ISLAND)G.prob[c.y][c.x]*=3;});
+    normProb();
+    pushLog('int',`Enemy sonar at ${cid(x,y)}: ${found.length} contact(s).`);
+  }else{
+    cells.forEach(c=>{G.prob[c.y][c.x]=0;});
+    normProb();
+    pushLog('sys',`Enemy sonar at ${cid(x,y)}: clear.`);
+  }
+  G.ev.scans.push({cells,cnt:found.length,turn:G.turn});
+  addFx('sonar',[pos],900);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §11  PROBABILITY MAP
+════════════════════════════════════════════════════════════════ */
+function updateProb(){
+  const minP=0.005/Math.max(1,validCells(G.grid,0,10).length);
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    if(x>=10||G.grid[y][x]===T.ISLAND){G.prob[y][x]=0;continue;}
+    G.prob[y][x]=Math.max(minP,G.prob[y][x]*0.93+minP);
+  }
+  // decay known misses
+  G.ev.misses.forEach(m=>{G.prob[m.pos.y][m.pos.x]=0;});
+  // boost hit areas
+  G.ev.hits.slice(0,3).forEach(h=>probSpike(h.pos,0.06));
+  // apply decoys
+  G.ev.decoys.forEach(d=>{
+    const{x,y}=d.pos;
+    if(x<10&&x>=0&&y>=0&&y<GH){
+      G.prob[y][x]+=0.28*d.conf;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        const cx=x+dx,cy=y+dy;
+        if(cx>=0&&cx<10&&cy>=0&&cy<GH)G.prob[cy][cx]+=0.08*d.conf;
+      }
+    }
+  });
+  // jammers: flatten
+  G.ev.jammers.forEach(j=>{
+    for(let y=j.y1;y<=j.y2&&y<GH;y++)
+      for(let x=j.x1;x<=j.x2&&x<10;x++)
+        G.prob[y][x]*=0.4;
+  });
+  normProb();
+}
+
+function probSpike(pos,amt){
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+    const cx=pos.x+dx,cy=pos.y+dy;
+    if(cx>=0&&cx<10&&cy>=0&&cy<GH)
+      G.prob[cy][cx]+=amt/(Math.abs(dx)+Math.abs(dy)+1);
+  }
+}
+
+function normProb(){
+  let tot=0;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)tot+=G.prob[y][x];
+  if(tot===0){
+    validCells(G.grid,0,10).forEach(c=>G.prob[c.y][c.x]=1);
+    tot=validCells(G.grid,0,10).length;
+  }
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)G.prob[y][x]/=tot;
+}
+
+function updateIntel(){
+  const t=G.turn;
+  const conf=G.ev.confirmed.filter(c=>t-c.turn<=2).length;
+  const susp=G.ev.suspected.filter(s=>t-s.turn<=3).length;
+  const trails=G.ev.trails.filter(r=>t-r.turn<=3).length;
+  const decoys=G.ev.decoys.filter(d=>t-d.turn<=3).length;
+  const lvl=conf>0?'High':susp>0||trails>0?'Medium':'Low';
+  G.intel={conf,susp,trails,decoys,confLvl:lvl};
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §12  CARD TARGETING
+════════════════════════════════════════════════════════════════ */
+function selectCard(id){
+  if(!G||G.phase!==PH.PLAN)return;
+  const c=CARDS[id];if(!c)return;
+  if(c.disabled){pushLog('sys',`${c.name}: not active in this build.`);renderHand();return;}
+  if(G.cp<c.cp){pushLog('sys',`${c.name}: need ${c.cp} CP (have ${G.cp}).`);renderHand();return;}
+  for(const[k,v]of Object.entries(c.ammo||{}))
+    if(G.ammo[k]<v){pushLog('sys',`${c.name}: need ${v} ${k} (have ${G.ammo[k]}).`);renderHand();return;}
+  if(c.needConf&&G.ev.confirmed.filter(x=>G.turn-x.turn<=2).length===0){
+    pushLog('sys',`${c.name}: requires an active confirmed contact.`);renderHand();return;}
+  if(G.tCard===id){cancelTgt();return;}
+  G.tCard=id;G.tOrient='H';
+  const th=document.getElementById('tgt-help');
+  th.textContent=`${c.name} — click board to target`;th.style.display='block';
+  const ob=document.getElementById('orient-btn');
+  ob.style.display=c.rot?'block':'none';
+  ob.textContent='HORIZONTAL ↔';
+  renderHand();render();
+}
+
+function cancelTgt(){
+  if(!G)return;
+  G.tCard=null;G.hov=null;
+  document.getElementById('tgt-help').style.display='none';
+  document.getElementById('orient-btn').style.display='none';
+  renderHand();render();
+}
+
+function toggleOrient(){
+  if(!G)return;
+  G.tOrient=G.tOrient==='H'?'V':'H';
+  document.getElementById('orient-btn').textContent=G.tOrient==='H'?'HORIZONTAL ↔':'VERTICAL ↕';
+  render();
+}
+
+function previewCells(id,hx,hy){
+  if(!id||hx===null)return[];
+  const c=CARDS[id];if(!c)return[];
+  const cells=[];
+  switch(c.tgt){
+    case'LINE5':for(let i=-2;i<=2;i++){
+      const x=G.tOrient==='H'?hx+i:hx,y=G.tOrient==='V'?hy+i:hy;
+      if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
+    case'LINE_ATK':{
+      const f=G.pFleet[0].pos;
+      let dx=0,dy=0;
+      if(G.tOrient==='H')dx=hx>=f.x?1:-1;else dy=hy>=f.y?1:-1;
+      let cx=f.x+dx,cy=f.y+dy;
+      for(let i=0;i<6;i++){
+        if(cx<0||cx>=GW||cy<0||cy>=GH)break;
+        cells.push({x:cx,y:cy});
+        if(G.grid[cy][cx]===T.ISLAND)break;
+        if(G.eFleet.some(s=>s.alive&&s.pos.x===cx&&s.pos.y===cy))break;
+        cx+=dx;cy+=dy;
+      }break;}
+    case'AREA3':for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      const x=hx+dx,y=hy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
+    case'AREA4':for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){
+      const x=hx+dx,y=hy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
+    case'AREA5':for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+      const x=hx+dx,y=hy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
+    default:if(hx>=0&&hx<GW&&hy>=0&&hy<GH)cells.push({x:hx,y:hy});
+  }
+  return cells;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §13  CARD EXECUTION
+════════════════════════════════════════════════════════════════ */
+function execCard(id,tx,ty){
+  const c=CARDS[id];if(!c)return;
+  G.cp-=c.cp;
+  for(const[k,v]of Object.entries(c.ammo||{}))G.ammo[k]-=v;
+  const i=G.hand.indexOf(id);if(i>=0){G.hand.splice(i,1);G.discard.push(id);}
+  switch(c.tgt){
+    case'LINE5':     execSonar(tx,ty);break;
+    case'AREA4':     id==='sector_sweep'?execSweep(tx,ty):execJammer(tx,ty);break;
+    case'SINGLE':    id==='thermal_wake'?execWake(tx,ty):
+                     id==='precision_salvo'?execSalvo(tx,ty):
+                     execDecoy(tx,ty);break;
+    case'LINE_ATK':  execTorpedo(tx,ty);break;
+    case'AREA3':     execDepth(tx,ty);break;
+    case'AREA5':     execPatrol(tx,ty);break;
+    case'MOVE_SUP':  execFlank(tx,ty);break;
+    case'MOVE_FLAG': execSilent(tx,ty);break;
+    case'PLACE_DCOY':execDecoy(tx,ty);break;
+  }
+  cancelTgt();updateIntel();checkVic();renderAll();
+}
+
+function execSonar(cx,cy){
+  const cells=[];
+  for(let i=-2;i<=2;i++){
+    const x=G.tOrient==='H'?cx+i:cx,y=G.tOrient==='V'?cy+i:cy;
+    if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});
+  }
+  cells.forEach(c=>G.revealed.add(`${c.x},${c.y}`));
+  const cnt=G.eFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y)).length;
+  if(cnt){G.eFleet.forEach(s=>{if(cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y)&&s.cs===CS.UNK)s.cs=CS.CONT;});}
+  addFx('sonar',cells,1400);
+  G.ev.scans.push({cells,cnt,turn:G.turn});
+  if(cnt) G.ev.suspected.push({cells,turn:G.turn});
+  pushLog('ply',`Narrow Sonar [${cid(cells[0].x,cells[0].y)}→${cid(cells[cells.length-1].x,cells[cells.length-1].y)}]: ${cnt} contact(s).`);
+  G.stats.sonar++;
+  playAudio('sonar');
+}
+
+function execSweep(cx,cy){
+  const cells=[];
+  for(let dy=0;dy<4;dy++)for(let dx=0;dx<4;dx++){
+    const x=cx+dx,y=cy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});
+  }
+  cells.forEach(c=>G.revealed.add(`${c.x},${c.y}`));
+  const found=G.eFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y));
+  found.forEach(s=>{if(s.cs!==CS.CONF)s.cs=CS.CONT;});
+  addFx('sweep',cells,1200);
+  G.ev.scans.push({cells,cnt:found.length,turn:G.turn});
+  pushLog('ply',`Sector Sweep: ${found.length} contact(s) in sector.`);
+  playAudio('sonar');
+}
+
+function execWake(tx,ty){
+  G.revealed.add(`${tx},${ty}`);
+  addFx('sonar',[{x:tx,y:ty}],900);
+  const was=G.eFleet.some(s=>s.alive&&s.prev&&s.prev.x===tx&&s.prev.y===ty);
+  pushLog('ply',`Thermal Wake at ${cid(tx,ty)}: ${was?'POSITIVE — ship moved here last turn.':'negative — no movement.'}`);
+  if(was){G.ev.trails.push({pos:{x:tx,y:ty},turn:G.turn});probSpike({x:tx,y:ty},0.08);normProb();}
+}
+
+function execTorpedo(tx,ty){
+  const f=G.pFleet[0].pos;
+  let dx=0,dy=0;
+  if(G.tOrient==='H')dx=tx>=f.x?1:-1;else dy=ty>=f.y?1:-1;
+  let cx=f.x+dx,cy=f.y+dy;
+  const path=[];let hitSh=null;
+  for(let i=0;i<6;i++){
+    if(cx<0||cx>=GW||cy<0||cy>=GH)break;
+    path.push({x:cx,y:cy});G.revealed.add(`${cx},${cy}`);
+    if(G.grid[cy][cx]===T.ISLAND){pushLog('ply',`Torpedo stopped at island ${cid(cx,cy)}.`);break;}
+    const sh=G.eFleet.find(s=>s.alive&&s.pos.x===cx&&s.pos.y===cy);
+    if(sh){hitSh=sh;break;}
+    cx+=dx;cy+=dy;
+  }
+  addFx('torp',path,1400);
+  if(hitSh){
+    hitSh.hp=Math.max(0,hitSh.hp-5);hitSh.cs=CS.CONF;
+    addMark('hit',hitSh.pos,'5');addFx('explosion',[hitSh.pos],1200);
+    G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!==hitSh.id);
+    G.ev.confirmed.push({pos:{...hitSh.pos},sid:hitSh.id,turn:G.turn});
+    G.ev.hits.push({pos:{...hitSh.pos},turn:G.turn});
+    pushLog('hit',`Torpedo HIT ${hitSh.lbl} at ${cid(hitSh.pos.x,hitSh.pos.y)} for 5! HP:${hitSh.hp}/${hitSh.max}`);
+    if(hitSh.hp<=0){hitSh.alive=false;pushLog('hit',`${hitSh.lbl} SUNK!`);}
+    playAudio('hit');
+  }else{
+    const lp=path[path.length-1];if(lp){addMark('miss',lp,'');G.ev.misses.push({pos:{...lp},turn:G.turn});}
+    pushLog('ply',`Torpedo: no target in path.`);playAudio('miss');
+  }
+  G.stats.torps++;
+}
+
+function execDepth(cx,cy){
+  const cells=[];
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const x=cx+dx,y=cy+dy;
+    if(x>=0&&x<GW&&y>=0&&y<GH){cells.push({x,y});G.revealed.add(`${x},${y}`);}
+  }
+  addFx('explosion',cells,1400);let hits=0;
+  G.eFleet.forEach(s=>{
+    if(!s.alive)return;
+    if(cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y)){
+      s.hp=Math.max(0,s.hp-3);s.cs=CS.CONF;hits++;
+      addMark('hit',s.pos,'3');
+      G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!==s.id);
+      G.ev.confirmed.push({pos:{...s.pos},sid:s.id,turn:G.turn});
+      G.ev.hits.push({pos:{...s.pos},turn:G.turn});
+      pushLog('hit',`Depth Pattern HIT ${s.lbl} for 3! HP:${s.hp}/${s.max}`);
+      if(s.hp<=0){s.alive=false;pushLog('hit',`${s.lbl} SUNK!`);}
+      playAudio('hit');
+    }
+  });
+  if(!hits){pushLog('ply',`Depth Pattern at ${cid(cx,cy)}: clear.`);playAudio('miss');}
+  G.stats.depth++;
+}
+
+function execPatrol(cx,cy){
+  const cells=[];
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+    const x=cx+dx,y=cy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});
+  }
+  cells.forEach(c=>G.revealed.add(`${c.x},${c.y}`));
+  G.patrolReveal={cells:new Set(cells.map(c=>`${c.x},${c.y}`)),left:2};
+  const found=G.eFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y));
+  found.forEach(s=>{s.cs=CS.CONF;
+    G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!==s.id);
+    G.ev.confirmed.push({pos:{...s.pos},sid:s.id,turn:G.turn});});
+  addFx('sweep',cells,1600);
+  pushLog('ply',`Patrol Plane: ${found.length} contact(s) confirmed in 5×5 zone.`);
+  playAudio('sonar');
+}
+
+function execDecoy(tx,ty){
+  if(tx>=10){pushLog('ply','Decoy Buoy: place in your sector (A–J).  ');return;}
+  addFx('decoy',[{x:tx,y:ty}],1100);
+  const d={pos:{x:tx,y:ty},turn:G.turn,conf:0.8};
+  G.ev.decoys.push(d);
+  G.prob[ty][tx]+=0.35;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const cx=tx+dx,cy=ty+dy;
+    if(cx>=0&&cx<10&&cy>=0&&cy<GH)G.prob[cy][cx]+=0.08;
+  }
+  normProb();
+  pushLog('ply',`Decoy Buoy at ${cid(tx,ty)}: false contact injected. Watch AI Intel Panel.`);
+  pushLog('int',`AI prob-map spiked near ${cid(tx,ty)} — AI has no idea this is fake.`);
+}
+
+function execJammer(cx,cy){
+  const x1=cx,y1=cy,x2=Math.min(cx+3,GW-1),y2=Math.min(cy+3,GH-1);
+  G.ev.jammers.push({x1,y1,x2,y2,left:2});
+  for(let y=y1;y<=y2;y++)for(let x=x1;x<=x2;x++)if(x<10)G.prob[y][x]*=0.25;
+  normProb();addFx('jammer',[{x:cx,y:cy}],900);
+  pushLog('ply',`Radar Jammer: AI confidence flattened in [${cid(x1,y1)}→${cid(x2,y2)}] for 2 turns.`);
+}
+
+function execFlank(tx,ty){
+  if(G.grid[ty][tx]===T.ISLAND){pushLog('ply','Cannot move to island.');return;}
+  const sup=G.pFleet.filter(s=>s.id!=='flagship'&&s.alive);if(!sup.length)return;
+  const s=sup.reduce((a,b)=>Math.abs(a.pos.x-tx)+Math.abs(a.pos.y-ty)<=Math.abs(b.pos.x-tx)+Math.abs(b.pos.y-ty)?a:b);
+  pushLog('ply',`Flank Speed: ${s.lbl} → ${cid(tx,ty)}.`);
+  s.pos={x:tx,y:ty};
+}
+
+function execSilent(tx,ty){
+  if(G.grid[ty][tx]===T.ISLAND){pushLog('ply','Cannot move to island.');return;}
+  const flag=G.pFleet[0];
+  const old={...flag.pos};
+  G.ev.trails.push({pos:{...old},turn:G.turn});
+  G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!=='flagship');
+  G.prob[old.y][old.x]*=0.2;
+  flag.pos={x:tx,y:ty};
+  normProb();
+  addFx('smoke',[{x:tx,y:ty}],1300);
+  pushLog('ply',`Go Silent: flagship → ${cid(tx,ty)}. Confirmed contact cleared.`);
+}
+
+function execSalvo(tx,ty){
+  G.revealed.add(`${tx},${ty}`);
+  addFx('explosion',[{x:tx,y:ty}],1400);
+  const sh=G.eFleet.find(s=>s.alive&&s.pos.x===tx&&s.pos.y===ty);
+  if(sh){
+    sh.hp=Math.max(0,sh.hp-8);sh.cs=CS.CONF;addMark('hit',sh.pos,'8');
+    G.ev.hits.push({pos:{...sh.pos},turn:G.turn});
+    pushLog('hit',`Precision Salvo HIT ${sh.lbl} for 8! HP:${sh.hp}/${sh.max}`);
+    if(sh.hp<=0){sh.alive=false;pushLog('hit',`${sh.lbl} SUNK!`);}
+    playAudio('hit');
+  }else{
+    G.ev.misses.push({pos:{x:tx,y:ty},turn:G.turn});
+    pushLog('ply',`Precision Salvo: target moved from ${cid(tx,ty)}.`);playAudio('miss');
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §14  VICTORY / DEFEAT
+════════════════════════════════════════════════════════════════ */
+function checkVic(){
+  if(!G||G.result)return;
+  if(!G.eFleet[0].alive){endBattle('vic');return;}
+  if(!G.pFleet[0].alive)endBattle('def');
+}
+function endBattle(res){
+  if(G.result)return;G.result=res;stopTimer();
+  const ammoL=Object.values(G.ammo).reduce((a,b)=>a+b,0);
+  if(res==='vic'){
+    document.getElementById('vic-stats').innerHTML=
+      `Turns: ${G.turn} &nbsp;·&nbsp; Torpedoes: ${G.stats.torps} &nbsp;·&nbsp; Sonar: ${G.stats.sonar}<br>
+       Ammo remaining: ${ammoL} &nbsp;·&nbsp; Flagship HP: ${G.pFleet[0].hp}/${G.pFleet[0].max}<br>
+       Seed: <span style="color:#d4a843">${G.seed}</span>`;
+    setTimeout(()=>showScreen('scr-vic'),900);
+  }else{
+    document.getElementById('def-stats').innerHTML=
+      `Survived: ${G.turn} turns &nbsp;·&nbsp; Enemy flagship HP: ${G.eFleet[0].hp}/${G.eFleet[0].max}<br>
+       Torpedoes: ${G.stats.torps} &nbsp;·&nbsp; Sonar: ${G.stats.sonar}<br>
+       Seed: <span style="color:#d4a843">${G.seed}</span>`;
+    setTimeout(()=>showScreen('scr-def'),900);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §15  EFFECTS / MARKERS
+════════════════════════════════════════════════════════════════ */
+function addFx(type,cells,durMs){if(G)G.effects.push({type,cells,startMs:Date.now(),durMs});}
+function addMark(type,pos,lbl){if(G)G.markers.push({type,pos:{...pos},lbl});}
+
+/* ════════════════════════════════════════════════════════════════
+   §16  TIMER
+════════════════════════════════════════════════════════════════ */
+function stopTimer(){if(timerIv){clearInterval(timerIv);timerIv=null;}}
+function startTimer(){
+  stopTimer();G.timerElapsed=0;
+  timerIv=setInterval(()=>{
+    if(!G||G.phase!==PH.PLAN){stopTimer();return;}
+    G.timerElapsed++;
+    if(G.timerElapsed===G.timerSec-15)playAudio('warn');
+    if(G.timerElapsed===G.timerSec-5)playAudio('warn2');
+    if(G.timerElapsed>=G.timerSec){stopTimer();pushLog('sys','Timer expired — turn ending.');endPlayerTurn();return;}
+    renderTmr();
+  },1000);
+}
+function toggleTimer(){
+  if(!G)return;G.timerOn=!G.timerOn;G.timerElapsed=0;stopTimer();
+  document.getElementById('tmr-tog').classList.toggle('on',G.timerOn);
+  if(G.timerOn&&G.phase===PH.PLAN)startTimer();
+  renderTmr();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §17  AUDIO
+════════════════════════════════════════════════════════════════ */
+let actx=null;
+function getActx(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function playAudio(t){
+  try{
+    const ctx=getActx(),o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    const now=ctx.currentTime;
+    switch(t){
+      case'hit':o.type='sawtooth';o.frequency.value=130;
+        g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.4);break;
+      case'miss':o.type='sine';o.frequency.value=380;
+        g.gain.setValueAtTime(.05,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);break;
+      case'sonar':o.type='sine';
+        o.frequency.setValueAtTime(880,now);o.frequency.exponentialRampToValueAtTime(440,now+.3);
+        g.gain.setValueAtTime(.09,now);g.gain.exponentialRampToValueAtTime(.001,now+.5);break;
+      case'warn':o.type='square';o.frequency.value=660;
+        g.gain.setValueAtTime(.07,now);g.gain.exponentialRampToValueAtTime(.001,now+.18);break;
+      case'warn2':o.type='square';o.frequency.value=880;
+        g.gain.setValueAtTime(.1,now);g.gain.exponentialRampToValueAtTime(.001,now+.12);break;
+    }
+    o.start(now);o.stop(now+.55);
+  }catch(e){}
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §18  CANVAS RENDERING
+════════════════════════════════════════════════════════════════ */
+function render(){
+  const cv=document.getElementById('board');
+  if(!cv||!G)return;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,CW,CH);
+  drawTerrain(ctx);
+  drawDivider(ctx);
+  drawFog(ctx);
+  drawHeatmap(ctx);
+  drawMarkers(ctx);
+  drawEffects(ctx);
+  drawPlayerFleet(ctx);
+  drawEnemyContacts(ctx);
+  drawTargetPreview(ctx);
+  drawLabels(ctx);
+}
+
+function cp2px(x,y){return{px:LBL+x*CELL,py:LBL+y*CELL};}
+
+function drawDivider(ctx){
+  const midX=LBL+10*CELL;
+  ctx.save();
+  ctx.strokeStyle='rgba(212,168,67,0.3)';
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  ctx.moveTo(midX,LBL);
+  ctx.lineTo(midX,CH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawTerrain(ctx){
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    const{px,py}=cp2px(x,y);
+    ctx.fillStyle=TC[G.grid[y][x]]||'#0c1e35';
+    ctx.fillRect(px,py,CELL,CELL);
+    ctx.strokeStyle='#0d1e32';ctx.lineWidth=.5;
+    ctx.strokeRect(px,py,CELL,CELL);
+    if(G.grid[y][x]===T.ISLAND){
+      ctx.fillStyle='rgba(90,110,50,.3)';
+      [[3,3],[CELL-6,4],[4,CELL-6]].forEach(([ox,oy])=>ctx.fillRect(px+ox,py+oy,2,2));
+    }
+    if(G.grid[y][x]===T.RADAR){
+      ctx.fillStyle='#50a030';ctx.font=`${CELL*.48}px monospace`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('R',px+CELL/2,py+CELL/2);
+    }
+  }
+}
+
+function drawFog(ctx){
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    if(x<10)continue; // player half: no fog
+    const key=`${x},${y}`;
+    const revealed=G.revealed.has(key);
+    const patrolClear=G.patrolReveal&&G.patrolReveal.cells.has(key);
+    const alpha=patrolClear?0:revealed?.18:.84;
+    if(alpha>0){
+      const{px,py}=cp2px(x,y);
+      ctx.fillStyle=`rgba(3,8,18,${alpha})`;
+      ctx.fillRect(px,py,CELL,CELL);
+    }
+  }
+}
+
+function drawHeatmap(ctx){
+  if(!G.showHeat)return;
+  // find max prob for scaling
+  let maxP=0;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)if(G.prob[y][x]>maxP)maxP=G.prob[y][x];
+  if(maxP===0)return;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    const p=G.prob[y][x];
+    if(p<0.001)continue;
+    const t=p/maxP;
+    const{px,py}=cp2px(x,y);
+    // purple (low) → red (high)
+    const r=Math.round(80+t*175),g2=Math.round(20*(1-t)),b=Math.round(120*(1-t));
+    ctx.fillStyle=`rgba(${r},${g2},${b},${.25+t*.5})`;
+    ctx.fillRect(px,py,CELL,CELL);
+  }
+}
+
+function drawMarkers(ctx){
+  G.markers.forEach(m=>{
+    const{px,py}=cp2px(m.pos.x,m.pos.y);
+    if(m.type==='hit'){
+      ctx.fillStyle='rgba(180,50,20,.35)';ctx.fillRect(px+1,py+1,CELL-2,CELL-2);
+      ctx.strokeStyle='#d06020';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(px+4,py+4);ctx.lineTo(px+CELL-4,py+CELL-4);
+      ctx.moveTo(px+CELL-4,py+4);ctx.lineTo(px+4,py+CELL-4);ctx.stroke();
+      if(m.lbl){ctx.fillStyle='#e07830';ctx.font=`bold ${CELL*.42}px monospace`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(m.lbl,px+CELL/2,py+CELL/2);}
+    }else if(m.type==='miss'){
+      ctx.strokeStyle='#1e3858';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*.22,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='rgba(20,40,70,.5)';ctx.fill();
+    }
+  });
+}
+
+function drawEffects(ctx){
+  const now=Date.now();let needRaf=false;
+  G.effects.forEach(e=>{
+    const t=(now-e.startMs)/e.durMs;if(t>=1)return;needRaf=true;
+    switch(e.type){
+      case'sonar':
+        e.cells.forEach(c=>{
+          const{px,py}=cp2px(c.x,c.y);
+          ctx.strokeStyle=`rgba(42,184,255,${.9*(1-t)})`;ctx.lineWidth=1.5;
+          ctx.strokeRect(px+1,py+1,CELL-2,CELL-2);
+          ctx.fillStyle=`rgba(42,184,255,${.18*(1-t)})`;ctx.fillRect(px+1,py+1,CELL-2,CELL-2);
+        });break;
+      case'sweep':
+        e.cells.forEach(c=>{
+          const{px,py}=cp2px(c.x,c.y);
+          ctx.fillStyle=`rgba(180,220,80,${.28*Math.sin(t*Math.PI)})`;
+          ctx.fillRect(px,py,CELL,CELL);
+        });break;
+      case'torp':
+        e.cells.forEach((c,i)=>{
+          if(i/e.cells.length>t)return;
+          const{px,py}=cp2px(c.x,c.y);
+          ctx.fillStyle=`rgba(255,120,20,${.65*(1-t)})`;
+          ctx.fillRect(px+CELL/2-2,py+CELL/2-2,4,4);
+          if(i>0){
+            const{px:p0,py:q0}=cp2px(e.cells[i-1].x,e.cells[i-1].y);
+            ctx.strokeStyle=`rgba(255,120,20,${.5*(1-t)})`;ctx.lineWidth=2;
+            ctx.beginPath();ctx.moveTo(p0+CELL/2,q0+CELL/2);
+            ctx.lineTo(px+CELL/2,py+CELL/2);ctx.stroke();
+          }
+        });break;
+      case'explosion':
+        e.cells.forEach(c=>{
+          const{px,py}=cp2px(c.x,c.y);
+          const r=CELL*.65*t;
+          ctx.fillStyle=`rgba(255,60,20,${(1-t)*.55})`;
+          ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,r,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle=`rgba(255,200,50,${(1-t)*.75})`;
+          ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,r*.35,0,Math.PI*2);ctx.fill();
+        });break;
+      case'splash':
+        e.cells.forEach(c=>{
+          const{px,py}=cp2px(c.x,c.y);
+          ctx.strokeStyle=`rgba(60,130,200,${.8*(1-t)})`;ctx.lineWidth=1;
+          ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*.4*t,0,Math.PI*2);ctx.stroke();
+        });break;
+      case'decoy':
+        e.cells.forEach(c=>{
+          const{px,py}=cp2px(c.x,c.y);
+          ctx.strokeStyle=`rgba(144,60,200,${1-t})`;ctx.lineWidth=2;
+          ctx.strokeRect(px+2,py+2,CELL-4,CELL-4);
+          ctx.fillStyle=`rgba(144,60,200,${.25*(1-t)})`;ctx.fillRect(px+2,py+2,CELL-4,CELL-4);
+        });break;
+      case'smoke':
+        e.cells.forEach(c=>{
+          const{px,py}=cp2px(c.x,c.y);
+          ctx.fillStyle=`rgba(160,160,180,${.5*(1-t)})`;
+          ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*.5*(1+t*.4),0,Math.PI*2);ctx.fill();
+        });break;
+      case'jammer':
+        e.cells.forEach(c=>{
+          const{px,py}=cp2px(c.x,c.y);
+          ctx.strokeStyle=`rgba(200,80,200,${.7*(1-t)})`;ctx.lineWidth=1;
+          ctx.strokeRect(px+1,py+1,CELL-2,CELL-2);
+        });break;
+    }
+  });
+  if(needRaf)requestAnimationFrame(render);
+}
+
+function drawPlayerFleet(ctx){
+  G.pFleet.forEach(s=>{
+    if(!s.alive)return;
+    const{px,py}=cp2px(s.pos.x,s.pos.y);
+    ctx.fillStyle='rgba(20,60,120,.85)';ctx.fillRect(px+2,py+2,CELL-4,CELL-4);
+    ctx.fillStyle='#4a9eca';
+    ctx.font=`bold ${CELL*.5}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+    const ico=s.id==='flagship'?'⊡':s.id==='patrol'?'▸':'▪';
+    ctx.fillText(ico,px+CELL/2,py+CELL/2);
+    const r=s.hp/s.max;
+    ctx.fillStyle=r>.5?'#50c878':r>.25?'#d4a843':'#e05050';
+    ctx.fillRect(px+CELL-5,py+2,3,3);
+  });
+}
+
+function drawEnemyContacts(ctx){
+  const CSC={
+    [CS.SUSP]:{col:'#d07820',ico:'?'},
+    [CS.CONT]:{col:'#d0c820',ico:'◈'},
+    [CS.CONF]:{col:'#e03030',ico:'✦'},
+    [CS.LOST]:{col:'#606070',ico:'○'},
+    [CS.DCOY]:{col:'#9040c0',ico:'⊘'},
+  };
+  G.eFleet.forEach(s=>{
+    if(!s.alive||s.cs===CS.UNK)return;
+    const key=`${s.pos.x},${s.pos.y}`;
+    const vis=G.revealed.has(key)||(G.patrolReveal&&G.patrolReveal.cells.has(key))||s.cs===CS.CONF;
+    if(!vis&&s.cs!==CS.CONF)return;
+    const{px,py}=cp2px(s.pos.x,s.pos.y);
+    const info=CSC[s.cs];if(!info)return;
+    if(s.cs===CS.CONF){ctx.fillStyle='rgba(160,20,20,.3)';ctx.fillRect(px+1,py+1,CELL-2,CELL-2);}
+    ctx.fillStyle=info.col;ctx.font=`bold ${CELL*.52}px monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(info.ico,px+CELL/2,py+CELL/2);
+    ctx.font=`${CELL*.3}px monospace`;
+    ctx.fillText(s.lbl.slice(0,3),px+CELL/2,py+CELL-4);
+  });
+}
+
+function drawTargetPreview(ctx){
+  if(!G.tCard||!G.hov)return;
+  const cells=previewCells(G.tCard,G.hov.x,G.hov.y);
+  const c=CARDS[G.tCard];
+  const fc=FC[c?c.fam:'']||'#4a6a8a';
+  cells.forEach(cell=>{
+    const{px,py}=cp2px(cell.x,cell.y);
+    ctx.fillStyle=fc+'44';ctx.fillRect(px+1,py+1,CELL-2,CELL-2);
+    ctx.strokeStyle=fc;ctx.lineWidth=1;ctx.strokeRect(px+1,py+1,CELL-2,CELL-2);
+  });
+}
+
+function drawLabels(ctx){
+  ctx.fillStyle='#2a4a6a';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`${CELL*.38}px monospace`;
+  for(let x=0;x<GW;x++)ctx.fillText(COLS[x],LBL+x*CELL+CELL/2,LBL/2);
+  ctx.textAlign='right';
+  for(let y=0;y<GH;y++)ctx.fillText(y+1,LBL-3,LBL+y*CELL+CELL/2);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §19  DOM UI RENDERING
+════════════════════════════════════════════════════════════════ */
+function renderAll(){render();renderSt();renderTmr();renderIntel();renderLog();renderHand();}
+
+function renderSt(){
+  const el=document.getElementById('pnl-st');if(!el||!G)return;
+  el.innerHTML=G.pFleet.map(s=>{
+    const r=s.hp/s.max;
+    const cls=r>.5?'':r>.25?' mid':' low';
+    return`<div class="s-row">
+      <span class="s-name">${s.lbl}</span>
+      <div class="hp-bar"><div class="hp-fill${cls}" style="width:${s.alive?(r*100).toFixed(0):0}%"></div></div>
+      <span class="hp-txt">${s.alive?`${s.hp}/${s.max}`:'SUNK'}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTmr(){
+  const el=document.getElementById('pnl-tmr');if(!el||!G)return;
+  const dots=Array.from({length:G.maxCp},(_,i)=>
+    `<div class="cp-dot${i<G.cp?'':' e'}"></div>`).join('');
+  let tmrHTML='';
+  if(G.timerOn){
+    const rem=Math.max(0,G.timerSec-G.timerElapsed);
+    const cls=rem<=5?' urg':rem<=15?' warn':'';
+    tmrHTML=`<div class="tmr-blk"><div class="tmr-val${cls}">${rem}s</div><div class="tmr-lbl">TIMER</div></div>`;
+  }else{
+    tmrHTML=`<div class="tmr-blk" style="opacity:.35"><div class="tmr-val">—</div><div class="tmr-lbl">TIMER OFF</div></div>`;
+  }
+  el.innerHTML=`
+    <div class="turn-blk"><div class="turn-lbl">TURN</div><div class="turn-n">${G.turn}</div></div>
+    <div class="cp-wrap"><div class="cp-dots">${dots}</div><div class="cp-lbl">${G.cp}/${G.maxCp} CP</div></div>
+    ${tmrHTML}
+    <div class="obj-blk"><div style="font-size:.56rem;color:#2a4060">${G.phase}</div>
+      <div class="obj-txt">HUNT: Destroy enemy flagship</div></div>
+    <div class="ctrl-blk">
+      <button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>
+      <button id="end-turn-btn" onclick="endPlayerTurn()">${G.phase===PH.PLAN?'END TURN ▶':'…WAIT'}</button>
+    </div>`;
+}
+
+function renderIntel(){
+  const el=document.getElementById('pnl-intel');if(!el||!G)return;
+  const p=G.intel;
+  const ccls=p.confLvl==='High'?'cf-hi':p.confLvl==='Medium'?'cf-me':'cf-lo';
+  const ammoHtml=Object.entries(G.ammo).map(([k,v])=>{
+    const maxes={torpedo:6,depthCharge:4,sonar:5,smoke:3,mine:2,fuel:2};
+    const mx=maxes[k]||6;
+    const pips=Array.from({length:mx},(_,i)=>`<div class="a-pip${i<v?'':' e'}"></div>`).join('');
+    const nm=k.replace(/([A-Z])/,' $1').toUpperCase();
+    return`<div class="a-row"><span class="a-nm">${nm}</span><div class="a-pips">${pips}</div></div>`;
+  }).join('');
+  const reasons=G.rLog.slice(0,8).map(r=>{
+    const t2=r.text.replace(/([A-T]\d+)/g,'<span class="cr">$1</span>');
+    return`<div class="r-e">T${r.turn}: ${t2}</div>`;
+  }).join('')||'<div class="r-e" style="color:#1e3040">No AI actions yet.</div>';
+  const efRows=G.eFleet.map(s=>{
+    const st=!s.alive?'SUNK':s.cs===CS.CONF?`${s.hp}/${s.max} HP`:s.cs===CS.UNK?'UNKNOWN':'CONTACT';
+    const sc=!s.alive?' sunk':s.cs===CS.CONF?' hit':'';
+    return`<div class="ef-row"><span class="ef-nm">${s.lbl}</span><span class="ef-st${sc}">${st}</span></div>`;
+  }).join('');
+  el.innerHTML=`
+    <div class="i-ttl">◈ AI INTEL PANEL</div>
+    <div class="i-row"><span class="i-lbl">Confirmed contacts</span><span class="i-val conf">${p.conf}</span></div>
+    <div class="i-row"><span class="i-lbl">Suspected zones</span><span class="i-val susp">${p.susp}</span></div>
+    <div class="i-row"><span class="i-lbl">Active trails</span><span class="i-val">${p.trails}</span></div>
+    <div class="i-row"><span class="i-lbl">Decoys deployed</span><span class="i-val dec">${p.decoys}</span></div>
+    <div class="i-row"><span class="i-lbl">AI confidence</span><span class="i-val ${ccls}">${p.confLvl}</span></div>
+    <div class="e-fleet-sec"><div class="i-ttl">ENEMY STATUS</div>${efRows}</div>
+    <div class="ammo-sec"><div class="i-ttl">AMMUNITION</div>${ammoHtml}</div>
+    <div class="r-ttl">▸ AI REASON LOG</div>${reasons}`;
+}
+
+function renderLog(){
+  const el=document.getElementById('pnl-log');if(!el||!G)return;
+  el.innerHTML=G.bLog.slice(0,60).map(e=>{
+    const t2=e.text.replace(/([A-T]\d+)/g,'<span class="cr">$1</span>');
+    return`<div class="log-e ${e.type}"><span style="color:#1a3040;font-size:.58rem">T${e.turn} </span>${t2}</div>`;
+  }).join('')||'<div class="log-e sys">Awaiting orders…</div>';
+}
+
+function renderHand(){
+  const el=document.getElementById('pnl-hand');if(!el||!G)return;
+  el.innerHTML=G.hand.map(id=>{
+    const c=CARDS[id];if(!c)return'';
+    const cpOk=G.cp>=c.cp;
+    const amOk=Object.entries(c.ammo||{}).every(([k,v])=>G.ammo[k]>=v);
+    const playable=cpOk&&amOk&&!c.disabled&&G.phase===PH.PLAN;
+    const sel=G.tCard===id;
+    const fc=FC[c.fam]||'#4a6a8a';
+    const amTxt=Object.entries(c.ammo||{}).map(([k,v])=>`${v} ${k.replace(/([A-Z])/,' $1').toLowerCase()}`).join(', ');
+    return`<div class="card${sel?' sel':''}${!playable?' dis':''}"
+      onclick="${playable?`selectCard('${id}')`:``}"
+      onmouseenter="showTip(event,'${id}')" onmouseleave="hideTip()">
+      <div class="card-hd">
+        <div class="card-nm">${c.name}</div>
+        <div class="card-cp">${c.cp}◆</div>
+      </div>
+      <div class="card-fam">
+        <span class="fam-dot" style="background:${fc}"></span>
+        <span style="color:${fc};font-size:.52rem">${c.fam}</span>
+      </div>
+      <div class="card-desc">${c.desc}</div>
+      ${amTxt?`<div class="card-ammo">⚙ ${amTxt}</div>`:''}
+    </div>`;
+  }).join('')||'<div style="color:#1e3040;font-size:.73rem;padding:.5rem">No cards in hand.</div>';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §20  TOOLTIP
+════════════════════════════════════════════════════════════════ */
+function showTip(e,id){
+  const c=CARDS[id];if(!c)return;
+  const tt=document.getElementById('card-tip');
+  const am=Object.entries(c.ammo||{}).map(([k,v])=>`${v} ${k.replace(/([A-Z])/,' $1')}`).join(', ');
+  tt.innerHTML=`<h4>${c.name}</h4>
+    <div class="tt"><span class="ttl">CP</span><span>${c.cp}</span></div>
+    ${am?`<div class="tt"><span class="ttl">Ammo</span><span>${am}</span></div>`:''}
+    <div style="margin-top:.3rem;font-size:.67rem;color:#8aa8c8">${c.desc}</div>`;
+  tt.style.display='block';
+  tt.style.left=Math.min(e.clientX+10,window.innerWidth-225)+'px';
+  tt.style.top=Math.max(10,e.clientY-130)+'px';
+}
+function hideTip(){document.getElementById('card-tip').style.display='none';}
+
+/* ════════════════════════════════════════════════════════════════
+   §21  INPUT HANDLING
+════════════════════════════════════════════════════════════════ */
+function initInput(){
+  const cv=document.getElementById('board');if(!cv)return;
+  cv.addEventListener('mousemove',e=>{
+    if(!G||G.phase!==PH.PLAN)return;
+    const{x,y}=px2cell(e,cv);
+    if(x!==null){G.hov={x,y};if(G.tCard)render();}
+  });
+  cv.addEventListener('mouseleave',()=>{if(G){G.hov=null;if(G.tCard)render();}});
+  cv.addEventListener('click',e=>{
+    if(!G||G.phase!==PH.PLAN)return;
+    const{x,y}=px2cell(e,cv);if(x===null)return;
+    if(G.tCard){execCard(G.tCard,x,y);}
+    else{
+      const sh=G.eFleet.find(s=>s.pos.x===x&&s.pos.y===y&&s.cs===CS.CONF);
+      if(sh){pushLog('int',`${cid(x,y)}: ${sh.lbl} confirmed. HP ${sh.hp}/${sh.max}.`);renderLog();}
+    }
+  });
+  cv.addEventListener('contextmenu',e=>{e.preventDefault();cancelTgt();});
+  document.addEventListener('keydown',e=>{
+    if(!G)return;
+    if(e.key==='Escape')cancelTgt();
+    if((e.key==='r'||e.key==='R')&&G.tCard)toggleOrient();
+    if(e.key==='Enter'&&G.phase===PH.PLAN)endPlayerTurn();
+  });
+}
+
+function px2cell(e,cv){
+  const r=cv.getBoundingClientRect();
+  const sx=cv.width/r.width,sy=cv.height/r.height;
+  const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;
+  const x=Math.floor((mx-LBL)/CELL),y=Math.floor((my-LBL)/CELL);
+  if(x<0||x>=GW||y<0||y>=GH)return{x:null,y:null};
+  return{x,y};
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §22  PREPARATION STAGE LOGIC (§3)
+════════════════════════════════════════════════════════════════ */
+let prepState = {
+  seed: 0,
+  grid: null,
+  rng: null,
+  selectedShip: 'flagship',
+  orient: 'H',
+  placements: { flagship: null, patrol: null, minelayer: null },
+  doctrine: 'silent_start',
+  hov: null
+};
+let prepInputInited = false;
+
+function getPrepState(){ return prepState; }
+
+function selectPrepShip(shipId){
+  prepState.selectedShip = shipId;
+  ['flagship','patrol','minelayer'].forEach(id => {
+    const btn = document.getElementById(`btn-ship-${id}`);
+    if(btn) btn.classList.toggle('active', id === shipId);
+  });
+  renderPrepBoard();
+}
+
+function togglePrepOrient(){
+  prepState.orient = prepState.orient === 'H' ? 'V' : 'H';
+  const btn = document.getElementById('prep-orient-btn');
+  if(btn) btn.textContent = prepState.orient === 'H' ? 'HORIZONTAL ↔' : 'VERTICAL ↕';
+  renderPrepBoard();
+}
+
+function selectDoctrine(docId){
+  prepState.doctrine = docId;
+  const sBtn = document.getElementById('doc-silent');
+  const rBtn = document.getElementById('doc-recon');
+  if(sBtn) sBtn.classList.toggle('active', docId === 'silent_start');
+  if(rBtn) rBtn.classList.toggle('active', docId === 'forward_recon');
+}
+
+function updatePrepUI(){
+  const ships = ['flagship', 'patrol', 'minelayer'];
+  ships.forEach(s => {
+    const stEl = document.getElementById(`st-ship-${s}`);
+    const p = prepState.placements[s];
+    if(stEl){
+      if(p){
+        stEl.textContent = `${cid(p.x, p.y)}${p.o === 'V' ? ' (V)' : ''}`;
+        stEl.style.color = '#50c878';
+      }else{
+        stEl.textContent = 'UNPLACED';
+        stEl.style.color = '#e05050';
+      }
+    }
+  });
+
+  const val = validateFullFleet(prepState.grid, prepState.placements);
+  const errMsg = document.getElementById('prep-err-msg');
+  const confirmBtn = document.getElementById('btn-confirm-deploy');
+  if(errMsg){
+    errMsg.textContent = val.valid ? 'Fleet deployment ready and validated.' : (val.errors[0] || '');
+    errMsg.style.color = val.valid ? '#50c878' : '#e05050';
+  }
+  if(confirmBtn){
+    confirmBtn.disabled = !val.valid;
+    confirmBtn.style.opacity = val.valid ? '1' : '0.5';
+    confirmBtn.style.cursor = val.valid ? 'pointer' : 'not-allowed';
+  }
+}
+
+function prepQuickDeploy(){
+  if(!prepState.grid) return;
+  prepState.placements = quickDeploy(prepState.grid, prepState.rng || mkRng(prepState.seed || 1234));
+  updatePrepUI();
+  renderPrepBoard();
+}
+
+function prepClear(){
+  prepState.placements = { flagship: null, patrol: null, minelayer: null };
+  updatePrepUI();
+  renderPrepBoard();
+}
+
+function startPreparation(seed){
+  let s = parseInt(seed) || 0;
+  if(!s || isNaN(s)){
+    const inp = document.getElementById('seed-in');
+    s = parseInt(inp ? inp.value : '') || Math.floor(Math.random() * 99998) + 1;
+  }
+  const { grid, rng } = buildMap(s);
+  prepState.seed = s;
+  prepState.grid = grid;
+  prepState.rng = rng;
+  prepState.selectedShip = 'flagship';
+  prepState.orient = 'H';
+  prepState.doctrine = 'silent_start';
+  prepState.hov = null;
+
+  selectDoctrine('silent_start');
+  const orientBtn = document.getElementById('prep-orient-btn');
+  if(orientBtn) orientBtn.textContent = 'HORIZONTAL ↔';
+
+  prepQuickDeploy();
+  initPrepInput();
+  showScreen('scr-prep');
+  renderPrepBoard();
+}
+
+function confirmDeployment(){
+  if(!prepState.grid) return;
+  const val = validateFullFleet(prepState.grid, prepState.placements);
+  if(!val.valid){
+    const errMsg = document.getElementById('prep-err-msg');
+    if(errMsg) {
+      errMsg.textContent = val.errors[0] || 'Invalid fleet layout.';
+      errMsg.style.color = '#e05050';
+    }
+    playAudio('warn');
+    return;
+  }
+  showScreen('scr-battle');
+  initGame(prepState.seed, prepState.placements, prepState.doctrine);
+  document.getElementById('tut-overlay').classList.add('open');
+}
+
+function renderPrepBoard(){
+  const cv = document.getElementById('prep-board');
+  if(!cv || !prepState.grid) return;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, CW, CH);
+
+  // 1. Terrain
+  for(let y=0; y<GH; y++) for(let x=0; x<GW; x++){
+    const { px, py } = cp2px(x, y);
+    ctx.fillStyle = TC[prepState.grid[y][x]] || '#0c1e35';
+    ctx.fillRect(px, py, CELL, CELL);
+    ctx.strokeStyle = '#0d1e32'; ctx.lineWidth = .5;
+    ctx.strokeRect(px, py, CELL, CELL);
+
+    if(prepState.grid[y][x] === T.ISLAND){
+      ctx.fillStyle = 'rgba(90,110,50,.3)';
+      [[3,3],[CELL-6,4],[4,CELL-6]].forEach(([ox,oy])=>ctx.fillRect(px+ox,py+oy,2,2));
+    }
+    if(prepState.grid[y][x] === T.RADAR){
+      ctx.fillStyle = '#50a030'; ctx.font = `${CELL*.48}px monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('R', px+CELL/2, py+CELL/2);
+    }
+  }
+
+  // 2. Allied Sector divider
+  const midX = LBL + 10 * CELL;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(212,168,67,0.6)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(midX, LBL);
+  ctx.lineTo(midX, CH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = 'rgba(212,168,67,0.7)';
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('◀ ALLIED SECTOR (A–J)', LBL + 6, LBL - 8);
+  ctx.fillStyle = 'rgba(100,120,150,0.5)';
+  ctx.textAlign = 'right';
+  ctx.fillText('HOSTILE WATERS (K–T) ▶', CW - 6, LBL - 8);
+  ctx.restore();
+
+  // 3. Placed ships
+  const shipConfigs = [
+    { id: 'flagship', icon: '⊡', col: '#50c878' },
+    { id: 'patrol', icon: '▸', col: '#4a9eca' },
+    { id: 'minelayer', icon: '▪', col: '#d4a843' }
+  ];
+  shipConfigs.forEach(s => {
+    const p = prepState.placements[s.id];
+    if(!p) return;
+    const { px, py } = cp2px(p.x, p.y);
+    ctx.fillStyle = 'rgba(20, 60, 120, 0.9)';
+    ctx.fillRect(px + 2, py + 2, CELL - 4, CELL - 4);
+    ctx.strokeStyle = s.col;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
+
+    ctx.fillStyle = s.col;
+    ctx.font = `bold ${CELL*.55}px monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(s.icon, px + CELL/2, py + CELL/2);
+
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(s.id.substring(0, 3).toUpperCase(), px + CELL/2, py + CELL - 4);
+  });
+
+  // 4. Ghost hover preview
+  if(prepState.hov && prepState.selectedShip){
+    const { x, y } = prepState.hov;
+    const val = validatePlacement(prepState.grid, prepState.selectedShip, x, y, prepState.orient);
+    const { px, py } = cp2px(x, y);
+
+    ctx.fillStyle = val.valid ? 'rgba(80, 200, 120, 0.35)' : 'rgba(220, 50, 50, 0.35)';
+    ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+    ctx.strokeStyle = val.valid ? '#50c878' : '#e05050';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
+  }
+
+  // 5. Grid Labels
+  ctx.fillStyle = '#2a4a6a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${CELL*.38}px monospace`;
+  for(let x=0; x<GW; x++) ctx.fillText(COLS[x], LBL+x*CELL+CELL/2, LBL/2);
+  ctx.textAlign = 'right';
+  for(let y=0; y<GH; y++) ctx.fillText(y+1, LBL-3, LBL+y*CELL+CELL/2);
+}
+
+function initPrepInput(){
+  if(prepInputInited) return;
+  const cv = document.getElementById('prep-board');
+  if(!cv) return;
+  prepInputInited = true;
+
+  cv.addEventListener('mousemove', e => {
+    const { x, y } = px2cell(e, cv);
+    prepState.hov = (x !== null) ? { x, y } : null;
+    renderPrepBoard();
+  });
+
+  cv.addEventListener('mouseleave', () => {
+    prepState.hov = null;
+    renderPrepBoard();
+  });
+
+  cv.addEventListener('click', e => {
+    const { x, y } = px2cell(e, cv);
+    if(x === null) return;
+    const ship = prepState.selectedShip;
+    const val = validatePlacement(prepState.grid, ship, x, y, prepState.orient);
+    if(!val.valid){
+      const errMsg = document.getElementById('prep-err-msg');
+      if(errMsg){
+        errMsg.textContent = val.reason;
+        errMsg.style.color = '#e05050';
+      }
+      playAudio('warn');
+      return;
+    }
+    prepState.placements[ship] = { x, y, o: prepState.orient };
+
+    // Advance to next unplaced ship
+    const ships = ['flagship', 'patrol', 'minelayer'];
+    const nextUnplaced = ships.find(s => !prepState.placements[s]);
+    if(nextUnplaced){
+      selectPrepShip(nextUnplaced);
+    }
+    updatePrepUI();
+    renderPrepBoard();
+    playAudio('sonar');
+  });
+
+  cv.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    togglePrepOrient();
+  });
+
+  document.addEventListener('keydown', e => {
+    const prepScreen = document.getElementById('scr-prep');
+    if(prepScreen && prepScreen.classList.contains('active')){
+      if(e.key === 'r' || e.key === 'R') togglePrepOrient();
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §23  DEBRIEF & 1-OF-3 UPGRADES (§5 & §6)
+════════════════════════════════════════════════════════════════ */
+let availableRewards = [];
+function getAvailableRewards(){ return availableRewards; }
+
+function generateRewards(run, stats, rng){
+  if(!run) run = getRun();
+  if(!rng) rng = mkRng(Date.now());
+  const options = [];
+
+  // Priority 1: Critically low hull (<50% maxFlagship = <10) guarantees a repair option
+  const needsRepair = run.hull.flagship < 10;
+  if(needsRepair){
+    options.push({
+      type: 'repair',
+      target: 'flagship',
+      amount: 5,
+      title: 'Emergency Repairs',
+      badge: 'RECOVERY',
+      desc: 'Restore 5 Flagship hull integrity (up to maximum 20 HP).'
+    });
+  }
+
+  // Priority 2: Zero or critical ammo guarantees an ammo crate
+  const needsAmmo = (run.ammo.torpedo <= 1 || run.ammo.sonar <= 1);
+  if(needsAmmo && options.length < 3){
+    if(run.ammo.torpedo <= 1){
+      options.push({
+        type: 'ammo',
+        ammo: { torpedo: 2 },
+        title: 'Torpedo Crate',
+        badge: 'MUNITIONS',
+        desc: 'Requisition +2 standard torpedoes for flagship fire control.'
+      });
+    }else{
+      options.push({
+        type: 'ammo',
+        ammo: { sonar: 3 },
+        title: 'Sonar Cell Pack',
+        badge: 'RECON SENSORS',
+        desc: 'Replenish +3 active sonar charges for intelligence sweeps.'
+      });
+    }
+  }
+
+  // Priority 3: Passive module (if fewer than 4 active)
+  if(run.modules.length < 4 && options.length < 3){
+    const availableMods = Object.keys(MODULES).filter(mId => !run.modules.includes(mId));
+    if(availableMods.length > 0){
+      const pickedModId = rng.pick(availableMods);
+      const mod = MODULES[pickedModId];
+      options.push({
+        type: 'module',
+        id: pickedModId,
+        title: mod.name,
+        badge: 'PASSIVE MODULE',
+        desc: mod.desc
+      });
+    }
+  }
+
+  // Priority 4: Tactical card upgrade or addition
+  if(options.length < 3){
+    const upgMap = {
+      narrow_sonar: 'focused_sonar',
+      torpedo_line: 'guided_torpedo',
+      depth_pattern: 'saturation_pattern',
+      decoy_buoy: 'phantom_buoy',
+      go_silent: 'deep_silence',
+      patrol_plane: 'long_patrol'
+    };
+    const upgradeable = run.deck.filter(cId => upgMap[cId] && !run.cardUpgrades[cId]);
+    if(upgradeable.length > 0){
+      const fromCard = rng.pick(upgradeable);
+      const toCard = upgMap[fromCard];
+      const toCardDef = CARDS[toCard];
+      options.push({
+        type: 'card',
+        from: fromCard,
+        to: toCard,
+        title: `Upgrade: ${toCardDef.name}`,
+        badge: 'TACTICAL UPGRADE',
+        desc: toCardDef.desc
+      });
+    }else{
+      const newPool = ['precision_salvo', 'thermal_wake', 'radar_jammer', 'sector_sweep'];
+      const pickedCard = rng.pick(newPool);
+      const cardDef = CARDS[pickedCard];
+      options.push({
+        type: 'card',
+        id: pickedCard,
+        title: `Requisition: ${cardDef.name}`,
+        badge: 'NEW TACTIC',
+        desc: cardDef.desc
+      });
+    }
+  }
+
+  // Fallback options to guarantee exactly 3 distinct choices
+  const fallbackList = [
+    { type: 'ammo', ammo: { torpedo: 2 }, title: 'Torpedo Crate', badge: 'MUNITIONS', desc: 'Requisition +2 standard torpedoes.' },
+    { type: 'ammo', ammo: { depthCharge: 2 }, title: 'Depth Rack', badge: 'MUNITIONS', desc: 'Requisition +2 depth charges.' },
+    { type: 'ammo', ammo: { sonar: 3 }, title: 'Sonar Cell Pack', badge: 'RECON SENSORS', desc: 'Replenish +3 active sonar charges.' },
+    { type: 'ammo', ammo: { smoke: 2 }, title: 'Smoke Cache', badge: 'SURVIVAL', desc: 'Restock +2 smoke charges for concealment.' },
+    { type: 'repair', target: 'flagship', amount: 5, title: 'Field Patch', badge: 'RECOVERY', desc: 'Restore 5 Flagship hull integrity.' },
+    { type: 'repair', target: 'patrol', amount: 4, title: 'Support Repairs', badge: 'RECOVERY', desc: 'Restore 4 HP to Patrol Boat.' }
+  ];
+
+  const shuffledFallbacks = rng.shuffle(fallbackList);
+  for(const fb of shuffledFallbacks){
+    if(options.length >= 3) break;
+    if(!options.some(o => o.title === fb.title)){
+      options.push(fb);
+    }
+  }
+
+  return options.slice(0, 3);
+}
+
+function showDebrief(){
+  if(!G) return;
+  const pFleet = G.pFleet || [];
+  const flag = pFleet[0] || { hp: 0, max: 20 };
+  const survivingSupports = pFleet.filter(s => s.id !== 'flagship' && s.alive).length;
+
+  const hpEl = document.getElementById('db-hp-flag');
+  if(hpEl) hpEl.textContent = `${flag.hp}/${flag.max}`;
+  const supEl = document.getElementById('db-supports');
+  if(supEl) supEl.textContent = `${survivingSupports}/2`;
+  const torpEl = document.getElementById('db-torps');
+  if(torpEl) torpEl.textContent = G.stats.torps || 0;
+  const sonEl = document.getElementById('db-sonar');
+  if(sonEl) sonEl.textContent = G.stats.sonar || 0;
+  const turnsEl = document.getElementById('db-turns');
+  if(turnsEl) turnsEl.textContent = G.turn || 1;
+
+  const decoysFooled = (G.ev && G.ev.decoys) ? G.ev.decoys.length : 0;
+  const decEl = document.getElementById('db-decoys');
+  if(decEl) decEl.textContent = decoysFooled;
+  const confEl = document.getElementById('db-conf');
+  if(confEl) confEl.textContent = (G.ev && G.ev.confirmed) ? G.ev.confirmed.length : 0;
+
+  const infEl = document.getElementById('db-ai-inf');
+  if(infEl) {
+    infEl.textContent = decoysFooled > 0 ? 'Decoy Trap Fooled AI' : 'Linear Search Exhaustion';
+  }
+
+  showScreen('scr-debrief');
+}
+
+function showUpgradeScreen(){
+  const rng = mkRng(G ? G.seed + 104729 : Date.now());
+  availableRewards = generateRewards(getRun(), G ? G.stats : {}, rng);
+  const container = document.getElementById('upgrade-cards-container');
+  if(container){
+    container.innerHTML = availableRewards.map((r, i) => `
+      <div class="upgrade-card">
+        <div class="upgrade-badge">${r.badge}</div>
+        <div class="upgrade-title">${r.title}</div>
+        <div class="upgrade-desc">${r.desc}</div>
+        <button class="btn g" style="width:100%;margin-top:auto" onclick="chooseReward(${i})">
+          SELECT REQUISITION
+        </button>
+      </div>
+    `).join('');
+  }
+  showScreen('scr-upgrade');
+}
+
+function chooseReward(idx){
+  if(!availableRewards || !availableRewards[idx]) return;
+  const reward = availableRewards[idx];
+  applyUpgrade(reward);
+  const container = document.getElementById('upgrade-cards-container');
+  if(container){
+    container.innerHTML = `
+      <div style="background:#091e30;border:1px solid #50c878;border-radius:6px;padding:1.5rem;max-width:440px;margin:1rem auto;grid-column:1/-1">
+        <div style="color:#50c878;font-size:1.1rem;font-weight:bold;margin-bottom:6px">✓ REQUISITION CONFIRMED</div>
+        <div style="color:#d4a843;font-size:.9rem;font-weight:bold;margin-bottom:8px">${reward.title}</div>
+        <div style="font-size:.78rem;color:#8aa8c8;margin-bottom:1.5rem">${reward.desc}</div>
+        <button class="btn g" style="width:100%;padding:.7rem;font-size:.9rem" onclick="startNextBattle()">
+          ▶ PROCEED TO NEXT BATTLE
+        </button>
+      </div>
+    `;
+  }
+}
+
+function startNextBattle(){
+  const r = getRun();
+  r.battleCount = (r.battleCount || 0) + 1;
+  const newSeed = Math.floor(Math.random() * 99998) + 1;
+  startPreparation(newSeed);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §24  SCREEN NAVIGATION & START GAME
+════════════════════════════════════════════════════════════════ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el)el.classList.add('active');
+}
+
+function rollSeed(){
+  const inp=document.getElementById('seed-in');
+  if(inp)inp.value=Math.floor(Math.random()*99998)+1;
+}
+
+function dismissTut(){
+  const el=document.getElementById('tut-overlay');
+  if(el)el.classList.remove('open');
+}
+
+function showCS(){
+  showScreen('scr-cs');
+}
+
+function showTitle(){
+  showScreen('scr-title');
+}
+
+function startGame(){
+  const inp=document.getElementById('seed-in');
+  let seed=parseInt(inp?inp.value:'')||0;
+  if(!seed||isNaN(seed))seed=Math.floor(Math.random()*99998)+1;
+  if(inp)inp.value=seed;
+  startPreparation(seed);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §25  BOOT
+════════════════════════════════════════════════════════════════ */
+function boot(){
+  rollSeed();
+  initInput();
+  showScreen('scr-title');
+}
+
+if(document.readyState==='loading'){
+  window.addEventListener('DOMContentLoaded',boot);
+}else{
+  boot();
+}
+</script>
+</body>
+</html>
