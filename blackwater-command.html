@@ -3916,10 +3916,21 @@ function doReport(){
       const valid = newCells.every(c => c.x >= 10 && c.x < GW && c.y >= 0 && c.y < GH && G.grid[c.y][c.x] !== T.ISLAND && G.grid[c.y][c.x] !== T.REEF)
         && !G.eFleet.some(other => other !== s && other.alive && other.cells && other.cells.some(oc => newCells.some(nc => nc.x === oc.x && nc.y === oc.y)));
       if(valid){
-        s.prev={...s.pos};
-        s.pos={x:nx,y:ny};
-        s.cells=newCells;
-        if(s.cs===CS.CONF){s.cs=CS.LOST;}
+        const wasConf = (s.cs === CS.CONF);
+        const oldPos = { ...s.pos };
+        s.prev = oldPos;
+        s.pos = { x: nx, y: ny };
+        s.cells = newCells;
+
+        const inRevealed = newCells.some(c => G.revealed.has(`${c.x},${c.y}`) || (G.patrolReveal && G.patrolReveal.cells.has(`${c.x},${c.y}`)));
+        if(inRevealed){
+          s.cs = CS.CONF;
+          pushLog('int', `Hydrophone contact: ${s.lbl} detected navigating scouted waters!`);
+        } else if(wasConf){
+          s.cs = CS.LOST;
+          addMark('lost', oldPos, 'LKP');
+          pushLog('int', `${s.lbl} broke acoustic contact — last known position marked.`);
+        }
       }
     }
   });
@@ -3960,31 +3971,35 @@ function aiDecide(ev,prob){
 }
 
 function aiAtk(ev,prob,rng,src){
-  // 1. Fresh confirmed contact?
-  const fresh=ev.confirmed.filter(c=>ev.turn-c.turn<=2);
+  // 1. Fresh confirmed contact in Allied territory?
+  const fresh=ev.confirmed.filter(c=>ev.turn-c.turn<=2 && c.pos.x < 10);
   if(fresh.length){
     const t=rng.pick(fresh);
     return{type:'atk',pos:{...t.pos},src,
       reason:`Attacking ${cid(t.pos.x,t.pos.y)}: confirmed contact from turn ${t.turn}.`};
   }
-  // 2. Suspected zone?
-  const freshS=ev.suspected.filter(s=>ev.turn-s.turn<=3&&s.cells.length);
+  // 2. Suspected zone in Allied territory?
+  const freshS=ev.suspected.filter(s=>ev.turn-s.turn<=3 && s.cells.length && s.cells.some(c=>c.x<10));
   if(freshS.length&&rng.nx()<0.55){
     const z=rng.pick(freshS);
-    const cell=rng.pick(z.cells);
-    return{type:'atk',pos:{...cell},src,
-      reason:`Targeting ${cid(cell.x,cell.y)}: suspected zone from turn ${z.turn}.`};
+    const validCellsInZone=z.cells.filter(c=>c.x<10);
+    if(validCellsInZone.length){
+      const cell=rng.pick(validCellsInZone);
+      return{type:'atk',pos:{...cell},src,
+        reason:`Targeting ${cid(cell.x,cell.y)}: suspected zone from turn ${z.turn}.`};
+    }
   }
-  // 3. Probability map peak + noise (Recruit/Hunter tier)
+  // 3. Probability map peak + noise (Recruit/Hunter tier) - STRICTLY Allied territory x: 0..9
   let best=null,bestP=-1;
   const noise=0.12;
-  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+  for(let y=0;y<GH;y++)for(let x=0;x<10;x++){
+    if(ev.grid[y][x]===T.ISLAND||ev.grid[y][x]===T.RADAR)continue;
     if(ev.misses.some(m=>m.pos.x===x&&m.pos.y===y))continue;
     if(ev.hits.some(h=>h.pos.x===x&&h.pos.y===y))continue;
     const p=prob[y][x]+rng.nx()*noise;
     if(p>bestP){bestP=p;best={x,y};}
   }
-  if(!best){const f=validCells(ev.grid,0,10);best=rng.pick(f)||{x:3,y:10};}
+  if(!best){const f=validCells(ev.grid,0,10);best=rng.pick(f)||{x:3,y:8};}
   const raw=prob[best.y][best.x];
   const reason=raw>0.04
     ?`Attacking ${cid(best.x,best.y)}: prob-map peak (${(raw*100).toFixed(1)}% weight).`
@@ -4801,6 +4816,12 @@ function drawMarkers(ctx){
       ctx.strokeStyle='#1e3858';ctx.lineWidth=1;
       ctx.beginPath();ctx.arc(px+CELL/2,py+CELL/2,CELL*.22,0,Math.PI*2);ctx.stroke();
       ctx.fillStyle='rgba(20,40,70,.5)';ctx.fill();
+    }else if(m.type==='lost'){
+      ctx.strokeStyle='rgba(160,160,180,.6)';ctx.lineWidth=1;ctx.setLineDash([2,2]);
+      ctx.strokeRect(px+3,py+3,CELL-6,CELL-6);ctx.setLineDash([]);
+      ctx.fillStyle='#9090a8';ctx.font=`bold ${CELL*.32}px monospace`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(m.lbl||'LKP',px+CELL/2,py+CELL/2);
     }
   });
 }
@@ -4927,6 +4948,21 @@ function drawEnemyContacts(ctx){
     [CS.LOST]:{col:'#606070',ico:'○'},
     [CS.DCOY]:{col:'#9040c0',ico:'⊘'},
   };
+
+  // Auto-detect any enemy ship standing in scouted/revealed water
+  G.eFleet.forEach(s => {
+    if(!s.alive) return;
+    const cells = (s.cells && s.cells.length > 0) ? s.cells : [s.pos];
+    const inRevealed = cells.some(c => G.revealed.has(`${c.x},${c.y}`) || (G.patrolReveal && G.patrolReveal.cells.has(`${c.x},${c.y}`)));
+    if(inRevealed && s.cs === CS.UNK){
+      s.cs = CS.CONF;
+      G.ev.confirmed = G.ev.confirmed.filter(item => item.sid !== s.id);
+      const hitCell = cells.find(c => G.revealed.has(`${c.x},${c.y}`) || (G.patrolReveal && G.patrolReveal.cells.has(`${c.x},${c.y}`))) || s.pos;
+      G.ev.confirmed.push({ pos: { ...hitCell }, sid: s.id, turn: G.turn });
+      pushLog('int', `Visual contact: ${s.lbl} sighted in scouted waters!`);
+    }
+  });
+
   G.eFleet.forEach(s=>{
     if(!s.alive){
       // Sunk ship: draw all segments
@@ -4969,9 +5005,11 @@ function drawEnemyContacts(ctx){
       if(idx === 0) {
         ctx.fillText(info.ico,px+CELL/2,py+CELL/2);
         ctx.font=`${CELL*.28}px monospace`;
-        ctx.fillText(s.lbl.slice(0,3),px+CELL/2,py+CELL-4);
+        ctx.fillText(s.lbl.slice(0,4),px+CELL/2,py+CELL-4);
       } else {
-        ctx.fillText('▪',px+CELL/2,py+CELL/2);
+        ctx.fillText(info.ico === '✦' ? '▪' : info.ico,px+CELL/2,py+CELL/2);
+        ctx.font=`${CELL*.24}px monospace`;
+        ctx.fillText(s.lbl.slice(0,3),px+CELL/2,py+CELL-4);
       }
     });
   });
