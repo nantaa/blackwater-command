@@ -43,6 +43,57 @@
     minelayer: { id: 'minelayer', name: 'Minelayer', len: 2, hp: 10, maxHp: 10 }
   };
 
+  const MP_CARDS = {
+    deck_gun: {
+      id: 'deck_gun',
+      name: 'Deck Gun',
+      fam: 'Direct fire',
+      cp: 1,
+      ammo: {},
+      tgt: 'SINGLE',
+      dmg: 3,
+      desc: 'Standard battery fire. Strikes a single cell (3 dmg). Infinite munitions.'
+    },
+    narrow_sonar: {
+      id: 'narrow_sonar',
+      name: 'Narrow Sonar',
+      fam: 'Intelligence',
+      cp: 1,
+      ammo: {},
+      tgt: 'LINE5',
+      desc: 'Scan 5-cell line (H/V). Returns contact count only — not exact positions.'
+    },
+    torpedo_line: {
+      id: 'torpedo_line',
+      name: 'Ballistic Missile',
+      fam: 'Direct fire',
+      cp: 1,
+      ammo: { torpedo: 1 },
+      tgt: 'PLUS',
+      dmg: 5,
+      splash: 3,
+      desc: 'Air-to-surface ballistic missile. Hits target (5 dmg) + 4 adjacent cardinal cells (3 dmg splash).'
+    },
+    flank_speed: {
+      id: 'flank_speed',
+      name: 'Flank Speed',
+      fam: 'Mobility',
+      cp: 1,
+      ammo: {},
+      tgt: 'MOVE_SUP',
+      desc: 'Move nearest support ship to target cell.'
+    },
+    go_silent: {
+      id: 'go_silent',
+      name: 'Go Silent',
+      fam: 'Mobility',
+      cp: 1,
+      ammo: {},
+      tgt: 'MOVE_FLAG',
+      desc: 'Move flagship to target cell.'
+    }
+  };
+
   // ----------------------------------------------------
   // §2. DETERMINISTIC RNG (Mulberry32)
   // ----------------------------------------------------
@@ -288,6 +339,7 @@
   // §6. STARTER DECK & MATCH STATE
   // ----------------------------------------------------
   const MP_START_DECK = [
+    'deck_gun', 'deck_gun',
     'narrow_sonar', 'narrow_sonar',
     'torpedo_line', 'torpedo_line',
     'thermal_wake', 'depth_pattern',
@@ -698,7 +750,7 @@
   // ----------------------------------------------------
   const DUEL_CONSTANTS = {
     GW: 20,
-    GH: 10,
+    GH: 20,
     COLS: 'ABCDEFGHIJKLMNOPQRST'.split(''),
     T,
     MP_SHIPS,
@@ -706,32 +758,38 @@
   };
 
   const SECTORS_1V1 = {
-    P1: { x0: 0, x1: 9, y0: 0, y1: 9, colStart: 'A', colEnd: 'J', rowStart: 1, rowEnd: 10 },
-    P2: { x0: 10, x1: 19, y0: 0, y1: 9, colStart: 'K', colEnd: 'T', rowStart: 1, rowEnd: 10 }
+    P1: { x0: 0, x1: 9, y0: 0, y1: 19, colStart: 'A', colEnd: 'J', rowStart: 1, rowEnd: 20 },
+    P2: { x0: 10, x1: 19, y0: 0, y1: 19, colStart: 'K', colEnd: 'T', rowStart: 1, rowEnd: 20 }
   };
 
   function gen1v1Grid(rng) {
-    const grid = Array.from({ length: 10 }, () => Array(20).fill(T.OPEN));
-    // Place 2-3 island clusters in West sector (P1)
-    const p1Clusters = rng.int(2, 3);
+    const grid = Array.from({ length: 20 }, () => Array(20).fill(T.OPEN));
+    // Place 3-4 island clusters in West sector (P1)
+    const p1Clusters = rng.int(3, 4);
     for (let c = 0; c < p1Clusters; c++) {
-      let cx = rng.int(1, 8), cy = rng.int(1, 8);
+      let cx = rng.int(1, 8), cy = rng.int(2, 17);
       grid[cy][cx] = T.ISLAND;
       const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
       const d = rng.pick(neighbors);
       const nx = cx + d[0], ny = cy + d[1];
-      if (nx >= 0 && nx <= 9 && ny >= 0 && ny <= 9) grid[ny][nx] = T.ISLAND;
+      if (nx >= 0 && nx <= 9 && ny >= 0 && ny <= 19) grid[ny][nx] = T.ISLAND;
     }
-    // Place 2-3 island clusters in East sector (P2)
-    const p2Clusters = rng.int(2, 3);
+    // Place 3-4 island clusters in East sector (P2)
+    const p2Clusters = rng.int(3, 4);
     for (let c = 0; c < p2Clusters; c++) {
-      let cx = rng.int(11, 18), cy = rng.int(1, 8);
+      let cx = rng.int(11, 18), cy = rng.int(2, 17);
       grid[cy][cx] = T.ISLAND;
       const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
       const d = rng.pick(neighbors);
       const nx = cx + d[0], ny = cy + d[1];
-      if (nx >= 10 && nx <= 19 && ny >= 0 && ny <= 9) grid[ny][nx] = T.ISLAND;
+      if (nx >= 10 && nx <= 19 && ny >= 0 && ny <= 19) grid[ny][nx] = T.ISLAND;
     }
+    // Strategic Radar station per sector
+    const r1x = rng.int(2, 7), r1y = rng.int(2, 17);
+    if (grid[r1y][r1x] !== T.ISLAND) grid[r1y][r1x] = T.RADAR;
+    const r2x = rng.int(12, 17), r2y = rng.int(2, 17);
+    if (grid[r2y][r2x] !== T.ISLAND) grid[r2y][r2x] = T.RADAR;
+
     return grid;
   }
 
@@ -818,9 +876,10 @@
 
     return {
       seed,
+      rng,
       mode: '1v1_duel',
       GW: 20,
-      GH: 10,
+      GH: 20,
       grid,
       phase: 'DEPLOY',
       round: 1,
@@ -952,7 +1011,7 @@
         if (player.sector === 'P2' && tx < 10) {
           return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols A–J).' };
         }
-        if (tx < 0 || tx >= 20 || ty < 0 || ty >= 10 || match.grid[ty][tx] === T.ISLAND) {
+        if (tx < 0 || tx >= 20 || ty < 0 || ty >= (match.GH || 20) || match.grid[ty][tx] === T.ISLAND) {
           return { success: false, error: 'Movement blocked! Impassable terrain.' };
         }
         // Move ship
@@ -975,16 +1034,40 @@
       player.hand.splice(cIdx, 1);
       player.discard.push(cardId);
 
-      const blastPoints = [
-        { x: tx, y: ty, dmg: 5 },
-        { x: tx + 1, y: ty, dmg: 3 },
-        { x: tx - 1, y: ty, dmg: 3 },
-        { x: tx, y: ty + 1, dmg: 3 },
-        { x: tx, y: ty - 1, dmg: 3 }
-      ];
+      if (cardId === 'narrow_sonar') {
+        const orient = (action.target && action.target.orient) || 'H';
+        const scanCells = [];
+        for (let i = -2; i <= 2; i++) {
+          const cx = orient === 'H' ? tx + i : tx;
+          const cy = orient === 'V' ? ty + i : ty;
+          if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+            scanCells.push({ x: cx, y: cy });
+            match.revealed[playerId].add(`${cx},${cy}`);
+          }
+        }
+        let contactCount = 0;
+        if (opp && opp.fleet) {
+          for (const s of opp.fleet) {
+            if (s.alive && s.cells.some(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y))) {
+              contactCount++;
+            }
+          }
+        }
+        return { success: true, action: 'SONAR', contacts: contactCount, cells: scanCells };
+      }
+
+      const blastPoints = cardId === 'deck_gun'
+        ? [{ x: tx, y: ty, dmg: 3 }]
+        : [
+            { x: tx, y: ty, dmg: 5 },
+            { x: tx + 1, y: ty, dmg: 3 },
+            { x: tx - 1, y: ty, dmg: 3 },
+            { x: tx, y: ty + 1, dmg: 3 },
+            { x: tx, y: ty - 1, dmg: 3 }
+          ];
 
       for (const pt of blastPoints) {
-        if (pt.x >= 0 && pt.x < 20 && pt.y >= 0 && pt.y < 10) {
+        if (pt.x >= 0 && pt.x < 20 && pt.y >= 0 && pt.y < (match.GH || 20)) {
           match.revealed[playerId].add(`${pt.x},${pt.y}`);
           // Check opponent ships
           if (opp && opp.fleet) {
@@ -1018,6 +1101,7 @@
     T,
     QUADRANTS,
     MP_SHIPS,
+    MP_CARDS,
     MP_START_DECK,
     mkRng,
     cid,
@@ -1041,7 +1125,7 @@
     checkEliminationsAndVictory,
     submitSurrender,
     processStormCollapse,
-    MP_CONSTANTS: { GW, GH, COLS, T, QUADRANTS, MP_SHIPS, MP_START_DECK },
+    MP_CONSTANTS: { GW, GH, COLS, T, QUADRANTS, MP_SHIPS, MP_CARDS, MP_START_DECK },
     submitAction: usePlatformAction,
     advanceMPTurn: endMPTurn,
     // 1v1 Tactical Duel exports

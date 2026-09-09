@@ -158,6 +158,7 @@ function handleClientMessage(ws, data) {
           type: 'MATCH_FOUND',
           roomCode: code,
           mode: '1v1_duel',
+          seed: room.match.seed,
           playerId: c1.playerId,
           slot: c1.slot,
           sector: 'P1',
@@ -169,6 +170,7 @@ function handleClientMessage(ws, data) {
           type: 'MATCH_FOUND',
           roomCode: code,
           mode: '1v1_duel',
+          seed: room.match.seed,
           playerId: c2.playerId,
           slot: c2.slot,
           sector: 'P2',
@@ -234,11 +236,32 @@ function handleClientMessage(ws, data) {
 
       if (room.clients.length === 2) {
         room.initMatch();
-        room.broadcastMessage({
+        const c1 = room.clients[0];
+        const c2 = room.clients[1];
+
+        c1.ws.send(JSON.stringify({
           type: 'MATCH_READY',
+          roomCode: code,
+          mode: '1v1_duel',
+          seed: room.match.seed,
+          playerId: c1.playerId,
+          slot: c1.slot,
+          sector: 'P1',
           grid: room.match.grid,
-          mode: '1v1_duel'
-        });
+          opponent: { name: c2.playerName }
+        }));
+
+        c2.ws.send(JSON.stringify({
+          type: 'MATCH_READY',
+          roomCode: code,
+          mode: '1v1_duel',
+          seed: room.match.seed,
+          playerId: c2.playerId,
+          slot: c2.slot,
+          sector: 'P2',
+          grid: room.match.grid,
+          opponent: { name: c1.playerName }
+        }));
       }
       break;
     }
@@ -364,11 +387,21 @@ function handleClientMessage(ws, data) {
           ws.send(JSON.stringify({ type: 'ERROR', message: 'Not your turn' }));
           return;
         }
-        const cardId = msg.action === 'salvo' ? 'torpedo_line' : (msg.action || 'torpedo_line');
+        const player = room.match.players.find(p => p.id === client.playerId);
+        let cardId = msg.action === 'salvo' ? 'torpedo_line' : (msg.action || 'deck_gun');
+        if (player && player.hand && !player.hand.includes(cardId)) {
+          if (player.hand.includes('deck_gun')) {
+            cardId = 'deck_gun';
+          } else if (player.hand.includes('torpedo_line')) {
+            cardId = 'torpedo_line';
+          } else if (player.hand.length > 0) {
+            cardId = player.hand[0];
+          }
+        }
         const actResult = MP.exec1v1Action(room.match, client.playerId, {
           type: 'PLAY_CARD',
           cardId,
-          target: { x: msg.x, y: msg.y }
+          target: { x: msg.x, y: msg.y, orient: msg.orient || 'H' }
         });
         if (!actResult.success) {
           ws.send(JSON.stringify({ type: 'ERROR', message: actResult.error }));
@@ -479,7 +512,19 @@ function startServer(port = 8090) {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
       const url = req.url ? req.url.split('?')[0] : '/';
-      if (url === '/health' || url === '/healthz' || url === '/ping') {
+      if (url === '/api/rooms') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        const roomList = Array.from(rooms.values()).map(r => ({
+          code: r.code,
+          mode: r.mode,
+          clients: r.clients.length,
+          phase: r.match ? r.match.phase : 'LOBBY'
+        }));
+        res.end(JSON.stringify({ status: 'ok', rooms: roomList }));
+      } else if (url === '/health' || url === '/healthz' || url === '/ping' || url === '/api/status') {
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
@@ -501,15 +546,32 @@ function startServer(port = 8090) {
         res.end('Blackwater Command Authoritative WebSocket Server — Active\n');
       }
     });
+
     const wss = new WebSocket.Server({ server });
 
+    // 25s WebSocket Keepalive Heartbeat for edge reverse-proxies (Railway, Cloudflare)
+    const heartbeatInterval = setInterval(() => {
+      wss.clients.forEach(ws => {
+        if (ws.isAlive === false) return ws.terminate();
+        ws.isAlive = false;
+        ws.ping();
+      });
+    }, 25000);
+
     wss.on('connection', (ws) => {
+      ws.isAlive = true;
+      ws.on('pong', () => { ws.isAlive = true; });
       ws.on('message', (data) => handleClientMessage(ws, data));
       ws.on('close', () => handleClientDisconnect(ws));
     });
 
+    server.on('close', () => {
+      clearInterval(heartbeatInterval);
+    });
+
     server.listen(port, () => {
       server.wss = wss;
+      server.heartbeatInterval = heartbeatInterval;
       resolve(server);
     });
 

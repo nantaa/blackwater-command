@@ -270,7 +270,13 @@ G.hand = ['narrow_sonar', 'decoy_buoy', 'torpedo_line'];
 const initialSonarAmmo = G.ammo.sonar;
 execCard('narrow_sonar', 12, 10);
 assert(G.cp === 5, 'Narrow Sonar deducted 1 CP');
-assert(G.ammo.sonar === initialSonarAmmo - 1, 'Narrow Sonar deducted 1 Sonar ammo');
+assert(G.ammo.sonar === initialSonarAmmo, 'Narrow Sonar uses 0 ammo charges (infinite charges)');
+
+// Test Deck Gun
+G.hand.push('deck_gun');
+const prevCp = G.cp;
+execCard('deck_gun', 12, 10);
+assert(G.cp === prevCp - 1, 'Deck Gun deducted 1 CP');
 
 // Test Decoy Buoy
 const initialDecoys = G.ev.decoys.length;
@@ -403,7 +409,8 @@ const run = initRun ? initRun() : null;
 assert(run !== null, 'initRun returns a valid run object');
 assert(run && run.hull && run.hull.flagship === 20, 'Initial flagship hull is 20');
 assert(run && run.ammo && run.ammo.torpedo === 6, 'Initial torpedo ammo is 6');
-assert(run && Array.isArray(run.deck) && run.deck.length === 10, 'Initial deck contains 10 cards');
+assert(run && Array.isArray(run.deck) && run.deck.length === 12, 'Initial deck contains 12 cards (including deck guns)');
+assert(run && run.deck.includes('deck_gun'), 'Initial deck includes deck_gun');
 assert(run && Array.isArray(run.modules) && run.modules.length === 0, 'Initial modules array is empty');
 assert(MODULES && typeof MODULES === 'object' && Object.keys(MODULES).length >= 8, 'At least 8 modules defined');
 
