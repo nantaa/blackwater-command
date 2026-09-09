@@ -693,6 +693,323 @@
     }
   }
 
+  // ----------------------------------------------------
+  // §14. 1v1 TACTICAL DUEL ENGINE (20×10 Dual-Sector)
+  // ----------------------------------------------------
+  const DUEL_CONSTANTS = {
+    GW: 20,
+    GH: 10,
+    COLS: 'ABCDEFGHIJKLMNOPQRST'.split(''),
+    T,
+    MP_SHIPS,
+    MP_START_DECK
+  };
+
+  const SECTORS_1V1 = {
+    P1: { x0: 0, x1: 9, y0: 0, y1: 9, colStart: 'A', colEnd: 'J', rowStart: 1, rowEnd: 10 },
+    P2: { x0: 10, x1: 19, y0: 0, y1: 9, colStart: 'K', colEnd: 'T', rowStart: 1, rowEnd: 10 }
+  };
+
+  function gen1v1Grid(rng) {
+    const grid = Array.from({ length: 10 }, () => Array(20).fill(T.OPEN));
+    // Place 2-3 island clusters in West sector (P1)
+    const p1Clusters = rng.int(2, 3);
+    for (let c = 0; c < p1Clusters; c++) {
+      let cx = rng.int(1, 8), cy = rng.int(1, 8);
+      grid[cy][cx] = T.ISLAND;
+      const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      const d = rng.pick(neighbors);
+      const nx = cx + d[0], ny = cy + d[1];
+      if (nx >= 0 && nx <= 9 && ny >= 0 && ny <= 9) grid[ny][nx] = T.ISLAND;
+    }
+    // Place 2-3 island clusters in East sector (P2)
+    const p2Clusters = rng.int(2, 3);
+    for (let c = 0; c < p2Clusters; c++) {
+      let cx = rng.int(11, 18), cy = rng.int(1, 8);
+      grid[cy][cx] = T.ISLAND;
+      const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      const d = rng.pick(neighbors);
+      const nx = cx + d[0], ny = cy + d[1];
+      if (nx >= 10 && nx <= 19 && ny >= 0 && ny <= 9) grid[ny][nx] = T.ISLAND;
+    }
+    return grid;
+  }
+
+  function get1v1Sector(pidOrSector) {
+    const s = String(pidOrSector).toUpperCase();
+    return (s === 'P1' || s === 'WEST') ? SECTORS_1V1.P1 : SECTORS_1V1.P2;
+  }
+
+  function validate1v1Placement(grid, pidOrSector, ships) {
+    const sec = get1v1Sector(pidOrSector);
+    if (!Array.isArray(ships)) {
+      return { valid: false, error: 'Ships must be an array.' };
+    }
+    const occupied = new Set();
+    for (const sh of ships) {
+      if (!MP_SHIPS[sh.id]) {
+        return { valid: false, error: `Unknown ship type: ${sh.id}` };
+      }
+      const cells = getShipCells(sh.id, sh.x, sh.y, sh.orient || 'H');
+      for (const pt of cells) {
+        if (pt.x < sec.x0 || pt.x > sec.x1 || pt.y < sec.y0 || pt.y > sec.y1) {
+          return { valid: false, error: `Ship segment (${pt.x},${pt.y}) placed outside assigned sector bounds (${sec.colStart}–${sec.colEnd}).` };
+        }
+        if (grid[pt.y][pt.x] === T.ISLAND) {
+          return { valid: false, error: `Ship segment at (${pt.x},${pt.y}) overlaps an island.` };
+        }
+        const key = `${pt.x},${pt.y}`;
+        if (occupied.has(key)) {
+          return { valid: false, error: `Overlapping ship placement at (${pt.x},${pt.y}).` };
+        }
+        occupied.add(key);
+      }
+    }
+    return { valid: true };
+  }
+
+  function quickDeploy1v1(grid, pidOrSector, rng) {
+    const sec = get1v1Sector(pidOrSector);
+    const shipIds = ['flagship', 'patrol', 'minelayer'];
+    for (let attempt = 0; attempt < 500; attempt++) {
+      const candidate = [];
+      for (const sid of shipIds) {
+        const orient = rng.nx() > 0.5 ? 'H' : 'V';
+        const shDef = MP_SHIPS[sid];
+        const maxX = orient === 'H' ? sec.x1 - shDef.len + 1 : sec.x1;
+        const maxY = orient === 'V' ? sec.y1 - shDef.len + 1 : sec.y1;
+        const x = rng.int(sec.x0, maxX);
+        const y = rng.int(sec.y0, maxY);
+        candidate.push({
+          id: sid,
+          name: shDef.name,
+          x,
+          y,
+          orient,
+          len: shDef.len,
+          hp: shDef.hp,
+          maxHp: shDef.maxHp,
+          alive: true,
+          cells: getShipCells(sid, x, y, orient)
+        });
+      }
+      if (validate1v1Placement(grid, pidOrSector, candidate).valid) {
+        return candidate;
+      }
+    }
+    // Fallback placement
+    return [
+      { id: 'flagship', name: MP_SHIPS.flagship.name, x: sec.x0 + 1, y: sec.y0 + 1, orient: 'H', len: 3, hp: 20, maxHp: 20, alive: true, cells: getShipCells('flagship', sec.x0 + 1, sec.y0 + 1, 'H') },
+      { id: 'patrol', name: MP_SHIPS.patrol.name, x: sec.x0 + 1, y: sec.y0 + 4, orient: 'H', len: 2, hp: 8, maxHp: 8, alive: true, cells: getShipCells('patrol', sec.x0 + 1, sec.y0 + 4, 'H') },
+      { id: 'minelayer', name: MP_SHIPS.minelayer.name, x: sec.x0 + 1, y: sec.y0 + 7, orient: 'H', len: 2, hp: 10, maxHp: 10, alive: true, cells: getShipCells('minelayer', sec.x0 + 1, sec.y0 + 7, 'H') }
+    ];
+  }
+
+  function create1v1Match(seed, p1Config, p2Config) {
+    const rng = mkRng(seed);
+    const grid = gen1v1Grid(rng);
+    const p1Id = (p1Config && p1Config.id) || 'p1';
+    const p2Id = (p2Config && p2Config.id) || 'p2';
+
+    const p1Deck = rng.shuffle([...MP_START_DECK]);
+    const p2Deck = rng.shuffle([...MP_START_DECK]);
+    const p1Hand = p1Deck.splice(0, 5);
+    const p2Hand = p2Deck.splice(0, 5);
+
+    return {
+      seed,
+      mode: '1v1_duel',
+      GW: 20,
+      GH: 10,
+      grid,
+      phase: 'DEPLOY',
+      round: 1,
+      activePlayerId: p1Id,
+      winnerId: null,
+      players: [
+        {
+          id: p1Id,
+          name: (p1Config && p1Config.name) || 'Player 1',
+          sector: 'P1',
+          fleet: null,
+          deployed: false,
+          alive: true,
+          eliminated: false,
+          cp: 3,
+          maxCp: 6,
+          ammo: { torpedo: 4, sonar: 4, smoke: 2 },
+          deck: p1Deck,
+          hand: p1Hand,
+          discard: []
+        },
+        {
+          id: p2Id,
+          name: (p2Config && p2Config.name) || 'Player 2',
+          sector: 'P2',
+          fleet: null,
+          deployed: false,
+          alive: true,
+          eliminated: false,
+          cp: 3,
+          maxCp: 6,
+          ammo: { torpedo: 4, sonar: 4, smoke: 2 },
+          deck: p2Deck,
+          hand: p2Hand,
+          discard: []
+        }
+      ],
+      revealed: { [p1Id]: new Set(), [p2Id]: new Set() },
+      hits: { [p1Id]: [], [p2Id]: [] },
+      events: []
+    };
+  }
+
+  function getFiltered1v1State(match, forPlayerId) {
+    const player = match.players.find(p => p.id === forPlayerId);
+    const opp = match.players.find(p => p.id !== forPlayerId);
+    if (!player || !opp) return null;
+
+    return {
+      seed: match.seed,
+      mode: match.mode,
+      GW: match.GW,
+      GH: match.GH,
+      phase: match.phase,
+      round: match.round,
+      activePlayerId: match.activePlayerId,
+      winnerId: match.winnerId,
+      myPlayerId: forPlayerId,
+      mySector: player.sector,
+      myFleet: player.fleet ? player.fleet.map(s => ({
+        id: s.id,
+        name: s.name,
+        x: s.x,
+        y: s.y,
+        orient: s.orient,
+        len: s.len,
+        hp: s.hp,
+        maxHp: s.maxHp,
+        alive: s.alive,
+        cells: s.cells.map(c => ({ ...c }))
+      })) : null,
+      myHand: [...player.hand],
+      myCp: player.cp,
+      myAmmo: { ...player.ammo },
+      revealed: Array.from(match.revealed[forPlayerId] || []),
+      opponent: {
+        id: opp.id,
+        name: opp.name,
+        sector: opp.sector,
+        deployed: opp.deployed,
+        alive: opp.alive,
+        eliminated: opp.eliminated,
+        cp: opp.cp,
+        handCount: opp.hand.length,
+        shipsRemaining: opp.fleet ? opp.fleet.filter(s => s.alive).length : 3,
+        sunkShips: opp.fleet ? opp.fleet.filter(s => !s.alive).map(s => ({ id: s.id, name: s.name })) : []
+      }
+    };
+  }
+
+  function exec1v1Action(match, playerId, action) {
+    if (!match) return { success: false, error: 'No match' };
+    const player = match.players.find(p => p.id === playerId);
+    const opp = match.players.find(p => p.id !== playerId);
+    if (!player) return { success: false, error: 'Player not found' };
+
+    if (action.type === 'DEPLOY_FLEET') {
+      const val = validate1v1Placement(match.grid, player.sector, action.fleet);
+      if (!val.valid) return { success: false, error: val.error };
+      player.fleet = action.fleet;
+      player.deployed = true;
+      if (match.players.every(p => p.deployed)) {
+        match.phase = 'BATTLE_ACTIVE';
+      }
+      return { success: true };
+    }
+
+    if (match.phase !== 'BATTLE_ACTIVE') {
+      return { success: false, error: 'Match is not in active battle phase' };
+    }
+    if (match.activePlayerId !== playerId) {
+      return { success: false, error: 'Not your turn' };
+    }
+
+    if (action.type === 'PLAY_CARD') {
+      const cardId = action.cardId;
+      const cIdx = player.hand.indexOf(cardId);
+      if (cIdx < 0) return { success: false, error: 'Card not in hand' };
+
+      const tx = action.target ? action.target.x : null;
+      const ty = action.target ? action.target.y : null;
+
+      // Validate Movement Cards against Midline Border Rule
+      if (cardId === 'flank_speed' || cardId === 'go_silent') {
+        if (player.sector === 'P1' && tx >= 10) {
+          return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols K–T).' };
+        }
+        if (player.sector === 'P2' && tx < 10) {
+          return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols A–J).' };
+        }
+        if (tx < 0 || tx >= 20 || ty < 0 || ty >= 10 || match.grid[ty][tx] === T.ISLAND) {
+          return { success: false, error: 'Movement blocked! Impassable terrain.' };
+        }
+        // Move ship
+        const ship = cardId === 'go_silent'
+          ? player.fleet.find(s => s.id === 'flagship')
+          : player.fleet.find(s => s.id !== 'flagship' && s.alive);
+        if (ship) {
+          ship.x = tx;
+          ship.y = ty;
+          ship.cells = getShipCells(ship.id, tx, ty, ship.orient || 'H');
+        }
+        player.cp = Math.max(0, player.cp - 1);
+        player.hand.splice(cIdx, 1);
+        player.discard.push(cardId);
+        return { success: true, action: 'MOVE' };
+      }
+
+      // Attack / Sonar Resolution
+      player.cp = Math.max(0, player.cp - 1);
+      player.hand.splice(cIdx, 1);
+      player.discard.push(cardId);
+
+      const blastPoints = [
+        { x: tx, y: ty, dmg: 5 },
+        { x: tx + 1, y: ty, dmg: 3 },
+        { x: tx - 1, y: ty, dmg: 3 },
+        { x: tx, y: ty + 1, dmg: 3 },
+        { x: tx, y: ty - 1, dmg: 3 }
+      ];
+
+      for (const pt of blastPoints) {
+        if (pt.x >= 0 && pt.x < 20 && pt.y >= 0 && pt.y < 10) {
+          match.revealed[playerId].add(`${pt.x},${pt.y}`);
+          // Check opponent ships
+          if (opp && opp.fleet) {
+            for (const s of opp.fleet) {
+              if (s.alive && s.cells.some(c => c.x === pt.x && c.y === pt.y)) {
+                s.hp = Math.max(0, s.hp - pt.dmg);
+                match.hits[playerId].push({ x: pt.x, y: pt.y, dmg: pt.dmg, shipId: s.id });
+                if (s.hp <= 0) {
+                  s.alive = false;
+                  if (s.id === 'flagship') {
+                    match.phase = 'FINISHED';
+                    match.winnerId = playerId;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return { success: true, action: 'ATTACK' };
+    }
+
+    return { success: false, error: 'Unknown action type' };
+  }
+
   return {
     GW,
     GH,
@@ -725,6 +1042,15 @@
     processStormCollapse,
     MP_CONSTANTS: { GW, GH, COLS, T, QUADRANTS, MP_SHIPS, MP_START_DECK },
     submitAction: usePlatformAction,
-    advanceMPTurn: endMPTurn
+    advanceMPTurn: endMPTurn,
+    // 1v1 Tactical Duel exports
+    DUEL_CONSTANTS,
+    SECTORS_1V1,
+    gen1v1Grid,
+    validate1v1Placement,
+    quickDeploy1v1,
+    create1v1Match,
+    getFiltered1v1State,
+    exec1v1Action
   };
 });
