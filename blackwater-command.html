@@ -2896,8 +2896,25 @@ function handleDuelServerMsg(msg) {
       if (msg.result) {
         if (msg.result.action === 'SONAR') {
           pushLog('ply', `Narrow Sonar report: ${msg.result.contacts} contact(s) detected.`);
+          playAudio('sonar');
         } else if (msg.result.action === 'ATTACK') {
-          pushLog('ply', `Action confirmed on server target.`);
+          if (msg.result.hitCount > 0) {
+            pushLog('hit', `🎯 DIRECT HIT! Battery strike confirmed on enemy warship!`);
+            playAudio('hit');
+            if (msg.result.hits && Array.isArray(msg.result.hits)) {
+              msg.result.hits.forEach(h => {
+                addMark('hit', { x: h.x, y: h.y }, `${h.dmg || 3}`);
+                addFx('explosion', [{ x: h.x, y: h.y }], 800);
+              });
+            }
+          } else {
+            pushLog('ply', `Battery strike: water splash, no contact.`);
+            playAudio('miss');
+            if (typeof msg.result.tx === 'number' && typeof msg.result.ty === 'number') {
+              addMark('miss', { x: msg.result.tx, y: msg.result.ty });
+            }
+          }
+          renderAll();
         }
       }
       break;
@@ -3026,9 +3043,18 @@ function init1v1OnlineBattle(state) {
     });
   }
 
+  const myId = state.myPlayerId || prepState.duelPlayerId || duelPlayerId || 'p1';
+  G.myPlayerId = myId;
+
   if (state.activePlayerId) {
-    const isMyTurn = (state.activePlayerId === duelPlayerId || (duelPlayerId === 'p1' && state.activePlayerId === 'p1') || (duelPlayerId === 'p2' && state.activePlayerId === 'p2'));
+    const isMyTurn = (state.activePlayerId === myId);
     G.phase = isMyTurn ? PH.PLAN : PH.AI;
+  }
+  if (typeof state.round === 'number') {
+    G.turn = state.round;
+  }
+  if (state.myHand && Array.isArray(state.myHand)) {
+    G.hand = [...state.myHand];
   }
   if (typeof state.myCp === 'number') {
     G.cp = state.myCp;
@@ -3050,13 +3076,27 @@ function init1v1OnlineBattle(state) {
 
   pushLog('sys', `Tactical 1v1 Duel active. Room: ${duelRoomCode || 'LOCAL'}. Sector: ${G.mySector}.`);
   pushLog('sys', `Mission start. Seed: ${seed}. Objective: HUNT — destroy enemy flagship.`);
-  pushLog('sys', `Active turn: ${state.activePlayerId === duelPlayerId ? 'YOUR TURN' : 'OPPONENT TURN'}.`);
+  pushLog('sys', `Active turn: ${state.activePlayerId === myId ? 'YOUR TURN' : 'OPPONENT TURN'}.`);
   renderAll();
 }
 
 function sync1v1OnlineBattle(state) {
   if (!G) return;
+  const myId = state.myPlayerId || G.myPlayerId || prepState.duelPlayerId || duelPlayerId || 'p1';
+  G.myPlayerId = myId;
+
   if (state.myFleet && Array.isArray(state.myFleet)) {
+    // Detect incoming damage
+    state.myFleet.forEach(s => {
+      const cur = G.pFleet.find(p => p.id === s.id);
+      if (cur && cur.hp > s.hp) {
+        const dmg = cur.hp - s.hp;
+        pushLog('sys', `⚠️ ALERT: Incoming battery fire struck ${cur.lbl} for ${dmg} damage!`);
+        playAudio('hit');
+        addFx('explosion', [{ x: cur.pos.x, y: cur.pos.y }], 900);
+      }
+    });
+
     G.pFleet = state.myFleet.map(s => {
       const orient = s.orient || (s.cells && s.cells.length > 1 && s.cells[1].y !== s.cells[0].y ? 'V' : 'H');
       const len = s.len || (s.cells ? s.cells.length : (s.id === 'flagship' ? 3 : 2));
@@ -3074,13 +3114,21 @@ function sync1v1OnlineBattle(state) {
       };
     });
   }
+
   if (state.activePlayerId) {
-    const isMyTurn = (state.activePlayerId === duelPlayerId || (duelPlayerId === 'p1' && state.activePlayerId === 'p1') || (duelPlayerId === 'p2' && state.activePlayerId === 'p2'));
+    const isMyTurn = (state.activePlayerId === myId);
     const prevPhase = G.phase;
     G.phase = isMyTurn ? PH.PLAN : PH.AI;
     if (prevPhase !== G.phase) {
       pushLog('sys', `Active turn: ${isMyTurn ? 'YOUR TURN' : 'OPPONENT TURN'}.`);
     }
+  }
+
+  if (typeof state.round === 'number') {
+    G.turn = state.round;
+  }
+  if (state.myHand && Array.isArray(state.myHand)) {
+    G.hand = [...state.myHand];
   }
   if (state.revealed && Array.isArray(state.revealed)) {
     G.revealed = new Set(state.revealed);
@@ -4369,10 +4417,21 @@ function execCard(id,tx,ty){
     duelWs.send(JSON.stringify({
       type: 'TAKE_ACTION',
       action: id,
+      cardId: id,
       x: tx,
       y: ty,
       orient: G.tOrient || 'H'
     }));
+
+    if(c.fam === 'Direct fire' || c.fam === 'Sensor' || c.tgt === 'LINE_ATK' || c.tgt === 'PLUS' || c.tgt === 'SINGLE' || c.tgt === 'LINE5'){
+      G.revealed.add(`${tx},${ty}`);
+      pushLog('ply', `${c.name} dispatched to coordinates ${cid(tx,ty)}...`);
+      playAudio('gun');
+      cancelTgt();
+      updateIntel();
+      renderAll();
+      return;
+    }
   }
   switch(c.tgt){
     case'LINE5':     execSonar(tx,ty);break;
@@ -4962,7 +5021,7 @@ function drawEffects(ctx){
         });break;
     }
   });
-  if(needRaf)requestAnimationFrame(render);
+  if(needRaf && typeof requestAnimationFrame !== 'undefined')requestAnimationFrame(render);
 }
 
 function drawPlayerFleet(ctx){
@@ -5134,23 +5193,31 @@ function renderTmr(){
   }else{
     tmrHTML=`<div class="tmr-blk" style="opacity:.35"><div class="tmr-val">—</div><div class="tmr-lbl">TIMER OFF</div></div>`;
   }
+  let phaseTag = `<div style="font-size:.56rem;color:#2a4060">${G.phase}</div>`;
   let objText = (G && G.encounter && G.encounter.objective) ? G.encounter.objective : 'HUNT: Destroy enemy flagship';
-  if(G && G.encounter && G.encounter.archetype === 'Convoy Raid' && G.encounter.turnsToEscape){
+  if(G && G.isOnline1v1){
+    const isMyTurn = (G.phase === PH.PLAN);
+    phaseTag = isMyTurn
+      ? `<div style="font-size:.68rem;color:#38ef7d;font-weight:700;letter-spacing:1px;">🟢 YOUR TURN · COMMAND FLEET</div>`
+      : `<div style="font-size:.68rem;color:#ffb84d;font-weight:700;letter-spacing:1px;">⏳ OPPONENT TURN · DEFENDING</div>`;
+    objText = `1v1 TACTICAL DUEL · Room: [${prepState.duelRoomCode || duelRoomCode || 'ONLINE'}]`;
+  } else if(G && G.encounter && G.encounter.archetype === 'Convoy Raid' && G.encounter.turnsToEscape){
     const remTurns = Math.max(0, G.encounter.turnsToEscape - G.turn + 1);
     objText = `CONVOY RAID: Intercept Transport (${remTurns} turns left)`;
   }
+  const endBtnText = G.phase === PH.PLAN ? 'END TURN ▶' : (G.isOnline1v1 ? '⏳ WAITING...' : '…WAIT');
   el.innerHTML=`
     <div class="turn-blk"><div class="turn-lbl">TURN</div><div class="turn-n">${G.turn}</div></div>
     <div class="cp-wrap"><div class="cp-dots">${dots}</div><div class="cp-lbl">${G.cp}/${G.maxCp} CP</div></div>
     ${tmrHTML}
-    <div class="obj-blk"><div style="font-size:.56rem;color:#2a4060">${G.phase}</div>
+    <div class="obj-blk">${phaseTag}
       <div class="obj-txt" id="obj-txt">${objText}</div></div>
     <div class="ctrl-blk">
       <div class="ctrl-row">
         <button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>
         <button id="heat-btn" class="${G.showHeat?'on':''}" onclick="toggleHeat()">${G.showHeat?'🧠 AI VISION ON':'🧠 AI VISION OFF'}</button>
       </div>
-      <button id="end-turn-btn" onclick="endPlayerTurn()">${G.phase===PH.PLAN?'END TURN ▶':'…WAIT'}</button>
+      <button id="end-turn-btn" onclick="endPlayerTurn()">${endBtnText}</button>
     </div>`;
 }
 

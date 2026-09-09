@@ -85,7 +85,11 @@ class Room {
       if (this.timerRemaining <= 0) {
         // Authoritative Turn Timeout
         const activePid = this.match.activePlayerId;
-        MP.handleTurnTimeoutOrSkip(this.match, activePid);
+        if (this.mode === '1v1_duel') {
+          MP.end1v1Turn(this.match, activePid);
+        } else {
+          MP.handleTurnTimeoutOrSkip(this.match, activePid);
+        }
         this.timerRemaining = 30;
         this.broadcastState();
       }
@@ -410,6 +414,9 @@ function handleClientMessage(ws, data) {
           return;
         }
 
+        actResult.tx = msg.x;
+        actResult.ty = msg.y;
+
         ws.send(JSON.stringify({
           type: 'ACTION_RESOLVED',
           success: true,
@@ -604,7 +611,11 @@ function handleClientDisconnect(ws) {
     setTimeout(() => {
       if (client.ws && client.ws.readyState !== WebSocket.OPEN) {
         if (room.match && room.match.activePlayerId === client.playerId) {
-          MP.handleTurnTimeoutOrSkip(room.match, client.playerId);
+          if (room.mode === '1v1_duel') {
+            MP.end1v1Turn(room.match, client.playerId);
+          } else {
+            MP.handleTurnTimeoutOrSkip(room.match, client.playerId);
+          }
           room.broadcastState();
         }
       }
