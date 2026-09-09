@@ -956,6 +956,7 @@
       myCp: player.cp,
       myAmmo: { ...player.ammo },
       revealed: Array.from(match.revealed[forPlayerId] || []),
+      hits: (match.hits && match.hits[forPlayerId]) ? match.hits[forPlayerId].map(h => ({ ...h })) : [],
       opponent: {
         id: opp.id,
         name: opp.name,
