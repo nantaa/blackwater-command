@@ -1695,7 +1695,7 @@ function startCampaignRun(seed) {
     flagshipHull: 20,
     maxHull: 20,
     ammo: { torpedo: 6, depthCharge: 4, sonar: 5, smoke: 3, mine: 2, fuel: 2 },
-    deck: ['torpedo_salvo', 'acoustic_sweep', 'evasive_rudder', 'depth_charge', 'decoy_buoy', 'smoke_screen'],
+    deck: ['narrow_sonar', 'narrow_sonar', 'torpedo_line', 'torpedo_line', 'thermal_wake', 'depth_pattern', 'flank_speed', 'go_silent', 'decoy_buoy', 'patrol_plane'],
     modules: [],
     cardUpgrades: {},
     map: RouteEngine.generateRouteMap(s, 1),
@@ -2310,9 +2310,9 @@ const CARDS={
   thermal_wake:{id:'thermal_wake',name:'Thermal Wake',fam:'Intelligence',cp:1,ammo:{},
     tgt:'SINGLE',rot:false,
     desc:'Check if any ship moved through this cell last turn.'},
-  torpedo_line:{id:'torpedo_line',name:'Torpedo Line',fam:'Direct fire',cp:2,ammo:{torpedo:1},
-    tgt:'LINE_ATK',rot:true,
-    desc:'Fire from flagship along H/V. ≤6 cells. Stops at first ship or island.'},
+  torpedo_line:{id:'torpedo_line',name:'Ballistic Missile',fam:'Direct fire',cp:1,ammo:{torpedo:1},
+    tgt:'PLUS',rot:false,
+    desc:'Air-to-surface ballistic missile. Hits target (5 dmg) + 4 adjacent cardinal cells (3 dmg splash).'},
   depth_pattern:{id:'depth_pattern',name:'Depth Pattern',fam:'Direct fire',cp:2,ammo:{depthCharge:1},
     tgt:'AREA3',rot:false,
     desc:'Attack 3×3 area. +2 bonus damage to submarines.'},
@@ -2342,9 +2342,9 @@ const CARDS={
   focused_sonar:{id:'focused_sonar',name:'Focused Sonar',fam:'Intelligence',cp:1,ammo:{sonar:1},
     tgt:'LINE6',rot:true,
     desc:'[Upgraded] Scan 6-cell line (H/V). Returns contact count only.'},
-  guided_torpedo:{id:'guided_torpedo',name:'Guided Torpedo',fam:'Direct fire',cp:2,ammo:{torpedo:1},
-    tgt:'LINE_ATK',rot:true,guided:true,
-    desc:'[Upgraded] Fire ≤7 cells. Pierces through reefs and deals +1 dmg.'},
+  guided_torpedo:{id:'guided_torpedo',name:'Heavy Cruise Missile',fam:'Direct fire',cp:1,ammo:{torpedo:1},
+    tgt:'PLUS',rot:false,guided:true,
+    desc:'[Upgraded] Heavy warhead. 5 damage across all 5 blast cells.'},
   saturation_pattern:{id:'saturation_pattern',name:'Saturation Pattern',fam:'Direct fire',cp:2,ammo:{depthCharge:1},
     tgt:'AREA3',rot:false,saturation:true,
     desc:'[Upgraded] Attacks 3×3 area. Marks surviving enemy ships as Contact.'},
@@ -3109,6 +3109,13 @@ function previewCells(id,hx,hy){
     case'LINE5':for(let i=-2;i<=2;i++){
       const x=G.tOrient==='H'?hx+i:hx,y=G.tOrient==='V'?hy+i:hy;
       if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
+    case'PLUS':{
+      const pts=[{x:hx,y:hy},{x:hx+1,y:hy},{x:hx-1,y:hy},{x:hx,y:hy+1},{x:hx,y:hy-1}];
+      for(let i=0;i<pts.length;i++){
+        const pt=pts[i];
+        if(pt.x>=0&&pt.x<GW&&pt.y>=0&&pt.y<GH)cells.push(pt);
+      }
+      break;}
     case'LINE_ATK':{
       const f=G.pFleet[0].pos;
       let dx=0,dy=0;
@@ -3146,6 +3153,7 @@ function execCard(id,tx,ty){
     case'SINGLE':    id==='thermal_wake'?execWake(tx,ty):
                      id==='precision_salvo'?execSalvo(tx,ty):
                      execDecoy(tx,ty);break;
+    case'PLUS':      execMissile(tx,ty,c.guided);break;
     case'LINE_ATK':  execTorpedo(tx,ty);break;
     case'AREA3':     execDepth(tx,ty);break;
     case'AREA5':     execPatrol(tx,ty);break;
@@ -3193,6 +3201,44 @@ function execWake(tx,ty){
   const was=G.eFleet.some(s=>s.alive&&s.prev&&s.prev.x===tx&&s.prev.y===ty);
   pushLog('ply',`Thermal Wake at ${cid(tx,ty)}: ${was?'POSITIVE — ship moved here last turn.':'negative — no movement.'}`);
   if(was){G.ev.trails.push({pos:{x:tx,y:ty},turn:G.turn});probSpike({x:tx,y:ty},0.08);normProb();}
+}
+
+function execMissile(tx,ty,isGuided){
+  const pts=[
+    {x:tx,y:ty},
+    {x:tx+1,y:ty},
+    {x:tx-1,y:ty},
+    {x:tx,y:ty+1},
+    {x:tx,y:ty-1}
+  ];
+  const blastCells=pts.filter(pt=>pt.x>=0&&pt.x<GW&&pt.y>=0&&pt.y<GH);
+  blastCells.forEach(c=>G.revealed.add(`${c.x},${c.y}`));
+  addFx('explosion',blastCells,1200);
+
+  let anyHit=false;
+  for(let i=0;i<blastCells.length;i++){
+    const c=blastCells[i];
+    const isCenter=(c.x===tx&&c.y===ty);
+    const dmg=isGuided?5:(isCenter?5:3);
+    const hitSh=G.eFleet.find(s=>s.alive&&s.pos.x===c.x&&s.pos.y===c.y);
+    if(hitSh){
+      anyHit=true;
+      hitSh.hp=Math.max(0,hitSh.hp-dmg);
+      hitSh.cs=CS.CONF;
+      addMark('hit',hitSh.pos,`${dmg}`);
+      G.ev.confirmed=G.ev.confirmed.filter(item=>item.sid!==hitSh.id);
+      G.ev.confirmed.push({pos:{...hitSh.pos},sid:hitSh.id,turn:G.turn});
+      G.ev.hits.push({pos:{...hitSh.pos},turn:G.turn});
+      pushLog('hit',`Ballistic Missile ${isCenter?'DIRECT HIT':'SPLASH HIT'} on ${hitSh.lbl} at ${cid(c.x,c.y)} for ${dmg}! HP:${hitSh.hp}/${hitSh.max}`);
+      if(hitSh.hp<=0){hitSh.alive=false;pushLog('hit',`${hitSh.lbl} SUNK!`);}
+    }
+  }
+  if(!anyHit){
+    pushLog('ply',`Ballistic Missile detonation at ${cid(tx,ty)}: no contacts damaged.`);
+    G.ev.misses.push({pos:{x:tx,y:ty},turn:G.turn});
+  }
+  G.stats.torps=(G.stats.torps||0)+1;
+  playAudio('fire');
 }
 
 function execTorpedo(tx,ty){

@@ -163,6 +163,7 @@ const exportsObj = vm.runInContext(`({
   showScreen, rollSeed, dismissTut, showCS, showTitle,
   initRun, getRun, applyUpgrade,
   validatePlacement, validateFullFleet, quickDeploy,
+  previewCells,
   get RUN() { return RUN; },
   set RUN(v) { RUN = v; },
   startPreparation, confirmDeployment, getPrepState,
@@ -276,6 +277,37 @@ const initialDecoys = G.ev.decoys.length;
 execCard('decoy_buoy', 4, 4);
 assert(G.ev.decoys.length === initialDecoys + 1, 'Decoy Buoy injected new decoy into evidence');
 assert(G.prob[4][4] > 0.05, 'Decoy Buoy spiked probability at target cell');
+
+// Test Ballistic Missile (Overhauled from Torpedo Line)
+assert(CARDS.torpedo_line.cp === 1, 'Ballistic Missile costs 1 CP');
+assert(CARDS.torpedo_line.tgt === 'PLUS', 'Ballistic Missile targets PLUS cross shape');
+assert(CARDS.torpedo_line.rot === false, 'Ballistic Missile does not require rotation');
+
+const crossCells = exportsObj.previewCells('torpedo_line', 14, 10);
+assert(crossCells.length === 5, 'PLUS target preview returns exactly 5 cells');
+assert(crossCells.some(c => c.x === 14 && c.y === 10), 'PLUS target preview contains center (14, 10)');
+assert(crossCells.some(c => c.x === 15 && c.y === 10), 'PLUS target preview contains east arm (15, 10)');
+assert(crossCells.some(c => c.x === 13 && c.y === 10), 'PLUS target preview contains west arm (13, 10)');
+assert(crossCells.some(c => c.x === 14 && c.y === 11), 'PLUS target preview contains south arm (14, 11)');
+assert(crossCells.some(c => c.x === 14 && c.y === 9), 'PLUS target preview contains north arm (14, 9)');
+
+// Test Ballistic Missile Execution & Damage (Direct 5, Splash 3)
+G.hand.push('torpedo_line');
+G.cp = 3;
+const initialTorpAmmo = G.ammo.torpedo;
+// Place enemy flagship at center (14, 10) and enemy scout at east arm (15, 10)
+G.eFleet[0].pos = { x: 14, y: 10 };
+G.eFleet[0].hp = 20;
+G.eFleet[1].pos = { x: 15, y: 10 };
+G.eFleet[1].hp = 9;
+
+execCard('torpedo_line', 14, 10);
+assert(G.cp === 2, 'Ballistic Missile execution deducted exactly 1 CP (3 - 1 = 2)');
+assert(G.ammo.torpedo === initialTorpAmmo - 1, 'Ballistic Missile execution deducted 1 torpedo ammo');
+assert(G.eFleet[0].hp === 15, 'Direct center hit dealt 5 damage (20 - 5 = 15)');
+assert(G.eFleet[1].hp === 6, 'Splash arm hit dealt 3 damage (9 - 3 = 6)');
+assert(G.revealed.has('14,10'), 'Direct center cell fog revealed');
+assert(G.revealed.has('15,10'), 'Splash arm cell fog revealed');
 
 // ----------------------------------------------------
 // TEST SUITE 6: Turn Loop State Machine
