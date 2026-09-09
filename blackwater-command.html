@@ -404,11 +404,11 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
   <div class="prep-layout">
     <div style="display:flex;flex-direction:column;align-items:center">
       <div style="display:flex;justify-content:space-between;width:544px;font-size:.72rem;font-weight:bold;margin-bottom:6px;padding:0 4px">
-        <span style="color:#ffcf40">◀ ALLIED SECTOR (A–J)</span>
-        <span style="color:#8eb8dc">HOSTILE WATERS (K–T) ▶</span>
+        <span id="prep-west-lbl" style="color:#ffcf40">◀ ALLIED SECTOR (A–J)</span>
+        <span id="prep-east-lbl" style="color:#8eb8dc">HOSTILE WATERS (K–T) ▶</span>
       </div>
       <canvas id="prep-board" width="544" height="544" style="background:#0b192e;cursor:crosshair"></canvas>
-      <div style="font-size:.68rem;color:#8eb8dc;margin-top:6px;font-weight:bold">
+      <div id="prep-instructions" style="font-size:.68rem;color:#8eb8dc;margin-top:6px;font-weight:bold">
         Click Allied sector (A–J) to place selected ship · Press <span class="key">R</span> to rotate
       </div>
     </div>
@@ -432,7 +432,7 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
         <div class="prep-err" id="prep-err-msg"></div>
       </div>
 
-      <div class="prep-card">
+      <div class="prep-card" id="prep-card-doctrine">
         <h3>⚔ PRE-BATTLE DOCTRINE</h3>
         <button class="doctrine-btn active" id="doc-silent" onclick="selectDoctrine('silent_start')">
           <span class="doctrine-title">SILENT START</span>
@@ -447,7 +447,7 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
       <div class="prep-card" style="margin-top:auto">
         <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:8px">
           <span style="color:#8eb8dc;font-weight:bold">ENCOUNTER:</span>
-          <span style="color:#ffcf40;font-weight:bold">HUNT — STANDARD RISK</span>
+          <span id="prep-encounter-lbl" style="color:#ffcf40;font-weight:bold">HUNT — STANDARD RISK</span>
         </div>
         <button class="btn g" id="btn-confirm-deploy" style="width:100%;padding:.6rem" onclick="confirmDeployment()">
           ▶ CONFIRM DEPLOYMENT
@@ -1058,6 +1058,57 @@ const MP = (function () {
     minelayer: { id: 'minelayer', name: 'Minelayer', len: 2, hp: 10, maxHp: 10 }
   };
 
+  const MP_CARDS = {
+    deck_gun: {
+      id: 'deck_gun',
+      name: 'Deck Gun',
+      fam: 'Direct fire',
+      cp: 1,
+      ammo: {},
+      tgt: 'SINGLE',
+      dmg: 3,
+      desc: 'Standard battery fire. Strikes a single cell (3 dmg). Infinite munitions.'
+    },
+    narrow_sonar: {
+      id: 'narrow_sonar',
+      name: 'Narrow Sonar',
+      fam: 'Intelligence',
+      cp: 1,
+      ammo: {},
+      tgt: 'LINE5',
+      desc: 'Scan 5-cell line (H/V). Returns contact count only — not exact positions.'
+    },
+    torpedo_line: {
+      id: 'torpedo_line',
+      name: 'Ballistic Missile',
+      fam: 'Direct fire',
+      cp: 1,
+      ammo: { torpedo: 1 },
+      tgt: 'PLUS',
+      dmg: 5,
+      splash: 3,
+      desc: 'Air-to-surface ballistic missile. Hits target (5 dmg) + 4 adjacent cardinal cells (3 dmg splash).'
+    },
+    flank_speed: {
+      id: 'flank_speed',
+      name: 'Flank Speed',
+      fam: 'Mobility',
+      cp: 1,
+      ammo: {},
+      tgt: 'MOVE_SUP',
+      desc: 'Move nearest support ship to target cell.'
+    },
+    go_silent: {
+      id: 'go_silent',
+      name: 'Go Silent',
+      fam: 'Mobility',
+      cp: 1,
+      ammo: {},
+      tgt: 'MOVE_FLAG',
+      desc: 'Move flagship to target cell.'
+    }
+  };
+
   // ----------------------------------------------------
   // §2. DETERMINISTIC RNG (Mulberry32)
   // ----------------------------------------------------
@@ -1303,6 +1354,7 @@ const MP = (function () {
   // §6. STARTER DECK & MATCH STATE
   // ----------------------------------------------------
   const MP_START_DECK = [
+    'deck_gun', 'deck_gun',
     'narrow_sonar', 'narrow_sonar',
     'torpedo_line', 'torpedo_line',
     'thermal_wake', 'depth_pattern',
@@ -1711,7 +1763,7 @@ const MP = (function () {
   // 1v1 Tactical Duel Definitions
   const DUEL_CONSTANTS = {
     GW: 20,
-    GH: 10,
+    GH: 20,
     COLS: 'ABCDEFGHIJKLMNOPQRST'.split(''),
     T,
     MP_SHIPS,
@@ -1719,30 +1771,35 @@ const MP = (function () {
   };
 
   const SECTORS_1V1 = {
-    P1: { x0: 0, x1: 9, y0: 0, y1: 9, colStart: 'A', colEnd: 'J', rowStart: 1, rowEnd: 10 },
-    P2: { x0: 10, x1: 19, y0: 0, y1: 9, colStart: 'K', colEnd: 'T', rowStart: 1, rowEnd: 10 }
+    P1: { x0: 0, x1: 9, y0: 0, y1: 19, colStart: 'A', colEnd: 'J', rowStart: 1, rowEnd: 20 },
+    P2: { x0: 10, x1: 19, y0: 0, y1: 19, colStart: 'K', colEnd: 'T', rowStart: 1, rowEnd: 20 }
   };
 
   function gen1v1Grid(rng) {
-    const grid = Array.from({ length: 10 }, () => Array(20).fill(T.OPEN));
-    const p1Clusters = rng.int(2, 3);
+    const grid = Array.from({ length: 20 }, () => Array(20).fill(T.OPEN));
+    const p1Clusters = rng.int(3, 4);
     for (let c = 0; c < p1Clusters; c++) {
-      let cx = rng.int(1, 8), cy = rng.int(1, 8);
+      let cx = rng.int(1, 8), cy = rng.int(2, 17);
       grid[cy][cx] = T.ISLAND;
       const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
       const d = rng.pick(neighbors);
       const nx = cx + d[0], ny = cy + d[1];
-      if (nx >= 0 && nx <= 9 && ny >= 0 && ny <= 9) grid[ny][nx] = T.ISLAND;
+      if (nx >= 0 && nx <= 9 && ny >= 0 && ny <= 19) grid[ny][nx] = T.ISLAND;
     }
-    const p2Clusters = rng.int(2, 3);
+    const p2Clusters = rng.int(3, 4);
     for (let c = 0; c < p2Clusters; c++) {
-      let cx = rng.int(11, 18), cy = rng.int(1, 8);
+      let cx = rng.int(11, 18), cy = rng.int(2, 17);
       grid[cy][cx] = T.ISLAND;
       const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
       const d = rng.pick(neighbors);
       const nx = cx + d[0], ny = cy + d[1];
-      if (nx >= 10 && nx <= 19 && ny >= 0 && ny <= 9) grid[ny][nx] = T.ISLAND;
+      if (nx >= 10 && nx <= 19 && ny >= 0 && ny <= 19) grid[ny][nx] = T.ISLAND;
     }
+    const r1x = rng.int(2, 7), r1y = rng.int(2, 17);
+    if (grid[r1y][r1x] !== T.ISLAND) grid[r1y][r1x] = T.RADAR;
+    const r2x = rng.int(12, 17), r2y = rng.int(2, 17);
+    if (grid[r2y][r2x] !== T.ISLAND) grid[r2y][r2x] = T.RADAR;
+
     return grid;
   }
 
@@ -1820,7 +1877,7 @@ const MP = (function () {
       seed,
       mode: '1v1_duel',
       GW: 20,
-      GH: 10,
+      GH: 20,
       grid,
       phase: 'DEPLOY',
       round: 1,
@@ -1930,7 +1987,7 @@ const MP = (function () {
       if (cardId === 'flank_speed' || cardId === 'go_silent') {
         if (player.sector === 'P1' && tx >= 10) return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols K–T).' };
         if (player.sector === 'P2' && tx < 10) return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols A–J).' };
-        if (tx < 0 || tx >= 20 || ty < 0 || ty >= 10 || match.grid[ty][tx] === T.ISLAND) return { success: false, error: 'Movement blocked! Impassable terrain.' };
+        if (tx < 0 || tx >= 20 || ty < 0 || ty >= (match.GH || 20) || match.grid[ty][tx] === T.ISLAND) return { success: false, error: 'Movement blocked! Impassable terrain.' };
 
         const ship = cardId === 'go_silent'
           ? player.fleet.find(s => s.id === 'flagship')
@@ -1950,16 +2007,40 @@ const MP = (function () {
       player.hand.splice(cIdx, 1);
       player.discard.push(cardId);
 
-      const blastPoints = [
-        { x: tx, y: ty, dmg: 5 },
-        { x: tx + 1, y: ty, dmg: 3 },
-        { x: tx - 1, y: ty, dmg: 3 },
-        { x: tx, y: ty + 1, dmg: 3 },
-        { x: tx, y: ty - 1, dmg: 3 }
-      ];
+      if (cardId === 'narrow_sonar') {
+        const orient = (action.target && action.target.orient) || 'H';
+        const scanCells = [];
+        for (let i = -2; i <= 2; i++) {
+          const cx = orient === 'H' ? tx + i : tx;
+          const cy = orient === 'V' ? ty + i : ty;
+          if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+            scanCells.push({ x: cx, y: cy });
+            match.revealed[playerId].add(`${cx},${cy}`);
+          }
+        }
+        let contactCount = 0;
+        if (opp && opp.fleet) {
+          for (const s of opp.fleet) {
+            if (s.alive && s.cells.some(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y))) {
+              contactCount++;
+            }
+          }
+        }
+        return { success: true, action: 'SONAR', contacts: contactCount, cells: scanCells };
+      }
+
+      const blastPoints = cardId === 'deck_gun'
+        ? [{ x: tx, y: ty, dmg: 3 }]
+        : [
+            { x: tx, y: ty, dmg: 5 },
+            { x: tx + 1, y: ty, dmg: 3 },
+            { x: tx - 1, y: ty, dmg: 3 },
+            { x: tx, y: ty + 1, dmg: 3 },
+            { x: tx, y: ty - 1, dmg: 3 }
+          ];
 
       for (const pt of blastPoints) {
-        if (pt.x >= 0 && pt.x < 20 && pt.y >= 0 && pt.y < 10) {
+        if (pt.x >= 0 && pt.x < 20 && pt.y >= 0 && pt.y < (match.GH || 20)) {
           match.revealed[playerId].add(`${pt.x},${pt.y}`);
           if (opp && opp.fleet) {
             for (const s of opp.fleet) {
@@ -1990,6 +2071,7 @@ const MP = (function () {
     T,
     QUADRANTS,
     MP_SHIPS,
+    MP_CARDS,
     MP_START_DECK,
     mkRng,
     cid,
@@ -2013,7 +2095,7 @@ const MP = (function () {
     checkEliminationsAndVictory,
     submitSurrender,
     processStormCollapse,
-    MP_CONSTANTS: { GW, GH, COLS, T, QUADRANTS, MP_SHIPS, MP_START_DECK },
+    MP_CONSTANTS: { GW, GH, COLS, T, QUADRANTS, MP_SHIPS, MP_CARDS, MP_START_DECK },
     submitAction: usePlatformAction,
     advanceMPTurn: endMPTurn,
     // 1v1 Tactical Duel exports
@@ -2052,7 +2134,7 @@ function startCampaignRun(seed) {
     flagshipHull: 20,
     maxHull: 20,
     ammo: { torpedo: 6, depthCharge: 4, sonar: 5, smoke: 3, mine: 2, fuel: 2 },
-    deck: ['narrow_sonar', 'narrow_sonar', 'torpedo_line', 'torpedo_line', 'thermal_wake', 'depth_pattern', 'flank_speed', 'go_silent', 'decoy_buoy', 'patrol_plane'],
+    deck: ['deck_gun', 'deck_gun', 'narrow_sonar', 'narrow_sonar', 'torpedo_line', 'torpedo_line', 'thermal_wake', 'depth_pattern', 'flank_speed', 'go_silent', 'decoy_buoy', 'patrol_plane'],
     modules: [],
     cardUpgrades: {},
     map: RouteEngine.generateRouteMap(s, 1),
@@ -2731,15 +2813,187 @@ function handleDuelServerMsg(msg) {
     case 'MATCH_READY': {
       duelRoomCode = msg.roomCode;
       duelPlayerId = msg.playerId || duelPlayerId;
-      start1v1DuelBattle(msg);
+      start1v1Preparation(msg);
+      break;
+    }
+    case 'DEPLOYMENT_ACCEPTED': {
+      const errMsg = document.getElementById('prep-err-msg');
+      if (errMsg) {
+        errMsg.textContent = 'Fleet deployed! Waiting for opponent deployment...';
+        errMsg.style.color = '#38ef7d';
+      }
+      const confirmBtn = document.getElementById('btn-confirm-deploy');
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'WAITING FOR OPPONENT...';
+        confirmBtn.style.opacity = '0.6';
+        confirmBtn.style.cursor = 'wait';
+      }
+      break;
+    }
+    case 'ACTION_RESOLVED': {
+      if (msg.result) {
+        if (msg.result.action === 'SONAR') {
+          pushLog('ply', `Narrow Sonar report: ${msg.result.contacts} contact(s) detected.`);
+        } else if (msg.result.action === 'ATTACK') {
+          pushLog('ply', `Action confirmed on server target.`);
+        }
+      }
+      break;
+    }
+    case 'STATE_UPDATE': {
+      handle1v1StateUpdate(msg);
       break;
     }
     case 'ERROR': {
       const jStat = document.getElementById('join-1v1-status');
       if (jStat) jStat.textContent = `Error: ${msg.message}`;
+      const pErr = document.getElementById('prep-err-msg');
+      if (pErr) {
+        pErr.textContent = `Server Error: ${msg.message}`;
+        pErr.style.color = '#e05050';
+      }
       break;
     }
   }
+}
+
+function handle1v1StateUpdate(msg) {
+  const state = msg.state;
+  if (!state) return;
+
+  if (state.phase === 'BATTLE_ACTIVE') {
+    const curScreen = document.querySelector('.screen.active');
+    if (!curScreen || curScreen.id !== 'scr-battle') {
+      showScreen('scr-battle');
+      init1v1OnlineBattle(state);
+    } else {
+      sync1v1OnlineBattle(state);
+    }
+  } else if (state.phase === 'FINISHED') {
+    const isWinner = (state.winnerId === duelPlayerId);
+    pushLog('sys', isWinner ? 'VICTORY! Enemy flagship destroyed!' : 'DEFEAT! Flagship lost in action.');
+    renderAll();
+  }
+}
+
+function start1v1Preparation(data) {
+  const seed = data.seed || Math.floor(Math.random() * 99998) + 1;
+  const rng = mkRng(seed);
+  const grid = data.grid || MP.gen1v1Grid(rng);
+  const sector = data.sector || 'P1';
+
+  prepState.mode = '1v1_duel';
+  prepState.duelRoomCode = data.roomCode || 'LOCAL';
+  prepState.duelPlayerId = data.playerId || duelPlayerId || 'p1';
+  prepState.sector = sector;
+  prepState.seed = seed;
+  prepState.grid = grid;
+  prepState.rng = rng;
+  prepState.selectedShip = 'flagship';
+  prepState.orient = 'H';
+  prepState.doctrine = 'standard_duel';
+  prepState.hov = null;
+
+  // Update Sector Orientation UI & Banner
+  const isP1 = (sector === 'P1');
+  const westLbl = document.getElementById('prep-west-lbl');
+  const eastLbl = document.getElementById('prep-east-lbl');
+  const instr = document.getElementById('prep-instructions');
+  const encLbl = document.getElementById('prep-encounter-lbl');
+  const docCard = document.getElementById('prep-card-doctrine');
+
+  if (westLbl) {
+    westLbl.textContent = isP1 ? '◀ ALLIED SECTOR (P1 WEST · A–J)' : '◀ HOSTILE SECTOR (P1 WEST · A–J)';
+    westLbl.style.color = isP1 ? '#ffcf40' : '#e05050';
+  }
+  if (eastLbl) {
+    eastLbl.textContent = isP1 ? 'HOSTILE SECTOR (P2 EAST · K–T) ▶' : 'ALLIED SECTOR (P2 EAST · K–T) ▶';
+    eastLbl.style.color = isP1 ? '#e05050' : '#ffcf40';
+  }
+  if (instr) {
+    instr.textContent = isP1
+      ? 'Deploy ships in WEST Sector (Cols A–J) · Press R to rotate · Right-click to rotate'
+      : 'Deploy ships in EAST Sector (Cols K–T) · Press R to rotate · Right-click to rotate';
+  }
+  if (encLbl) {
+    encLbl.textContent = `1v1 ONLINE DUEL · ROOM [${prepState.duelRoomCode}]`;
+  }
+  if (docCard) {
+    docCard.style.display = 'none'; // In standard 1v1 duel, symmetric doctrine
+  }
+
+  const confirmBtn = document.getElementById('btn-confirm-deploy');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = '▶ CONFIRM FLEET DEPLOYMENT';
+    confirmBtn.style.opacity = '1';
+    confirmBtn.style.cursor = 'pointer';
+  }
+
+  prepQuickDeploy();
+  initPrepInput();
+  showScreen('scr-prep');
+  renderPrepBoard();
+}
+
+function init1v1OnlineBattle(state) {
+  const seed = state.seed || prepState.seed || 1234;
+  const grid = prepState.grid || buildMap(seed).grid;
+  initGame(seed, prepState.placements, 'standard_duel');
+  G.grid = grid;
+  G.isOnline1v1 = true;
+  G.mySector = state.mySector || prepState.sector || 'P1';
+
+  if (state.myFleet && Array.isArray(state.myFleet)) {
+    G.pFleet = state.myFleet.map(s => ({
+      id: s.id,
+      lbl: s.id === 'flagship' ? 'DESTROYER' : (s.id === 'patrol' ? 'PAT.BOAT' : 'MINELAYER'),
+      hp: s.hp,
+      max: s.maxHp,
+      pos: { x: s.x, y: s.y },
+      alive: s.alive
+    }));
+  }
+
+  if (state.revealed && Array.isArray(state.revealed)) {
+    G.revealed = new Set(state.revealed);
+  }
+
+  pushLog('sys', `Tactical 1v1 Duel active. Room: ${duelRoomCode || 'LOCAL'}. Sector: ${G.mySector}.`);
+  pushLog('sys', `Mission start. Seed: ${seed}. Objective: HUNT — destroy enemy flagship.`);
+  pushLog('sys', `Active turn: ${state.activePlayerId === duelPlayerId ? 'YOUR TURN' : 'OPPONENT TURN'}.`);
+  renderAll();
+}
+
+function sync1v1OnlineBattle(state) {
+  if (!G) return;
+  if (state.myFleet && Array.isArray(state.myFleet)) {
+    G.pFleet = state.myFleet.map(s => ({
+      id: s.id,
+      lbl: s.id === 'flagship' ? 'DESTROYER' : (s.id === 'patrol' ? 'PAT.BOAT' : 'MINELAYER'),
+      hp: s.hp,
+      max: s.maxHp,
+      pos: { x: s.x, y: s.y },
+      alive: s.alive
+    }));
+  }
+  if (state.revealed && Array.isArray(state.revealed)) {
+    G.revealed = new Set(state.revealed);
+  }
+  G.cp = state.myCp !== undefined ? state.myCp : G.cp;
+  if (state.myAmmo) G.ammo = { ...state.myAmmo };
+  renderAll();
+}
+
+function start1v1LocalBattleFromPrep() {
+  showScreen('scr-battle');
+  const seed = prepState.seed;
+  const grid = prepState.grid;
+  initGame(seed, prepState.placements, prepState.doctrine);
+  G.grid = grid;
+  pushLog('sys', `Tactical 1v1 Duel active. Room: LOCAL. Sector: ${prepState.sector || 'P1'}.`);
+  renderAll();
 }
 
 function startQuick1v1() {
@@ -2754,8 +3008,16 @@ function startQuick1v1() {
     ws.send(JSON.stringify({ type: 'QUEUE_1V1', playerName: 'Commander' }));
   }).catch(() => {
     if (qStat) qStat.textContent = 'Server offline. Launching local tactical duel...';
+    const localSeed = Math.floor(Math.random() * 99998) + 1;
     setTimeout(() => {
-      start1v1DuelBattle({ mode: '1v1_duel', roomCode: 'LOCAL', playerId: 'p1' });
+      start1v1Preparation({
+        mode: '1v1_duel',
+        roomCode: 'LOCAL',
+        playerId: 'p1',
+        sector: 'P1',
+        seed: localSeed,
+        grid: MP.gen1v1Grid(mkRng(localSeed))
+      });
     }, 600);
   });
 }
@@ -2808,13 +3070,6 @@ function joinPrivate1v1() {
   });
 }
 
-function start1v1DuelBattle(initData) {
-  showScreen('scr-battle');
-  initGame(Date.now());
-  pushLog('sys', `Tactical 1v1 Duel active. Room: ${initData.roomCode || 'LOCAL'}. Sector: ${initData.sector || 'P1'}.`);
-  renderAll();
-}
-
 /* ════════════════════════════════════════════════════════════════
    §1  CONSTANTS
 ════════════════════════════════════════════════════════════════ */
@@ -2864,7 +3119,10 @@ function mkRng(seed){
    §3  CARD DEFINITIONS
 ════════════════════════════════════════════════════════════════ */
 const CARDS={
-  narrow_sonar:{id:'narrow_sonar',name:'Narrow Sonar',fam:'Intelligence',cp:1,ammo:{sonar:1},
+  deck_gun:{id:'deck_gun',name:'Deck Gun',fam:'Direct fire',cp:1,ammo:{},
+    tgt:'SINGLE',rot:false,dmg:3,
+    desc:'Standard battery fire. Strikes a single cell (3 dmg). Infinite munitions.'},
+  narrow_sonar:{id:'narrow_sonar',name:'Narrow Sonar',fam:'Intelligence',cp:1,ammo:{},
     tgt:'LINE5',rot:true,
     desc:'Scan 5-cell line (H/V). Returns contact count only — not exact positions.'},
   sector_sweep:{id:'sector_sweep',name:'Sector Sweep',fam:'Intelligence',cp:2,ammo:{sonar:1},
@@ -2902,7 +3160,7 @@ const CARDS={
     desc:'[Phase 4] At a radar island: reveal enemy trail or direction. Not active in this build.'},
 
   // ── Upgraded Card Variants (§7.A) ──
-  focused_sonar:{id:'focused_sonar',name:'Focused Sonar',fam:'Intelligence',cp:1,ammo:{sonar:1},
+  focused_sonar:{id:'focused_sonar',name:'Focused Sonar',fam:'Intelligence',cp:1,ammo:{},
     tgt:'LINE6',rot:true,
     desc:'[Upgraded] Scan 6-cell line (H/V). Returns contact count only.'},
   guided_torpedo:{id:'guided_torpedo',name:'Heavy Cruise Missile',fam:'Direct fire',cp:1,ammo:{torpedo:1},
@@ -2942,6 +3200,7 @@ const MODULES={
 };
 
 const START_DECK=[
+  'deck_gun','deck_gun',
   'narrow_sonar','narrow_sonar',
   'torpedo_line','torpedo_line',
   'thermal_wake','depth_pattern',
@@ -3094,8 +3353,14 @@ function validateGrid(grid){
 
 /* ── FLEET PLACEMENT VALIDATION (§3) ── */
 function validatePlacement(grid,shipId,x,y,orientation){
-  if(x<0||x>=10||y<0||y>=GH){
-    return{valid:false,reason:'Deployment must be inside Allied sector (cols A–J).'};
+  const is1v1 = (typeof prepState !== 'undefined' && prepState && prepState.mode === '1v1_duel');
+  const isP2 = is1v1 && (prepState.sector === 'P2');
+  const minX = isP2 ? 10 : 0;
+  const maxX = isP2 ? 20 : 10;
+  const secName = isP2 ? 'East sector (cols K–T)' : 'Allied sector (cols A–J)';
+
+  if(x < minX || x >= maxX || y < 0 || y >= GH){
+    return { valid: false, reason: `Deployment must be inside ${secName}.` };
   }
   const tile=grid[y][x];
   if(tile===T.ISLAND||tile===T.RADAR){
@@ -3735,10 +4000,20 @@ function execCard(id,tx,ty){
   G.cp-=c.cp;
   for(const[k,v]of Object.entries(c.ammo||{}))G.ammo[k]-=v;
   const i=G.hand.indexOf(id);if(i>=0){G.hand.splice(i,1);G.discard.push(id);}
+  if(G.isOnline1v1 && typeof duelWs !== 'undefined' && duelWs && duelWs.readyState === WebSocket.OPEN){
+    duelWs.send(JSON.stringify({
+      type: 'TAKE_ACTION',
+      action: id,
+      x: tx,
+      y: ty,
+      orient: G.tOrient || 'H'
+    }));
+  }
   switch(c.tgt){
     case'LINE5':     execSonar(tx,ty);break;
     case'AREA4':     id==='sector_sweep'?execSweep(tx,ty):execJammer(tx,ty);break;
-    case'SINGLE':    id==='thermal_wake'?execWake(tx,ty):
+    case'SINGLE':    id==='deck_gun'?execDeckGun(tx,ty):
+                     id==='thermal_wake'?execWake(tx,ty):
                      id==='precision_salvo'?execSalvo(tx,ty):
                      execDecoy(tx,ty);break;
     case'PLUS':      execMissile(tx,ty,c.guided);break;
@@ -3750,6 +4025,32 @@ function execCard(id,tx,ty){
     case'PLACE_DCOY':execDecoy(tx,ty);break;
   }
   cancelTgt();updateIntel();checkVic();renderAll();
+}
+
+function execDeckGun(tx,ty){
+  if(tx<0||tx>=GW||ty<0||ty>=GH)return;
+  G.revealed.add(`${tx},${ty}`);
+  addFx('explosion',[{x:tx,y:ty}],800);
+  const dmg=3;
+  const hitSh=G.eFleet.find(s=>s.alive&&s.pos.x===tx&&s.pos.y===ty);
+  if(hitSh){
+    hitSh.hp=Math.max(0,hitSh.hp-dmg);
+    hitSh.cs=CS.CONF;
+    addMark('hit',hitSh.pos,`${dmg}`);
+    G.ev.confirmed=G.ev.confirmed.filter(item=>item.sid!==hitSh.id);
+    G.ev.confirmed.push({pos:{...hitSh.pos},sid:hitSh.id,turn:G.turn});
+    G.ev.hits.push({pos:{...hitSh.pos},turn:G.turn});
+    pushLog('hit',`Deck Gun battery strike on ${hitSh.lbl} at ${cid(tx,ty)} for ${dmg}! HP:${hitSh.hp}/${hitSh.max}`);
+    if(hitSh.hp<=0){hitSh.alive=false;pushLog('hit',`${hitSh.lbl} SUNK!`);}
+    playAudio('hit');
+  }else{
+    pushLog('ply',`Deck Gun strike at ${cid(tx,ty)}: water splash, no contact.`);
+    G.ev.misses.push({pos:{x:tx,y:ty},turn:G.turn});
+    probSpike({x:tx,y:ty},-0.06);normProb();
+    addMark('miss',{x:tx,y:ty});
+    playAudio('miss');
+  }
+  G.stats.attacks=(G.stats.attacks||0)+1;
 }
 
 function execSonar(cx,cy){
@@ -4514,7 +4815,16 @@ function updatePrepUI(){
 
 function prepQuickDeploy(){
   if(!prepState.grid) return;
-  prepState.placements = quickDeploy(prepState.grid, prepState.rng || mkRng(prepState.seed || 1234));
+  if(prepState.mode === '1v1_duel'){
+    const sec = prepState.sector || 'P1';
+    const deployed = MP.quickDeploy1v1(prepState.grid, sec, prepState.rng || mkRng(prepState.seed || Date.now()));
+    prepState.placements = {};
+    deployed.forEach(s => {
+      prepState.placements[s.id] = { x: s.x, y: s.y, o: s.orient || 'H' };
+    });
+  } else {
+    prepState.placements = quickDeploy(prepState.grid, prepState.rng || mkRng(prepState.seed || 1234));
+  }
   updatePrepUI();
   renderPrepBoard();
 }
@@ -4532,6 +4842,8 @@ function startPreparation(seed){
     s = parseInt(inp ? inp.value : '') || Math.floor(Math.random() * 99998) + 1;
   }
   const { grid, rng } = buildMap(s);
+  prepState.mode = 'campaign';
+  prepState.sector = 'P1';
   prepState.seed = s;
   prepState.grid = grid;
   prepState.rng = rng;
@@ -4539,6 +4851,18 @@ function startPreparation(seed){
   prepState.orient = 'H';
   prepState.doctrine = 'silent_start';
   prepState.hov = null;
+
+  const westLbl = document.getElementById('prep-west-lbl');
+  const eastLbl = document.getElementById('prep-east-lbl');
+  const instr = document.getElementById('prep-instructions');
+  const encLbl = document.getElementById('prep-encounter-lbl');
+  const docCard = document.getElementById('prep-card-doctrine');
+
+  if (westLbl) { westLbl.textContent = '◀ ALLIED SECTOR (A–J)'; westLbl.style.color = '#ffcf40'; }
+  if (eastLbl) { eastLbl.textContent = 'HOSTILE WATERS (K–T) ▶'; eastLbl.style.color = '#8eb8dc'; }
+  if (instr) instr.textContent = 'Click Allied sector (A–J) to place selected ship · Press R to rotate';
+  if (encLbl) encLbl.textContent = 'HUNT — STANDARD RISK';
+  if (docCard) docCard.style.display = 'block';
 
   selectDoctrine('silent_start');
   const orientBtn = document.getElementById('prep-orient-btn');
@@ -4562,6 +4886,51 @@ function confirmDeployment(){
     playAudio('warn');
     return;
   }
+
+  if (prepState.mode === '1v1_duel') {
+    if (duelWs && duelWs.readyState === WebSocket.OPEN && prepState.duelRoomCode !== 'LOCAL') {
+      const shipDefs = { flagship: 3, patrol: 2, minelayer: 2 };
+      const fleetList = ['flagship', 'patrol', 'minelayer'].map(sid => {
+        const p = prepState.placements[sid];
+        return {
+          id: sid,
+          name: sid.toUpperCase(),
+          x: p.x,
+          y: p.y,
+          orient: p.o || 'H',
+          len: shipDefs[sid] || 2,
+          hp: sid === 'flagship' ? 20 : (sid === 'patrol' ? 8 : 10),
+          maxHp: sid === 'flagship' ? 20 : (sid === 'patrol' ? 8 : 10),
+          alive: true,
+          cells: MP.getShipCells(sid, p.x, p.y, p.o || 'H')
+        };
+      });
+
+      duelWs.send(JSON.stringify({
+        type: 'SUBMIT_DEPLOYMENT',
+        roomCode: prepState.duelRoomCode,
+        fleet: fleetList
+      }));
+
+      const errMsg = document.getElementById('prep-err-msg');
+      if (errMsg) {
+        errMsg.textContent = 'Fleet deployed! Waiting for opponent deployment...';
+        errMsg.style.color = '#38ef7d';
+      }
+      const confirmBtn = document.getElementById('btn-confirm-deploy');
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'FLEET DEPLOYED · WAITING FOR OPPONENT...';
+        confirmBtn.style.opacity = '0.6';
+        confirmBtn.style.cursor = 'wait';
+      }
+      return;
+    } else {
+      start1v1LocalBattleFromPrep();
+      return;
+    }
+  }
+
   showScreen('scr-battle');
   initGame(prepState.seed, prepState.placements, prepState.doctrine);
   document.getElementById('tut-overlay').classList.add('open');
@@ -4592,9 +4961,22 @@ function renderPrepBoard(){
     }
   }
 
-  // 2. Allied Sector divider
+  // 2. Allied Sector divider & Forbidden Zone
   const midX = LBL + 10 * CELL;
   ctx.save();
+  if (prepState.mode === '1v1_duel') {
+    const isP1 = (prepState.sector === 'P1');
+    const forbidX = isP1 ? midX : LBL;
+    const forbidLbl = isP1 ? 'HOSTILE SECTOR (P2 EAST)' : 'HOSTILE SECTOR (P1 WEST)';
+    ctx.fillStyle = 'rgba(255, 23, 68, 0.12)';
+    ctx.fillRect(forbidX, LBL, 10 * CELL, GH * CELL);
+
+    ctx.fillStyle = 'rgba(255, 80, 80, 0.65)';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('⊘ ' + forbidLbl + ' · NO DEPLOYMENT', forbidX + 5 * CELL, LBL + 8);
+  }
+
   ctx.strokeStyle = 'rgba(255,207,64,0.75)';
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 4]);
@@ -4603,7 +4985,6 @@ function renderPrepBoard(){
   ctx.lineTo(midX, CH);
   ctx.stroke();
   ctx.setLineDash([]);
-
   ctx.restore();
 
   // 3. Placed ships

@@ -157,7 +157,7 @@ async function run1v1MatchmakingTests() {
 
     const matchReadyRes = await privJoinPromise;
     assert(matchReadyRes.type === 'MATCH_READY');
-    assert(matchReadyRes.grid && matchReadyRes.grid.length === 10, 'Match ready returns 20x10 grid');
+    assert(matchReadyRes.grid && matchReadyRes.grid.length === 20, 'Match ready returns 20x20 grid');
     report('Private 1v1 room code creation and guest joining starts match with MATCH_READY', true);
 
     c7.close();

@@ -36,10 +36,10 @@ try {
 // ----------------------------------------------------
 console.log('--- Test Suite 1: 20x10 Grid & Sector Boundaries ---');
 
-it('DUEL_CONSTANTS defines 20x10 grid with A-T columns', () => {
+it('DUEL_CONSTANTS defines 20x20 grid with A-T columns', () => {
   assert(MP.DUEL_CONSTANTS !== undefined, 'DUEL_CONSTANTS must be defined');
   assert.strictEqual(MP.DUEL_CONSTANTS.GW, 20, 'GW must be 20');
-  assert.strictEqual(MP.DUEL_CONSTANTS.GH, 10, 'GH must be 10');
+  assert.strictEqual(MP.DUEL_CONSTANTS.GH, 20, 'GH must be 20');
   assert.strictEqual(MP.DUEL_CONSTANTS.COLS.length, 20, 'COLS must have 20 characters');
   assert.strictEqual(MP.DUEL_CONSTANTS.COLS[0], 'A');
   assert.strictEqual(MP.DUEL_CONSTANTS.COLS[19], 'T');
@@ -48,24 +48,24 @@ it('DUEL_CONSTANTS defines 20x10 grid with A-T columns', () => {
 it('SECTORS_1V1 defines P1 (West A-J) and P2 (East K-T)', () => {
   assert(MP.SECTORS_1V1 !== undefined, 'SECTORS_1V1 must be defined');
   assert.deepStrictEqual(MP.SECTORS_1V1.P1, {
-    x0: 0, x1: 9, y0: 0, y1: 9,
-    colStart: 'A', colEnd: 'J', rowStart: 1, rowEnd: 10
+    x0: 0, x1: 9, y0: 0, y1: 19,
+    colStart: 'A', colEnd: 'J', rowStart: 1, rowEnd: 20
   });
   assert.deepStrictEqual(MP.SECTORS_1V1.P2, {
-    x0: 10, x1: 19, y0: 0, y1: 9,
-    colStart: 'K', colEnd: 'T', rowStart: 1, rowEnd: 10
+    x0: 10, x1: 19, y0: 0, y1: 19,
+    colStart: 'K', colEnd: 'T', rowStart: 1, rowEnd: 20
   });
 });
 
-it('gen1v1Grid produces exactly 10 rows and 20 columns with valid landmass', () => {
+it('gen1v1Grid produces exactly 20 rows and 20 columns with valid landmass', () => {
   assert(typeof MP.gen1v1Grid === 'function', 'gen1v1Grid must be a function');
   const rng = MP.mkRng(7741);
   const grid = MP.gen1v1Grid(rng);
-  assert.strictEqual(grid.length, 10, 'Must have 10 rows');
+  assert.strictEqual(grid.length, 20, 'Must have 20 rows');
   assert.strictEqual(grid[0].length, 20, 'Must have 20 columns');
 
   let islands = 0;
-  for (let y = 0; y < 10; y++) {
+  for (let y = 0; y < 20; y++) {
     for (let x = 0; x < 20; x++) {
       if (grid[y][x] === MP.T.ISLAND) islands++;
     }
@@ -125,7 +125,7 @@ it('create1v1Match initializes 2 players with correct sectors and resources', ()
   const match = MP.create1v1Match(42, { id: 'p1', name: 'Alpha' }, { id: 'p2', name: 'Bravo' });
   assert.strictEqual(match.mode, '1v1_duel');
   assert.strictEqual(match.GW, 20);
-  assert.strictEqual(match.GH, 10);
+  assert.strictEqual(match.GH, 20);
   assert.strictEqual(match.players.length, 2);
   assert.strictEqual(match.players[0].id, 'p1');
   assert.strictEqual(match.players[0].sector, 'P1');
@@ -215,6 +215,51 @@ it('Sinking opponent flagship declares victory for survivor', () => {
   assert.strictEqual(p2Flag.alive, false);
   assert.strictEqual(match.phase, 'FINISHED');
   assert.strictEqual(match.winnerId, 'p1');
+});
+
+// ----------------------------------------------------
+// TEST SUITE 6: Default Basic Strike (Deck Gun) & Infinite Sonar Ammo
+// ----------------------------------------------------
+console.log('\n--- Test Suite 6: Default Basic Strike & Infinite Sonar Ammo ---');
+
+it('deck_gun card exists with 1 CP, 0 ammo cost, and deals 3 single-cell dmg', () => {
+  assert(MP.MP_CARDS !== undefined && MP.MP_CARDS.deck_gun !== undefined, 'deck_gun card definition required in MP_CARDS');
+  const dg = MP.MP_CARDS.deck_gun;
+  assert.strictEqual(dg.cp, 1);
+  assert.strictEqual(dg.tgt, 'SINGLE');
+  assert.strictEqual(dg.dmg, 3);
+  assert.deepStrictEqual(dg.ammo || {}, {});
+});
+
+it('narrow_sonar requires 0 ammo charges (infinite sonar charges)', () => {
+  assert(MP.MP_CARDS !== undefined && MP.MP_CARDS.narrow_sonar !== undefined, 'narrow_sonar definition required');
+  const ns = MP.MP_CARDS.narrow_sonar;
+  assert.deepStrictEqual(ns.ammo || {}, {});
+});
+
+it('exec1v1Action executes deck_gun striking single cell for 3 damage without splash', () => {
+  const match = MP.create1v1Match(100, { id: 'p1' }, { id: 'p2' });
+  const rng = MP.mkRng(100);
+  match.players[0].fleet = MP.quickDeploy1v1(match.grid, 'p1', rng);
+  match.players[1].fleet = MP.quickDeploy1v1(match.grid, 'p2', rng);
+  match.phase = 'BATTLE_ACTIVE';
+  match.activePlayerId = 'p1';
+  match.players[0].hand = ['deck_gun'];
+  match.players[0].cp = 2;
+
+  const targetShip = match.players[1].fleet[0];
+  const targetPt = targetShip.cells[0];
+  const initialHp = targetShip.hp;
+
+  const res = MP.exec1v1Action(match, 'p1', {
+    type: 'PLAY_CARD',
+    cardId: 'deck_gun',
+    target: { x: targetPt.x, y: targetPt.y }
+  });
+
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(targetShip.hp, initialHp - 3, 'Deck Gun must deal exactly 3 damage');
+  assert.strictEqual(match.players[0].cp, 1, 'Deck Gun must consume 1 CP');
 });
 
 console.log('\n====================================================');

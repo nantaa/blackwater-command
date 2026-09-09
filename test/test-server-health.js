@@ -81,6 +81,32 @@ async function runAll() {
       ws.close();
     });
 
+    // 4. GET /api/rooms returns clean structured room directory
+    await runTest('GET /api/rooms responds with structured rooms data', async () => {
+      const res = await httpGet(`http://localhost:${TEST_PORT}/api/rooms`);
+      assert(res.statusCode === 200, `Expected 200, got ${res.statusCode}`);
+      const data = JSON.parse(res.body);
+      assert(data.status === 'ok');
+      assert(Array.isArray(data.rooms), 'rooms must be an array');
+    });
+
+    // 5. WebSocket ping/pong keepalive verification
+    await runTest('WebSocket connection supports ping/pong keepalive frames', async () => {
+      const ws = new WebSocket(`ws://localhost:${TEST_PORT}`);
+      await new Promise((resolve, reject) => {
+        ws.on('open', resolve);
+        ws.on('error', reject);
+      });
+
+      let pongReceived = false;
+      ws.on('pong', () => { pongReceived = true; });
+      ws.ping();
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      assert(pongReceived === true, 'Server must acknowledge ping frame with pong');
+      ws.close();
+    });
+
   } finally {
     if (server) {
       server.close();
