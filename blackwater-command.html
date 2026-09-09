@@ -520,7 +520,8 @@ canvas{touch-action:none}
 <!-- ── DEFEAT ─────────────────────────────────────────── -->
 <div id="scr-def" class="screen">
   <div style="text-align:center">
-    <div class="res-ttl d">◆ FLAGSHIP LOST ◆</div>
+    <div class="res-ttl d" id="def-title">◆ FLAGSHIP LOST ◆</div>
+    <div id="def-sub" style="font-size:.76rem;color:#ff8a80;margin-bottom:.8rem;letter-spacing:.08em;font-weight:bold"></div>
     <div class="res-stats" id="def-stats"></div>
     <div class="res-btns">
       <button class="btn g" onclick="startGame()">▶ NEW RUN</button>
@@ -948,7 +949,7 @@ const RouteEngine = (function () {
     } else if (archetype === 'Convoy Raid') {
       objective = 'Intercept Hostile Transport Before Escape';
       transportTarget = { id: 'transport', hp: 12, maxHp: 12, alive: true };
-      turnsToEscape = 5;
+      turnsToEscape = 10;
       specialRule = 'Escape Clock';
     } else if (archetype === 'Mirage Carrier') {
       objective = 'Neutralize Mirage Carrier Flagship';
@@ -4029,7 +4030,7 @@ function resolveAtk(pos,src){
     G.ev.hits.push({pos:{...pos},turn:G.turn});
     probSpike(pos,0.12);
     playAudio('hit');
-    if(hit.id==='flagship'&&hit.hp<=0){hit.alive=false;setTimeout(()=>endBattle('def'),800);}
+    if(hit.id==='flagship'&&hit.hp<=0){hit.alive=false;setTimeout(()=>endBattle('def', 'flagship_sunk'),800);}
     else if(hit.hp<=0){hit.alive=false;pushLog('emy',`${hit.lbl} destroyed!`);}
   }else{
     pushLog('mis',`Enemy attacked ${cid(x,y)}: miss.`);
@@ -4567,13 +4568,14 @@ function checkVic(){
   if(G.encounter && G.encounter.archetype === 'Convoy Raid'){
     const tr = G.eFleet.find(s => s.id === 'transport');
     if(tr && !tr.alive){ endBattle('vic'); return; }
-    if(G.turn > (G.encounter.turnsToEscape || 5)){ endBattle('def'); return; }
+    if(G.turn > (G.encounter.turnsToEscape || 10)){ endBattle('def', 'convoy_escaped'); return; }
   }
   if(!G.eFleet[0].alive){endBattle('vic');return;}
-  if(!G.pFleet[0].alive)endBattle('def');
+  if(!G.pFleet[0].alive)endBattle('def', 'flagship_sunk');
 }
-function endBattle(res){
+function endBattle(res, reason){
   if(G.result)return;G.result=res;stopTimer();
+  G.defeatReason = reason || (res === 'def' ? 'flagship_sunk' : null);
   const ammoL=Object.values(G.ammo).reduce((a,b)=>a+b,0);
   if(res==='vic'){
     if(campaignRun){
@@ -4602,10 +4604,24 @@ function endBattle(res){
     }
     setTimeout(()=>showScreen('scr-vic'),900);
   }else{
-    document.getElementById('def-stats').innerHTML=
-      `Survived: ${G.turn} turns &nbsp;·&nbsp; Enemy flagship HP: ${G.eFleet[0].hp}/${G.eFleet[0].max}<br>
-       Torpedoes: ${G.stats.torps} &nbsp;·&nbsp; Sonar: ${G.stats.sonar}<br>
-       Seed: <span style="color:#d4a843">${G.seed}</span>`;
+    const defTitle = document.getElementById('def-title');
+    const defSub = document.getElementById('def-sub');
+    if(defTitle){
+      if(reason === 'convoy_escaped'){
+        defTitle.innerHTML = '◆ CONVOY ESCAPED ◆';
+        if(defSub) defSub.innerHTML = 'MISSION FAILED: Hostile transport slipped away before interception.';
+      } else {
+        defTitle.innerHTML = '◆ FLAGSHIP LOST ◆';
+        if(defSub) defSub.innerHTML = 'HULL INTEGRITY COMPROMISED: Command flagship has been sunk.';
+      }
+    }
+    const defStats = document.getElementById('def-stats');
+    if(defStats){
+      defStats.innerHTML=
+        `Survived: ${G.turn} turns &nbsp;·&nbsp; Enemy flagship HP: ${G.eFleet[0].hp}/${G.eFleet[0].max}<br>
+         Torpedoes: ${G.stats.torps} &nbsp;·&nbsp; Sonar: ${G.stats.sonar}<br>
+         Seed: <span style="color:#d4a843">${G.seed}</span>`;
+    }
     setTimeout(()=>showScreen('scr-def'),900);
   }
 }
@@ -4752,6 +4768,22 @@ function drawHeatmap(ctx){
     ctx.fillStyle=`rgba(${r},${g2},${b},${.25+t*.5})`;
     ctx.fillRect(px,py,CELL,CELL);
   }
+
+  // Tactical overlay indicator banner
+  ctx.save();
+  ctx.fillStyle = 'rgba(10, 20, 35, 0.88)';
+  ctx.strokeStyle = '#e04040';
+  ctx.lineWidth = 1;
+  const bannerW = 270, bannerH = 18;
+  const bx = 10, by = 6;
+  ctx.fillRect(bx, by, bannerW, bannerH);
+  ctx.strokeRect(bx, by, bannerW, bannerH);
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🧠 AI TARGETING SUSPICION (RED = HIGH)', bx + 8, by + 9);
+  ctx.restore();
 }
 
 function drawMarkers(ctx){
@@ -4995,16 +5027,21 @@ function renderTmr(){
   }else{
     tmrHTML=`<div class="tmr-blk" style="opacity:.35"><div class="tmr-val">—</div><div class="tmr-lbl">TIMER OFF</div></div>`;
   }
+  let objText = (G && G.encounter && G.encounter.objective) ? G.encounter.objective : 'HUNT: Destroy enemy flagship';
+  if(G && G.encounter && G.encounter.archetype === 'Convoy Raid' && G.encounter.turnsToEscape){
+    const remTurns = Math.max(0, G.encounter.turnsToEscape - G.turn + 1);
+    objText = `CONVOY RAID: Intercept Transport (${remTurns} turns left)`;
+  }
   el.innerHTML=`
     <div class="turn-blk"><div class="turn-lbl">TURN</div><div class="turn-n">${G.turn}</div></div>
     <div class="cp-wrap"><div class="cp-dots">${dots}</div><div class="cp-lbl">${G.cp}/${G.maxCp} CP</div></div>
     ${tmrHTML}
     <div class="obj-blk"><div style="font-size:.56rem;color:#2a4060">${G.phase}</div>
-      <div class="obj-txt" id="obj-txt">${(G && G.encounter && G.encounter.objective) ? G.encounter.objective : 'HUNT: Destroy enemy flagship'}</div></div>
+      <div class="obj-txt" id="obj-txt">${objText}</div></div>
     <div class="ctrl-blk">
       <div class="ctrl-row">
         <button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>
-        <button id="heat-btn" class="${G.showHeat?'on':''}" onclick="toggleHeat()">${G.showHeat?'🔥 HEAT ON':'🔥 HEAT OFF'}</button>
+        <button id="heat-btn" class="${G.showHeat?'on':''}" onclick="toggleHeat()">${G.showHeat?'🧠 AI VISION ON':'🧠 AI VISION OFF'}</button>
       </div>
       <button id="end-turn-btn" onclick="endPlayerTurn()">${G.phase===PH.PLAN?'END TURN ▶':'…WAIT'}</button>
     </div>`;
