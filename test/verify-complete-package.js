@@ -84,6 +84,26 @@ runTest('Contains Tactical Multiplayer Screen with 4-Quadrant controls', () => {
   assert(html.includes('openMultiplayerArena'), 'Must have openMultiplayerArena function');
 });
 
+// 8. Inlined 1v1 Engine (20x10 Dual-Sector)
+runTest('Contains inlined 1v1 Engine with 20x10 Dual-Sector logic', () => {
+  assert(html.includes('create1v1Match'), 'Must define create1v1Match');
+  assert(html.includes('DUEL_CONSTANTS'), 'Must define DUEL_CONSTANTS');
+  assert(html.includes('SECTORS_1V1'), 'Must define SECTORS_1V1');
+  assert(html.includes('getFiltered1v1State'), 'Must define getFiltered1v1State');
+  assert(html.includes('exec1v1Action'), 'Must define exec1v1Action');
+});
+
+// 9. Tactical 1v1 Online Lobby Screen & Controls
+runTest('Contains Tactical 1v1 Online entrypoint, lobby screen and controls', () => {
+  assert(html.includes('id="btn-1v1-online"'), 'Must have btn-1v1-online on title screen');
+  assert(html.includes('open1v1Lobby'), 'Must have open1v1Lobby function');
+  assert(html.includes('id="scr-1v1-lobby"'), 'Must have scr-1v1-lobby screen');
+  assert(html.includes('id="btn-quick-1v1"'), 'Must have btn-quick-1v1');
+  assert(html.includes('id="btn-create-1v1"'), 'Must have btn-create-1v1');
+  assert(html.includes('id="txt-join-1v1"'), 'Must have txt-join-1v1');
+  assert(html.includes('id="btn-join-1v1"'), 'Must have btn-join-1v1');
+});
+
 console.log('\n====================================================');
 console.log(` Tests Completed: ${total} | Passed: ${passed} | Failed: ${total - passed}`);
 console.log('====================================================');
