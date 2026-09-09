@@ -1030,6 +1030,16 @@
         return { success: true, action: 'MOVE' };
       }
 
+      // Sector Boundary Restrictions for Attack Cards
+      if (cardId === 'deck_gun' || cardId === 'torpedo_line' || cardId === 'ballistic_missile') {
+        if (player.sector === 'P1' && tx < 10) {
+          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols A–J).' };
+        }
+        if (player.sector === 'P2' && tx >= 10) {
+          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols K–T).' };
+        }
+      }
+
       // Attack / Sonar Resolution
       player.cp = Math.max(0, player.cp - 1);
       player.hand.splice(cIdx, 1);
