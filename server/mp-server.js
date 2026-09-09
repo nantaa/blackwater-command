@@ -376,6 +376,7 @@ function handleClientMessage(ws, data) {
       break;
     }
 
+    case 'TAKE_ACTION':
     case 'PLAY_ACTION': {
       const room = rooms.get(ws.roomCode);
       if (!room || !room.match) return;
@@ -388,7 +389,8 @@ function handleClientMessage(ws, data) {
           return;
         }
         const player = room.match.players.find(p => p.id === client.playerId);
-        let cardId = msg.action === 'salvo' ? 'torpedo_line' : (msg.action || 'deck_gun');
+        let cardId = msg.cardId || msg.action;
+        if (cardId === 'salvo' || cardId === 'ballistic_missile') cardId = 'torpedo_line';
         if (player && player.hand && !player.hand.includes(cardId)) {
           if (player.hand.includes('deck_gun')) {
             cardId = 'deck_gun';
@@ -407,10 +409,6 @@ function handleClientMessage(ws, data) {
           ws.send(JSON.stringify({ type: 'ERROR', message: actResult.error }));
           return;
         }
-        // Advance turn between p1 and p2
-        const nextPid = client.playerId === 'p1' ? 'p2' : 'p1';
-        room.match.activePlayerId = nextPid;
-        room.timerRemaining = 30;
 
         ws.send(JSON.stringify({
           type: 'ACTION_RESOLVED',
@@ -451,6 +449,26 @@ function handleClientMessage(ws, data) {
         result: attackRes
       }));
 
+      room.broadcastState();
+      break;
+    }
+
+    case 'END_TURN': {
+      const room = rooms.get(ws.roomCode);
+      if (!room || !room.match) return;
+      const client = room.getClientByWs(ws);
+      if (!client) return;
+      if (room.match.activePlayerId !== client.playerId) return;
+
+      if (room.mode === '1v1_duel') {
+        MP.end1v1Turn(room.match, client.playerId);
+        room.timerRemaining = 30;
+        room.broadcastState();
+        break;
+      }
+
+      MP.endMPTurn(room.match, client.playerId);
+      room.timerRemaining = 30;
       room.broadcastState();
       break;
     }
