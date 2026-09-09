@@ -2061,14 +2061,19 @@ const MP = (function () {
             { x: tx, y: ty - 1, dmg: 3 }
           ];
 
+      let hitCount = 0;
+      const hitDetails = [];
       for (const pt of blastPoints) {
         if (pt.x >= 0 && pt.x < 20 && pt.y >= 0 && pt.y < (match.GH || 20)) {
           match.revealed[playerId].add(`${pt.x},${pt.y}`);
           if (opp && opp.fleet) {
             for (const s of opp.fleet) {
-              if (s.alive && s.cells.some(c => c.x === pt.x && c.y === pt.y)) {
+              if (s.alive && s.cells && s.cells.some(c => c.x === pt.x && c.y === pt.y)) {
                 s.hp = Math.max(0, s.hp - pt.dmg);
-                match.hits[playerId].push({ x: pt.x, y: pt.y, dmg: pt.dmg, shipId: s.id });
+                const hitEntry = { x: pt.x, y: pt.y, dmg: pt.dmg, shipId: s.id };
+                match.hits[playerId].push(hitEntry);
+                hitDetails.push(hitEntry);
+                hitCount++;
                 if (s.hp <= 0) {
                   s.alive = false;
                   if (s.id === 'flagship') {
@@ -2081,9 +2086,25 @@ const MP = (function () {
           }
         }
       }
-      return { success: true, action: 'ATTACK' };
+      return { success: true, action: 'ATTACK', hitCount, hits: hitDetails };
     }
     return { success: false, error: 'Unknown action type' };
+  }
+
+  function end1v1Turn(match, playerId) {
+    if (!match) return;
+    if (match.activePlayerId !== playerId) return;
+
+    const nextId = playerId === 'p1' ? 'p2' : 'p1';
+    match.activePlayerId = nextId;
+    const nextPlayer = match.players.find(p => p.id === nextId);
+    if (nextPlayer) {
+      nextPlayer.cp = Math.min(nextPlayer.maxCp || 6, nextPlayer.cp + 2);
+      while (nextPlayer.hand.length < 5 && nextPlayer.deck && nextPlayer.deck.length > 0) {
+        nextPlayer.hand.push(nextPlayer.deck.pop());
+      }
+    }
+    match.round = (match.round || 1) + (nextId === 'p1' ? 1 : 0);
   }
 
   return {
@@ -2128,7 +2149,8 @@ const MP = (function () {
     quickDeploy1v1,
     create1v1Match,
     getFiltered1v1State,
-    exec1v1Action
+    exec1v1Action,
+    end1v1Turn
   };
 
 })();
@@ -2986,14 +3008,33 @@ function init1v1OnlineBattle(state) {
   G.eFleet = []; // Clear single-player phantom AI ships
 
   if (state.myFleet && Array.isArray(state.myFleet)) {
-    G.pFleet = state.myFleet.map(s => ({
-      id: s.id,
-      lbl: s.id === 'flagship' ? 'DESTROYER' : (s.id === 'patrol' ? 'PAT.BOAT' : 'MINELAYER'),
-      hp: s.hp,
-      max: s.maxHp,
-      pos: { x: s.x, y: s.y },
-      alive: s.alive
-    }));
+    G.pFleet = state.myFleet.map(s => {
+      const orient = s.orient || (s.cells && s.cells.length > 1 && s.cells[1].y !== s.cells[0].y ? 'V' : 'H');
+      const len = s.len || (s.cells ? s.cells.length : (s.id === 'flagship' ? 3 : 2));
+      const cells = (s.cells && s.cells.length > 0) ? s.cells.map(c => ({ ...c })) : MP.getShipCells(s.id, s.x, s.y, orient);
+      return {
+        id: s.id,
+        lbl: s.id === 'flagship' ? 'DESTROYER' : (s.id === 'patrol' ? 'PAT.BOAT' : 'MINELAYER'),
+        hp: s.hp,
+        max: s.maxHp,
+        pos: { x: s.x, y: s.y },
+        orient,
+        len,
+        cells,
+        alive: s.alive
+      };
+    });
+  }
+
+  if (state.activePlayerId) {
+    const isMyTurn = (state.activePlayerId === duelPlayerId || (duelPlayerId === 'p1' && state.activePlayerId === 'p1') || (duelPlayerId === 'p2' && state.activePlayerId === 'p2'));
+    G.phase = isMyTurn ? PH.PLAN : PH.AI;
+  }
+  if (typeof state.myCp === 'number') {
+    G.cp = state.myCp;
+  }
+  if (state.opponent) {
+    G.opponent = state.opponent;
   }
 
   if (state.revealed && Array.isArray(state.revealed)) {
@@ -3016,14 +3057,30 @@ function init1v1OnlineBattle(state) {
 function sync1v1OnlineBattle(state) {
   if (!G) return;
   if (state.myFleet && Array.isArray(state.myFleet)) {
-    G.pFleet = state.myFleet.map(s => ({
-      id: s.id,
-      lbl: s.id === 'flagship' ? 'DESTROYER' : (s.id === 'patrol' ? 'PAT.BOAT' : 'MINELAYER'),
-      hp: s.hp,
-      max: s.maxHp,
-      pos: { x: s.x, y: s.y },
-      alive: s.alive
-    }));
+    G.pFleet = state.myFleet.map(s => {
+      const orient = s.orient || (s.cells && s.cells.length > 1 && s.cells[1].y !== s.cells[0].y ? 'V' : 'H');
+      const len = s.len || (s.cells ? s.cells.length : (s.id === 'flagship' ? 3 : 2));
+      const cells = (s.cells && s.cells.length > 0) ? s.cells.map(c => ({ ...c })) : MP.getShipCells(s.id, s.x, s.y, orient);
+      return {
+        id: s.id,
+        lbl: s.id === 'flagship' ? 'DESTROYER' : (s.id === 'patrol' ? 'PAT.BOAT' : 'MINELAYER'),
+        hp: s.hp,
+        max: s.maxHp,
+        pos: { x: s.x, y: s.y },
+        orient,
+        len,
+        cells,
+        alive: s.alive
+      };
+    });
+  }
+  if (state.activePlayerId) {
+    const isMyTurn = (state.activePlayerId === duelPlayerId || (duelPlayerId === 'p1' && state.activePlayerId === 'p1') || (duelPlayerId === 'p2' && state.activePlayerId === 'p2'));
+    const prevPhase = G.phase;
+    G.phase = isMyTurn ? PH.PLAN : PH.AI;
+    if (prevPhase !== G.phase) {
+      pushLog('sys', `Active turn: ${isMyTurn ? 'YOUR TURN' : 'OPPONENT TURN'}.`);
+    }
   }
   if (state.revealed && Array.isArray(state.revealed)) {
     G.revealed = new Set(state.revealed);
@@ -3037,6 +3094,7 @@ function sync1v1OnlineBattle(state) {
   }
   G.cp = state.myCp !== undefined ? state.myCp : G.cp;
   if (state.myAmmo) G.ammo = { ...state.myAmmo };
+  if (state.opponent) G.opponent = state.opponent;
   renderAll();
 }
 
@@ -3869,6 +3927,17 @@ function endPlayerTurn(){
   if(!G||G.phase!==PH.PLAN)return;
   cancelTgt();
   stopTimer();
+
+  if(G.isOnline1v1 && typeof duelWs !== 'undefined' && duelWs && duelWs.readyState === WebSocket.OPEN){
+    duelWs.send(JSON.stringify({
+      type: 'END_TURN',
+      roomCode: prepState.duelRoomCode || duelRoomCode
+    }));
+    G.phase = PH.AI;
+    pushLog('sys', 'Turn ended. Waiting for opponent...');
+    renderAll();
+    return;
+  }
 
   if(G.timerOn&&G.timerElapsed>=G.timerSec){
     G.consecTO++;
