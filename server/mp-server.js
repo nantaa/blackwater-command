@@ -477,7 +477,30 @@ function handleClientDisconnect(ws) {
 
 function startServer(port = 8090) {
   return new Promise((resolve, reject) => {
-    const server = http.createServer();
+    const server = http.createServer((req, res) => {
+      const url = req.url ? req.url.split('?')[0] : '/';
+      if (url === '/health' || url === '/healthz' || url === '/ping') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        const payload = {
+          status: 'ok',
+          service: 'blackwater-mp',
+          activeRooms: rooms.size,
+          queueLength: quickMatch1v1Queue.length,
+          uptimeSec: Math.floor(process.uptime()),
+          timestamp: new Date().toISOString()
+        };
+        res.end(JSON.stringify(payload));
+      } else {
+        res.writeHead(200, {
+          'Content-Type': 'text/plain',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end('Blackwater Command Authoritative WebSocket Server — Active\n');
+      }
+    });
     const wss = new WebSocket.Server({ server });
 
     wss.on('connection', (ws) => {
