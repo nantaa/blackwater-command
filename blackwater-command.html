@@ -1036,7 +1036,6 @@ const RouteEngine = (function () {
    §0B  INLINED MULTIPLAYER ENGINE (24×24 Quadrant Hotseat)
 ════════════════════════════════════════════════════════════════ */
 const MP = (function () {
-
   'use strict';
 
   // ----------------------------------------------------
@@ -1653,11 +1652,12 @@ const MP = (function () {
     let hitShip = null;
     let targetPlayer = null;
 
+    match.eventsLog = match.eventsLog || [];
     for (const p of match.players) {
       if (!p.alive || p.eliminated || !p.fleet) continue;
-      for (const sId of ['flagship', 'patrol', 'minelayer']) {
-        const ship = p.fleet[sId];
-        if (ship && ship.alive && ship.cells.some(c => c.x === tx && c.y === ty)) {
+      const fleetList = Array.isArray(p.fleet) ? p.fleet : Object.values(p.fleet || {});
+      for (const ship of fleetList) {
+        if (ship && ship.alive && ship.cells && ship.cells.some(c => c.x === tx && c.y === ty)) {
           hitShip = ship;
           targetPlayer = p;
           break;
@@ -1687,6 +1687,7 @@ const MP = (function () {
         hit: true,
         targetPlayerId: targetPlayer.id,
         shipId: hitShip.id,
+        targetShip: hitShip.id,
         sunk,
         damage
       };
@@ -1771,7 +1772,9 @@ const MP = (function () {
     }
   }
 
-  // 1v1 Tactical Duel Definitions
+  // ----------------------------------------------------
+  // §14. 1v1 TACTICAL DUEL ENGINE (20×10 Dual-Sector)
+  // ----------------------------------------------------
   const DUEL_CONSTANTS = {
     GW: 20,
     GH: 20,
@@ -1788,6 +1791,7 @@ const MP = (function () {
 
   function gen1v1Grid(rng) {
     const grid = Array.from({ length: 20 }, () => Array(20).fill(T.OPEN));
+    // Place 3-4 island clusters in West sector (P1)
     const p1Clusters = rng.int(3, 4);
     for (let c = 0; c < p1Clusters; c++) {
       let cx = rng.int(1, 8), cy = rng.int(2, 17);
@@ -1797,6 +1801,7 @@ const MP = (function () {
       const nx = cx + d[0], ny = cy + d[1];
       if (nx >= 0 && nx <= 9 && ny >= 0 && ny <= 19) grid[ny][nx] = T.ISLAND;
     }
+    // Place 3-4 island clusters in East sector (P2)
     const p2Clusters = rng.int(3, 4);
     for (let c = 0; c < p2Clusters; c++) {
       let cx = rng.int(11, 18), cy = rng.int(2, 17);
@@ -1806,6 +1811,7 @@ const MP = (function () {
       const nx = cx + d[0], ny = cy + d[1];
       if (nx >= 10 && nx <= 19 && ny >= 0 && ny <= 19) grid[ny][nx] = T.ISLAND;
     }
+    // Strategic Radar station per sector
     const r1x = rng.int(2, 7), r1y = rng.int(2, 17);
     if (grid[r1y][r1x] !== T.ISLAND) grid[r1y][r1x] = T.RADAR;
     const r2x = rng.int(12, 17), r2y = rng.int(2, 17);
@@ -1821,18 +1827,26 @@ const MP = (function () {
 
   function validate1v1Placement(grid, pidOrSector, ships) {
     const sec = get1v1Sector(pidOrSector);
-    if (!Array.isArray(ships)) return { valid: false, error: 'Ships must be an array.' };
+    if (!Array.isArray(ships)) {
+      return { valid: false, error: 'Ships must be an array.' };
+    }
     const occupied = new Set();
     for (const sh of ships) {
-      if (!MP_SHIPS[sh.id]) return { valid: false, error: `Unknown ship: ${sh.id}` };
+      if (!MP_SHIPS[sh.id]) {
+        return { valid: false, error: `Unknown ship type: ${sh.id}` };
+      }
       const cells = getShipCells(sh.id, sh.x, sh.y, sh.orient || 'H');
       for (const pt of cells) {
         if (pt.x < sec.x0 || pt.x > sec.x1 || pt.y < sec.y0 || pt.y > sec.y1) {
-          return { valid: false, error: `Ship segment outside assigned sector (${sec.colStart}–${sec.colEnd}).` };
+          return { valid: false, error: `Ship segment (${pt.x},${pt.y}) placed outside assigned sector bounds (${sec.colStart}–${sec.colEnd}).` };
         }
-        if (grid[pt.y][pt.x] === T.ISLAND) return { valid: false, error: 'Cannot place ship on island.' };
+        if (grid[pt.y][pt.x] === T.ISLAND) {
+          return { valid: false, error: `Ship segment at (${pt.x},${pt.y}) overlaps an island.` };
+        }
         const key = `${pt.x},${pt.y}`;
-        if (occupied.has(key)) return { valid: false, error: 'Overlapping ship segments.' };
+        if (occupied.has(key)) {
+          return { valid: false, error: `Overlapping ship placement at (${pt.x},${pt.y}).` };
+        }
         occupied.add(key);
       }
     }
@@ -1864,8 +1878,11 @@ const MP = (function () {
           cells: getShipCells(sid, x, y, orient)
         });
       }
-      if (validate1v1Placement(grid, pidOrSector, candidate).valid) return candidate;
+      if (validate1v1Placement(grid, pidOrSector, candidate).valid) {
+        return candidate;
+      }
     }
+    // Fallback placement
     return [
       { id: 'flagship', name: MP_SHIPS.flagship.name, x: sec.x0 + 1, y: sec.y0 + 1, orient: 'H', len: 3, hp: 20, maxHp: 20, alive: true, cells: getShipCells('flagship', sec.x0 + 1, sec.y0 + 1, 'H') },
       { id: 'patrol', name: MP_SHIPS.patrol.name, x: sec.x0 + 1, y: sec.y0 + 4, orient: 'H', len: 2, hp: 8, maxHp: 8, alive: true, cells: getShipCells('patrol', sec.x0 + 1, sec.y0 + 4, 'H') },
@@ -1886,11 +1903,13 @@ const MP = (function () {
 
     return {
       seed,
+      rng,
       mode: '1v1_duel',
       GW: 20,
       GH: 20,
       grid,
       phase: 'DEPLOY',
+      eventsLog: [],
       round: 1,
       turnOrder: [p1Id, p2Id],
       activePlayerId: p1Id,
@@ -1929,6 +1948,7 @@ const MP = (function () {
       ],
       revealed: { [p1Id]: new Set(), [p2Id]: new Set() },
       hits: { [p1Id]: [], [p2Id]: [] },
+      decoys: { [p1Id]: [], [p2Id]: [] },
       events: []
     };
   }
@@ -1949,10 +1969,22 @@ const MP = (function () {
       winnerId: match.winnerId,
       myPlayerId: forPlayerId,
       mySector: player.sector,
-      myFleet: player.fleet ? player.fleet.map(s => ({ ...s, cells: s.cells.map(c => ({ ...c })) })) : null,
+      myFleet: player.fleet ? player.fleet.map(s => ({
+        id: s.id,
+        name: s.name,
+        x: s.x,
+        y: s.y,
+        orient: s.orient,
+        len: s.len,
+        hp: s.hp,
+        maxHp: s.maxHp,
+        alive: s.alive,
+        cells: s.cells.map(c => ({ ...c }))
+      })) : null,
       myHand: [...player.hand],
       myCp: player.cp,
       myAmmo: { ...player.ammo },
+      myDecoys: (match.decoys && match.decoys[forPlayerId]) ? match.decoys[forPlayerId].map(d => ({ ...d })) : [],
       revealed: Array.from(match.revealed[forPlayerId] || []),
       hits: (match.hits && match.hits[forPlayerId]) ? match.hits[forPlayerId].map(h => ({ ...h })) : [],
       opponent: {
@@ -1981,12 +2013,18 @@ const MP = (function () {
       if (!val.valid) return { success: false, error: val.error };
       player.fleet = action.fleet;
       player.deployed = true;
-      if (match.players.every(p => p.deployed)) match.phase = 'BATTLE_ACTIVE';
+      if (match.players.every(p => p.deployed)) {
+        match.phase = 'BATTLE_ACTIVE';
+      }
       return { success: true };
     }
 
-    if (match.phase !== 'BATTLE_ACTIVE') return { success: false, error: 'Match not in active battle phase' };
-    if (match.activePlayerId !== playerId) return { success: false, error: 'Not your turn' };
+    if (match.phase !== 'BATTLE_ACTIVE') {
+      return { success: false, error: 'Match is not in active battle phase' };
+    }
+    if (match.activePlayerId !== playerId) {
+      return { success: false, error: 'Not your turn' };
+    }
 
     if (action.type === 'PLAY_CARD') {
       const cardId = action.cardId;
@@ -1996,76 +2034,199 @@ const MP = (function () {
       const tx = action.target ? action.target.x : null;
       const ty = action.target ? action.target.y : null;
 
+      // Validate Movement Cards against Midline Border Rule & Full Segment Bounds
       if (cardId === 'flank_speed' || cardId === 'go_silent') {
-        if (player.sector === 'P1' && tx >= 10) return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols K–T).' };
-        if (player.sector === 'P2' && tx < 10) return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols A–J).' };
-        if (tx < 0 || tx >= 20 || ty < 0 || ty >= (match.GH || 20) || match.grid[ty][tx] === T.ISLAND) return { success: false, error: 'Movement blocked! Impassable terrain.' };
-
+        const fleetList = Array.isArray(player.fleet) ? player.fleet : Object.values(player.fleet || {});
         const ship = cardId === 'go_silent'
-          ? player.fleet.find(s => s.id === 'flagship')
-          : player.fleet.find(s => s.id !== 'flagship' && s.alive);
-        if (ship) {
-          ship.x = tx;
-          ship.y = ty;
-          ship.cells = getShipCells(ship.id, tx, ty, ship.orient || 'H');
+          ? fleetList.find(s => s.id === 'flagship')
+          : fleetList.find(s => s.id !== 'flagship' && s.alive);
+        if (!ship) return { success: false, error: 'No eligible ship to move' };
+
+        const sec = get1v1Sector(player.sector);
+        const newCells = getShipCells(ship.id, tx, ty, ship.orient || 'H');
+        for (const pt of newCells) {
+          if (pt.x < sec.x0 || pt.x > sec.x1 || pt.y < sec.y0 || pt.y > sec.y1) {
+            return { success: false, error: `Movement restricted! Ship segment (${pt.x},${pt.y}) leaves friendly sector (${sec.colStart}–${sec.colEnd}).` };
+          }
+          if (match.grid[pt.y][pt.x] === T.ISLAND) {
+            return { success: false, error: 'Movement blocked! Impassable terrain.' };
+          }
+          const collides = fleetList.some(other => other !== ship && other.alive && other.cells && other.cells.some(c => c.x === pt.x && c.y === pt.y));
+          if (collides) {
+            return { success: false, error: 'Movement blocked! Overlaps another ship.' };
+          }
         }
+        ship.prevPos = { x: ship.x, y: ship.y };
+        ship.x = tx;
+        ship.y = ty;
+        ship.cells = newCells;
         player.cp = Math.max(0, player.cp - 1);
         player.hand.splice(cIdx, 1);
         player.discard.push(cardId);
         return { success: true, action: 'MOVE' };
       }
 
-      // Sector Boundary Restrictions for Attack Cards
-      if (cardId === 'deck_gun' || cardId === 'torpedo_line' || cardId === 'ballistic_missile') {
+      // Decoy Buoy Handling (Friendly waters only)
+      if (cardId === 'decoy_buoy') {
+        const sec = get1v1Sector(player.sector);
+        if (tx < sec.x0 || tx > sec.x1 || ty < sec.y0 || ty > sec.y1) {
+          return { success: false, error: `Decoy Buoy must be placed in friendly waters (${sec.colStart}–${sec.colEnd}).` };
+        }
+        if (match.grid[ty][tx] === T.ISLAND) {
+          return { success: false, error: 'Cannot place Decoy Buoy on an island.' };
+        }
+        if (!match.decoys) match.decoys = { [player.id]: [], [opp.id]: [] };
+        if (!match.decoys[player.id]) match.decoys[player.id] = [];
+        if (match.decoys[player.id].length >= 2) match.decoys[player.id].shift();
+        match.decoys[player.id].push({ x: tx, y: ty, turn: match.round });
+        player.cp = Math.max(0, player.cp - 1);
+        player.hand.splice(cIdx, 1);
+        player.discard.push(cardId);
+        return { success: true, action: 'DECOY', x: tx, y: ty };
+      }
+
+      // Sector Boundary Restrictions for Attack and Recon Cards
+      const hostileCards = ['deck_gun', 'torpedo_line', 'ballistic_missile', 'depth_pattern', 'narrow_sonar', 'sector_sweep', 'patrol_plane', 'thermal_wake'];
+      if (hostileCards.includes(cardId)) {
         if (player.sector === 'P1' && tx < 10) {
-          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols A–J).' };
+          return { success: false, error: 'Illegal target! Attacks and reconnaissance cannot target friendly sector (Cols A–J).' };
         }
         if (player.sector === 'P2' && tx >= 10) {
-          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols K–T).' };
+          return { success: false, error: 'Illegal target! Attacks and reconnaissance cannot target friendly sector (Cols K–T).' };
         }
       }
 
-      player.cp = Math.max(0, player.cp - 1);
-      player.hand.splice(cIdx, 1);
-      player.discard.push(cardId);
+      // RECONNAISSANCE CARDS
+      if (cardId === 'narrow_sonar' || cardId === 'sector_sweep' || cardId === 'patrol_plane' || cardId === 'thermal_wake') {
+        const cost = (cardId === 'sector_sweep' || cardId === 'patrol_plane') ? 2 : 1;
+        player.cp = Math.max(0, player.cp - cost);
+        player.hand.splice(cIdx, 1);
+        player.discard.push(cardId);
 
-      if (cardId === 'narrow_sonar') {
-        const orient = (action.target && action.target.orient) || 'H';
+        if (cardId === 'thermal_wake') {
+          if (tx >= 0 && tx < 20 && ty >= 0 && ty < 20) {
+            match.revealed[playerId].add(`${tx},${ty}`);
+          }
+          let trailFound = false;
+          if (opp && opp.fleet) {
+            trailFound = opp.fleet.some(s => s.alive && s.prevPos && s.prevPos.x === tx && s.prevPos.y === ty);
+          }
+          return { success: true, action: 'RECON', cardId: 'thermal_wake', trailFound, cells: [{ x: tx, y: ty }] };
+        }
+
         const scanCells = [];
-        for (let i = -2; i <= 2; i++) {
-          const cx = orient === 'H' ? tx + i : tx;
-          const cy = orient === 'V' ? ty + i : ty;
-          if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
-            scanCells.push({ x: cx, y: cy });
-            match.revealed[playerId].add(`${cx},${cy}`);
+        if (cardId === 'narrow_sonar') {
+          const orient = (action.target && action.target.orient) || 'H';
+          for (let i = -2; i <= 2; i++) {
+            const cx = orient === 'H' ? tx + i : tx;
+            const cy = orient === 'V' ? ty + i : ty;
+            if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+              scanCells.push({ x: cx, y: cy });
+              match.revealed[playerId].add(`${cx},${cy}`);
+            }
+          }
+        } else if (cardId === 'sector_sweep') {
+          for (let dy = 0; dy < 4; dy++) {
+            for (let dx = 0; dx < 4; dx++) {
+              const cx = tx + dx, cy = ty + dy;
+              if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+                scanCells.push({ x: cx, y: cy });
+                match.revealed[playerId].add(`${cx},${cy}`);
+              }
+            }
+          }
+        } else if (cardId === 'patrol_plane') {
+          for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+              const cx = tx + dx, cy = ty + dy;
+              if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+                scanCells.push({ x: cx, y: cy });
+                match.revealed[playerId].add(`${cx},${cy}`);
+              }
+            }
           }
         }
+
         let contactCount = 0;
+        const confirmedShips = [];
         if (opp && opp.fleet) {
           for (const s of opp.fleet) {
-            if (s.alive && s.cells.some(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y))) {
+            if (s.alive && s.cells && s.cells.some(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y))) {
+              contactCount++;
+              if (cardId === 'patrol_plane') {
+                confirmedShips.push({ id: s.id, name: s.name, cells: s.cells.filter(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y)) });
+              }
+            }
+          }
+        }
+
+        // Count Decoy Buoys as positive contacts
+        if (match.decoys && match.decoys[opp.id]) {
+          for (const d of match.decoys[opp.id]) {
+            if (scanCells.some(sc => sc.x === d.x && sc.y === d.y)) {
               contactCount++;
             }
           }
         }
-        return { success: true, action: 'SONAR', contacts: contactCount, cells: scanCells };
+
+        return {
+          success: true,
+          action: 'RECON',
+          cardId,
+          contacts: contactCount,
+          confirmedShips: cardId === 'patrol_plane' ? confirmedShips : undefined,
+          cells: scanCells
+        };
       }
 
-      const blastPoints = cardId === 'deck_gun'
-        ? [{ x: tx, y: ty, dmg: 3 }]
-        : [
-            { x: tx, y: ty, dmg: 5 },
-            { x: tx + 1, y: ty, dmg: 3 },
-            { x: tx - 1, y: ty, dmg: 3 },
-            { x: tx, y: ty + 1, dmg: 3 },
-            { x: tx, y: ty - 1, dmg: 3 }
-          ];
+      // ATTACK CARDS RESOLUTION
+      const atkCost = cardId === 'depth_pattern' ? 2 : 1;
+      player.cp = Math.max(0, player.cp - atkCost);
+      player.hand.splice(cIdx, 1);
+      player.discard.push(cardId);
+
+      let blastPoints = [];
+      if (cardId === 'deck_gun') {
+        blastPoints = [{ x: tx, y: ty, dmg: 3 }];
+      } else if (cardId === 'depth_pattern') {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            blastPoints.push({ x: tx + dx, y: ty + dy, dmg: 3 });
+          }
+        }
+      } else {
+        // Ballistic missile / torpedo line (PLUS)
+        blastPoints = [
+          { x: tx, y: ty, dmg: 5 },
+          { x: tx + 1, y: ty, dmg: 3 },
+          { x: tx - 1, y: ty, dmg: 3 },
+          { x: tx, y: ty + 1, dmg: 3 },
+          { x: tx, y: ty - 1, dmg: 3 }
+        ];
+      }
+
+      // Check if any blast point strikes an active Decoy Buoy
+      let decoyHit = false;
+      let decoyCell = null;
+      if (match.decoys && match.decoys[opp.id]) {
+        const remainingDecoys = [];
+        for (const d of match.decoys[opp.id]) {
+          if (blastPoints.some(pt => pt.x === d.x && pt.y === d.y)) {
+            decoyHit = true;
+            decoyCell = { x: d.x, y: d.y };
+          } else {
+            remainingDecoys.push(d);
+          }
+        }
+        match.decoys[opp.id] = remainingDecoys;
+      }
 
       let hitCount = 0;
       const hitDetails = [];
       for (const pt of blastPoints) {
         if (pt.x >= 0 && pt.x < 20 && pt.y >= 0 && pt.y < (match.GH || 20)) {
           match.revealed[playerId].add(`${pt.x},${pt.y}`);
+          // Check opponent ships
           if (opp && opp.fleet) {
             for (const s of opp.fleet) {
               if (s.alive && s.cells && s.cells.some(c => c.x === pt.x && c.y === pt.y)) {
@@ -2086,8 +2247,10 @@ const MP = (function () {
           }
         }
       }
-      return { success: true, action: 'ATTACK', hitCount, hits: hitDetails };
+
+      return { success: true, action: 'ATTACK', hitCount, hits: hitDetails, decoyHit, decoyCell };
     }
+
     return { success: false, error: 'Unknown action type' };
   }
 
@@ -2154,6 +2317,7 @@ const MP = (function () {
   };
 
 })();
+
 const MPEngine = MP;
 
 /* ════════════════════════════════════════════════════════════════
@@ -2897,7 +3061,31 @@ function handleDuelServerMsg(msg) {
         if (msg.result.action === 'SONAR') {
           pushLog('ply', `Narrow Sonar report: ${msg.result.contacts} contact(s) detected.`);
           playAudio('sonar');
+        } else if (msg.result.action === 'RECON') {
+          if (msg.result.cardId === 'thermal_wake') {
+            const was = msg.result.trailFound;
+            pushLog('ply', `Thermal Wake at ${cid(msg.result.cells[0].x, msg.result.cells[0].y)}: ${was ? 'POSITIVE — ship moved here last turn!' : 'negative — no movement.'}`);
+            playAudio('sonar');
+          } else if (msg.result.cardId === 'patrol_plane') {
+            const confirmed = msg.result.confirmedShips || [];
+            pushLog('ply', `Patrol Plane: ${msg.result.contacts} contact(s) detected in 5×5 zone! ${confirmed.length > 0 ? 'Confirmed: ' + confirmed.map(s => s.name).join(', ') : ''}`);
+            playAudio('sonar');
+          } else {
+            pushLog('ply', `Reconnaissance Sweep: ${msg.result.contacts} contact(s) detected in sector.`);
+            playAudio('sonar');
+          }
+          if (msg.result.cells && Array.isArray(msg.result.cells)) {
+            msg.result.cells.forEach(c => G.revealed.add(`${c.x},${c.y}`));
+            addFx('sweep', msg.result.cells, 1200);
+          }
+        } else if (msg.result.action === 'DECOY') {
+          pushLog('ply', `Decoy Buoy deployed at ${cid(msg.result.x, msg.result.y)}. Emitting false acoustic signatures.`);
+          addFx('decoy', [{ x: msg.result.x, y: msg.result.y }], 1200);
         } else if (msg.result.action === 'ATTACK') {
+          if (msg.result.decoyHit) {
+            pushLog('hit', `🎯 BAIT TAKEN! Enemy decoy buoy at ${cid(msg.result.decoyCell.x, msg.result.decoyCell.y)} destroyed!`);
+            addFx('explosion', [msg.result.decoyCell], 900);
+          }
           if (msg.result.hitCount > 0) {
             pushLog('hit', `🎯 DIRECT HIT! Battery strike confirmed on enemy warship!`);
             playAudio('hit');
@@ -2907,15 +3095,15 @@ function handleDuelServerMsg(msg) {
                 addFx('explosion', [{ x: h.x, y: h.y }], 800);
               });
             }
-          } else {
+          } else if (!msg.result.decoyHit) {
             pushLog('ply', `Battery strike: water splash, no contact.`);
             playAudio('miss');
             if (typeof msg.result.tx === 'number' && typeof msg.result.ty === 'number') {
               addMark('miss', { x: msg.result.tx, y: msg.result.ty });
             }
           }
-          renderAll();
         }
+        renderAll();
       }
       break;
     }
@@ -2940,6 +3128,10 @@ function handle1v1StateUpdate(msg) {
   const state = msg.state;
   if (!state) return;
 
+  if (typeof msg.timer === 'number' && G) {
+    G.onlineTimer = msg.timer;
+  }
+
   if (state.phase === 'BATTLE_ACTIVE') {
     const curScreen = document.querySelector('.screen.active');
     if (!curScreen || curScreen.id !== 'scr-battle') {
@@ -2949,10 +3141,63 @@ function handle1v1StateUpdate(msg) {
       sync1v1OnlineBattle(state);
     }
   } else if (state.phase === 'FINISHED') {
-    const isWinner = (state.winnerId === duelPlayerId);
-    pushLog('sys', isWinner ? 'VICTORY! Enemy flagship destroyed!' : 'DEFEAT! Flagship lost in action.');
-    renderAll();
+    const isWinner = (state.winnerId === (G && G.myPlayerId ? G.myPlayerId : duelPlayerId));
+    endBattle1v1(isWinner, state);
   }
+}
+
+function endBattle1v1(isWinner, state) {
+  if (!G) return;
+  G.phase = 'FINISHED';
+  G.result = isWinner ? 'vic' : 'def';
+  stopTimer();
+  pushLog('sys', isWinner ? '🏆 VICTORY! Enemy flagship destroyed!' : '💥 DEFEAT! Flagship lost in action.');
+
+  if (isWinner) {
+    const vStats = document.getElementById('vic-stats');
+    if (vStats) {
+      vStats.innerHTML =
+        `1v1 DUEL VICTORY<br>
+         Rounds: ${state.round || G.turn} &nbsp;·&nbsp; Enemy Flagship Neutralized<br>
+         Room: <span style="color:#00f5ff">${prepState.duelRoomCode || duelRoomCode || 'ONLINE'}</span>`;
+    }
+    const vicBtns = document.getElementById('vic-btns');
+    if (vicBtns) {
+      vicBtns.innerHTML = `
+        <button class="btn g" onclick="leave1v1Duel()">↩ RETURN TO BRIDGE</button>
+        <button class="btn" onclick="open1v1Lobby()">⚔ NEW 1v1 DUEL</button>
+      `;
+    }
+    setTimeout(() => showScreen('scr-vic'), 900);
+  } else {
+    const defTitle = document.getElementById('def-title');
+    const defSub = document.getElementById('def-sub');
+    if (defTitle) defTitle.innerHTML = '◆ 1v1 DUEL DEFEAT ◆';
+    if (defSub) defSub.innerHTML = 'Enemy strike neutralized your flagship in combat.';
+    const defStats = document.getElementById('def-stats');
+    if (defStats) {
+      defStats.innerHTML =
+        `Rounds: ${state.round || G.turn} &nbsp;·&nbsp; Flagship Lost in Action<br>
+         Room: <span style="color:#ff6b6b">${prepState.duelRoomCode || duelRoomCode || 'ONLINE'}</span>`;
+    }
+    const defBtns = document.querySelector('#scr-def .btn-row');
+    if (defBtns) {
+      defBtns.innerHTML = `
+        <button class="btn r" onclick="leave1v1Duel()">↩ RETURN TO BRIDGE</button>
+        <button class="btn" onclick="open1v1Lobby()">⚔ REMATCH</button>
+      `;
+    }
+    setTimeout(() => showScreen('scr-def'), 900);
+  }
+  renderAll();
+}
+
+function leave1v1Duel() {
+  if (typeof duelWs !== 'undefined' && duelWs) {
+    try { duelWs.close(); } catch (e) {}
+  }
+  if (G) G.isOnline1v1 = false;
+  showTitle();
 }
 
 function start1v1Preparation(data) {
@@ -3084,6 +3329,10 @@ function sync1v1OnlineBattle(state) {
   if (!G) return;
   const myId = state.myPlayerId || G.myPlayerId || prepState.duelPlayerId || duelPlayerId || 'p1';
   G.myPlayerId = myId;
+  if (state.phase === 'FINISHED') {
+    endBattle1v1(state.winnerId === myId, state);
+    return;
+  }
 
   if (state.myFleet && Array.isArray(state.myFleet)) {
     // Detect incoming damage
@@ -4423,15 +4672,16 @@ function execCard(id,tx,ty){
       orient: G.tOrient || 'H'
     }));
 
-    if(c.fam === 'Direct fire' || c.fam === 'Sensor' || c.tgt === 'LINE_ATK' || c.tgt === 'PLUS' || c.tgt === 'SINGLE' || c.tgt === 'LINE5'){
-      G.revealed.add(`${tx},${ty}`);
-      pushLog('ply', `${c.name} dispatched to coordinates ${cid(tx,ty)}...`);
+    pushLog('ply', `${c.name} dispatched to coordinates ${cid(tx,ty)}...`);
+    if(c.fam === 'Direct fire' || c.tgt === 'LINE_ATK' || c.tgt === 'PLUS'){
       playAudio('gun');
-      cancelTgt();
-      updateIntel();
-      renderAll();
-      return;
+    } else {
+      playAudio('sonar');
     }
+    cancelTgt();
+    updateIntel();
+    renderAll();
+    return;
   }
   switch(c.tgt){
     case'LINE5':     execSonar(tx,ty);break;
@@ -4896,28 +5146,48 @@ function drawFog(ctx){
 }
 
 function drawHeatmap(ctx){
-  if(!G.showHeat)return;
-  // find max prob for scaling
-  let maxP=0;
+  if(!G.showHeat || (G && G.isOnline1v1)) return;
+  const pv = validCells(G.grid, 0, 10);
+  const pBase = 1 / Math.max(1, pv.length);
+  let maxP = 0;
   for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)if(G.prob[y][x]>maxP)maxP=G.prob[y][x];
-  if(maxP===0)return;
+  
+  if(maxP <= pBase * 1.05) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(10, 20, 35, 0.88)';
+    ctx.strokeStyle = '#2e5888';
+    ctx.lineWidth = 1;
+    const bannerW = 280, bannerH = 18;
+    const bx = 10, by = 6;
+    ctx.fillRect(bx, by, bannerW, bannerH);
+    ctx.strokeRect(bx, by, bannerW, bannerH);
+    ctx.fillStyle = '#8eb8dc';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('📡 SENSOR HEATMAP: BASELINE (ZERO SUSPICION)', bx + 8, by + 9);
+    ctx.restore();
+    return;
+  }
+
   for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
     const p=G.prob[y][x];
-    if(p<0.001)continue;
-    const t=p/maxP;
+    if(p <= pBase * 1.05) continue;
+    const t = Math.min(1, Math.max(0, (p - pBase) / (maxP - pBase)));
+    if(t < 0.05) continue;
     const{px,py}=cp2px(x,y);
-    // purple (low) → red (high)
-    const r=Math.round(80+t*175),g2=Math.round(20*(1-t)),b=Math.round(120*(1-t));
-    ctx.fillStyle=`rgba(${r},${g2},${b},${.25+t*.5})`;
+    const r = Math.round(40 + t * 215);
+    const g2 = Math.round(180 * (1 - t * 0.7));
+    const b = Math.round(255 * (1 - t));
+    ctx.fillStyle = `rgba(${r},${g2},${b},${0.18 + t * 0.52})`;
     ctx.fillRect(px,py,CELL,CELL);
   }
 
-  // Tactical overlay indicator banner
   ctx.save();
   ctx.fillStyle = 'rgba(10, 20, 35, 0.88)';
   ctx.strokeStyle = '#e04040';
   ctx.lineWidth = 1;
-  const bannerW = 270, bannerH = 18;
+  const bannerW = 280, bannerH = 18;
   const bx = 10, by = 6;
   ctx.fillRect(bx, by, bannerW, bannerH);
   ctx.strokeRect(bx, by, bannerW, bannerH);
@@ -4925,7 +5195,7 @@ function drawHeatmap(ctx){
   ctx.font = 'bold 9px monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('🧠 AI TARGETING SUSPICION (RED = HIGH)', bx + 8, by + 9);
+  ctx.fillText('📡 SENSOR HEATMAP: SUSPICION ELEVATED', bx + 8, by + 9);
   ctx.restore();
 }
 
@@ -5186,7 +5456,11 @@ function renderTmr(){
   const dots=Array.from({length:G.maxCp},(_,i)=>
     `<div class="cp-dot${i<G.cp?'':' e'}"></div>`).join('');
   let tmrHTML='';
-  if(G.timerOn){
+  if(G.isOnline1v1){
+    const rem = typeof G.onlineTimer === 'number' ? G.onlineTimer : 30;
+    const cls = rem <= 5 ? ' urg' : rem <= 10 ? ' warn' : '';
+    tmrHTML = `<div class="tmr-blk"><div class="tmr-val${cls}">${rem}s</div><div class="tmr-lbl">TURN TIMER</div></div>`;
+  } else if(G.timerOn){
     const rem=Math.max(0,G.timerSec-G.timerElapsed);
     const cls=rem<=5?' urg':rem<=15?' warn':'';
     tmrHTML=`<div class="tmr-blk"><div class="tmr-val${cls}">${rem}s</div><div class="tmr-lbl">TIMER</div></div>`;
@@ -5196,16 +5470,25 @@ function renderTmr(){
   let phaseTag = `<div style="font-size:.56rem;color:#2a4060">${G.phase}</div>`;
   let objText = (G && G.encounter && G.encounter.objective) ? G.encounter.objective : 'HUNT: Destroy enemy flagship';
   if(G && G.isOnline1v1){
-    const isMyTurn = (G.phase === PH.PLAN);
-    phaseTag = isMyTurn
-      ? `<div style="font-size:.68rem;color:#38ef7d;font-weight:700;letter-spacing:1px;">🟢 YOUR TURN · COMMAND FLEET</div>`
-      : `<div style="font-size:.68rem;color:#ffb84d;font-weight:700;letter-spacing:1px;">⏳ OPPONENT TURN · DEFENDING</div>`;
-    objText = `1v1 TACTICAL DUEL · Room: [${prepState.duelRoomCode || duelRoomCode || 'ONLINE'}]`;
+    if (G.phase === 'FINISHED') {
+      phaseTag = `<div style="font-size:.68rem;color:#00f5ff;font-weight:700;letter-spacing:1px;">🏁 MATCH FINISHED</div>`;
+      objText = `DEBRIEF: Return to tactical command bridge`;
+    } else {
+      const isMyTurn = (G.phase === PH.PLAN);
+      phaseTag = isMyTurn
+        ? `<div style="font-size:.68rem;color:#38ef7d;font-weight:700;letter-spacing:1px;">🟢 YOUR TURN · COMMAND FLEET</div>`
+        : `<div style="font-size:.68rem;color:#ffb84d;font-weight:700;letter-spacing:1px;">⏳ OPPONENT TURN · DEFENDING</div>`;
+      objText = `1v1 TACTICAL DUEL · Room: [${prepState.duelRoomCode || duelRoomCode || 'ONLINE'}]`;
+    }
   } else if(G && G.encounter && G.encounter.archetype === 'Convoy Raid' && G.encounter.turnsToEscape){
     const remTurns = Math.max(0, G.encounter.turnsToEscape - G.turn + 1);
     objText = `CONVOY RAID: Intercept Transport (${remTurns} turns left)`;
   }
-  const endBtnText = G.phase === PH.PLAN ? 'END TURN ▶' : (G.isOnline1v1 ? '⏳ WAITING...' : '…WAIT');
+  const isFinished = G.phase === 'FINISHED';
+  const endBtnText = isFinished ? 'RETURN TO BRIDGE ↩' : G.phase === PH.PLAN ? 'END TURN ▶' : (G.isOnline1v1 ? '⏳ WAITING...' : '…WAIT');
+  const btnAction = isFinished ? 'leave1v1Duel()' : 'endPlayerTurn()';
+  const btnDisabled = (!isFinished && G.phase !== PH.PLAN) ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '';
+  
   el.innerHTML=`
     <div class="turn-blk"><div class="turn-lbl">TURN</div><div class="turn-n">${G.turn}</div></div>
     <div class="cp-wrap"><div class="cp-dots">${dots}</div><div class="cp-lbl">${G.cp}/${G.maxCp} CP</div></div>
@@ -5214,10 +5497,10 @@ function renderTmr(){
       <div class="obj-txt" id="obj-txt">${objText}</div></div>
     <div class="ctrl-blk">
       <div class="ctrl-row">
-        <button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>
-        <button id="heat-btn" class="${G.showHeat?'on':''}" onclick="toggleHeat()">${G.showHeat?'🧠 AI VISION ON':'🧠 AI VISION OFF'}</button>
+        ${G.isOnline1v1 ? '' : `<button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>`}
+        ${G.isOnline1v1 ? '' : `<button id="heat-btn" class="${G.showHeat?'on':''}" onclick="toggleHeat()">${G.showHeat?'📡 HEATMAP ON':'📡 HEATMAP OFF'}</button>`}
       </div>
-      <button id="end-turn-btn" onclick="endPlayerTurn()">${endBtnText}</button>
+      <button id="end-turn-btn" onclick="${btnAction}" ${btnDisabled}>${endBtnText}</button>
     </div>`;
 }
 

@@ -923,6 +923,7 @@
       ],
       revealed: { [p1Id]: new Set(), [p2Id]: new Set() },
       hits: { [p1Id]: [], [p2Id]: [] },
+      decoys: { [p1Id]: [], [p2Id]: [] },
       events: []
     };
   }
@@ -958,6 +959,7 @@
       myHand: [...player.hand],
       myCp: player.cp,
       myAmmo: { ...player.ammo },
+      myDecoys: (match.decoys && match.decoys[forPlayerId]) ? match.decoys[forPlayerId].map(d => ({ ...d })) : [],
       revealed: Array.from(match.revealed[forPlayerId] || []),
       hits: (match.hits && match.hits[forPlayerId]) ? match.hits[forPlayerId].map(h => ({ ...h })) : [],
       opponent: {
@@ -1029,6 +1031,7 @@
             return { success: false, error: 'Movement blocked! Overlaps another ship.' };
           }
         }
+        ship.prevPos = { x: ship.x, y: ship.y };
         ship.x = tx;
         ship.y = ty;
         ship.cells = newCells;
@@ -1038,52 +1041,160 @@
         return { success: true, action: 'MOVE' };
       }
 
-      // Sector Boundary Restrictions for Attack Cards
-      if (cardId === 'deck_gun' || cardId === 'torpedo_line' || cardId === 'ballistic_missile') {
+      // Decoy Buoy Handling (Friendly waters only)
+      if (cardId === 'decoy_buoy') {
+        const sec = get1v1Sector(player.sector);
+        if (tx < sec.x0 || tx > sec.x1 || ty < sec.y0 || ty > sec.y1) {
+          return { success: false, error: `Decoy Buoy must be placed in friendly waters (${sec.colStart}–${sec.colEnd}).` };
+        }
+        if (match.grid[ty][tx] === T.ISLAND) {
+          return { success: false, error: 'Cannot place Decoy Buoy on an island.' };
+        }
+        if (!match.decoys) match.decoys = { [player.id]: [], [opp.id]: [] };
+        if (!match.decoys[player.id]) match.decoys[player.id] = [];
+        if (match.decoys[player.id].length >= 2) match.decoys[player.id].shift();
+        match.decoys[player.id].push({ x: tx, y: ty, turn: match.round });
+        player.cp = Math.max(0, player.cp - 1);
+        player.hand.splice(cIdx, 1);
+        player.discard.push(cardId);
+        return { success: true, action: 'DECOY', x: tx, y: ty };
+      }
+
+      // Sector Boundary Restrictions for Attack and Recon Cards
+      const hostileCards = ['deck_gun', 'torpedo_line', 'ballistic_missile', 'depth_pattern', 'narrow_sonar', 'sector_sweep', 'patrol_plane', 'thermal_wake'];
+      if (hostileCards.includes(cardId)) {
         if (player.sector === 'P1' && tx < 10) {
-          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols A–J).' };
+          return { success: false, error: 'Illegal target! Attacks and reconnaissance cannot target friendly sector (Cols A–J).' };
         }
         if (player.sector === 'P2' && tx >= 10) {
-          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols K–T).' };
+          return { success: false, error: 'Illegal target! Attacks and reconnaissance cannot target friendly sector (Cols K–T).' };
         }
       }
 
-      // Attack / Sonar Resolution
-      player.cp = Math.max(0, player.cp - 1);
-      player.hand.splice(cIdx, 1);
-      player.discard.push(cardId);
+      // RECONNAISSANCE CARDS
+      if (cardId === 'narrow_sonar' || cardId === 'sector_sweep' || cardId === 'patrol_plane' || cardId === 'thermal_wake') {
+        const cost = (cardId === 'sector_sweep' || cardId === 'patrol_plane') ? 2 : 1;
+        player.cp = Math.max(0, player.cp - cost);
+        player.hand.splice(cIdx, 1);
+        player.discard.push(cardId);
 
-      if (cardId === 'narrow_sonar') {
-        const orient = (action.target && action.target.orient) || 'H';
+        if (cardId === 'thermal_wake') {
+          if (tx >= 0 && tx < 20 && ty >= 0 && ty < 20) {
+            match.revealed[playerId].add(`${tx},${ty}`);
+          }
+          let trailFound = false;
+          if (opp && opp.fleet) {
+            trailFound = opp.fleet.some(s => s.alive && s.prevPos && s.prevPos.x === tx && s.prevPos.y === ty);
+          }
+          return { success: true, action: 'RECON', cardId: 'thermal_wake', trailFound, cells: [{ x: tx, y: ty }] };
+        }
+
         const scanCells = [];
-        for (let i = -2; i <= 2; i++) {
-          const cx = orient === 'H' ? tx + i : tx;
-          const cy = orient === 'V' ? ty + i : ty;
-          if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
-            scanCells.push({ x: cx, y: cy });
-            match.revealed[playerId].add(`${cx},${cy}`);
+        if (cardId === 'narrow_sonar') {
+          const orient = (action.target && action.target.orient) || 'H';
+          for (let i = -2; i <= 2; i++) {
+            const cx = orient === 'H' ? tx + i : tx;
+            const cy = orient === 'V' ? ty + i : ty;
+            if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+              scanCells.push({ x: cx, y: cy });
+              match.revealed[playerId].add(`${cx},${cy}`);
+            }
+          }
+        } else if (cardId === 'sector_sweep') {
+          for (let dy = 0; dy < 4; dy++) {
+            for (let dx = 0; dx < 4; dx++) {
+              const cx = tx + dx, cy = ty + dy;
+              if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+                scanCells.push({ x: cx, y: cy });
+                match.revealed[playerId].add(`${cx},${cy}`);
+              }
+            }
+          }
+        } else if (cardId === 'patrol_plane') {
+          for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+              const cx = tx + dx, cy = ty + dy;
+              if (cx >= 0 && cx < 20 && cy >= 0 && cy < (match.GH || 20)) {
+                scanCells.push({ x: cx, y: cy });
+                match.revealed[playerId].add(`${cx},${cy}`);
+              }
+            }
           }
         }
+
         let contactCount = 0;
+        const confirmedShips = [];
         if (opp && opp.fleet) {
           for (const s of opp.fleet) {
-            if (s.alive && s.cells.some(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y))) {
+            if (s.alive && s.cells && s.cells.some(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y))) {
+              contactCount++;
+              if (cardId === 'patrol_plane') {
+                confirmedShips.push({ id: s.id, name: s.name, cells: s.cells.filter(c => scanCells.some(sc => sc.x === c.x && sc.y === c.y)) });
+              }
+            }
+          }
+        }
+
+        // Count Decoy Buoys as positive contacts
+        if (match.decoys && match.decoys[opp.id]) {
+          for (const d of match.decoys[opp.id]) {
+            if (scanCells.some(sc => sc.x === d.x && sc.y === d.y)) {
               contactCount++;
             }
           }
         }
-        return { success: true, action: 'SONAR', contacts: contactCount, cells: scanCells };
+
+        return {
+          success: true,
+          action: 'RECON',
+          cardId,
+          contacts: contactCount,
+          confirmedShips: cardId === 'patrol_plane' ? confirmedShips : undefined,
+          cells: scanCells
+        };
       }
 
-      const blastPoints = cardId === 'deck_gun'
-        ? [{ x: tx, y: ty, dmg: 3 }]
-        : [
-            { x: tx, y: ty, dmg: 5 },
-            { x: tx + 1, y: ty, dmg: 3 },
-            { x: tx - 1, y: ty, dmg: 3 },
-            { x: tx, y: ty + 1, dmg: 3 },
-            { x: tx, y: ty - 1, dmg: 3 }
-          ];
+      // ATTACK CARDS RESOLUTION
+      const atkCost = cardId === 'depth_pattern' ? 2 : 1;
+      player.cp = Math.max(0, player.cp - atkCost);
+      player.hand.splice(cIdx, 1);
+      player.discard.push(cardId);
+
+      let blastPoints = [];
+      if (cardId === 'deck_gun') {
+        blastPoints = [{ x: tx, y: ty, dmg: 3 }];
+      } else if (cardId === 'depth_pattern') {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            blastPoints.push({ x: tx + dx, y: ty + dy, dmg: 3 });
+          }
+        }
+      } else {
+        // Ballistic missile / torpedo line (PLUS)
+        blastPoints = [
+          { x: tx, y: ty, dmg: 5 },
+          { x: tx + 1, y: ty, dmg: 3 },
+          { x: tx - 1, y: ty, dmg: 3 },
+          { x: tx, y: ty + 1, dmg: 3 },
+          { x: tx, y: ty - 1, dmg: 3 }
+        ];
+      }
+
+      // Check if any blast point strikes an active Decoy Buoy
+      let decoyHit = false;
+      let decoyCell = null;
+      if (match.decoys && match.decoys[opp.id]) {
+        const remainingDecoys = [];
+        for (const d of match.decoys[opp.id]) {
+          if (blastPoints.some(pt => pt.x === d.x && pt.y === d.y)) {
+            decoyHit = true;
+            decoyCell = { x: d.x, y: d.y };
+          } else {
+            remainingDecoys.push(d);
+          }
+        }
+        match.decoys[opp.id] = remainingDecoys;
+      }
 
       let hitCount = 0;
       const hitDetails = [];
@@ -1112,7 +1223,7 @@
         }
       }
 
-      return { success: true, action: 'ATTACK', hitCount, hits: hitDetails };
+      return { success: true, action: 'ATTACK', hitCount, hits: hitDetails, decoyHit, decoyCell };
     }
 
     return { success: false, error: 'Unknown action type' };
