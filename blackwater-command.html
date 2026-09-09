@@ -2014,6 +2014,16 @@ const MP = (function () {
         return { success: true, action: 'MOVE' };
       }
 
+      // Sector Boundary Restrictions for Attack Cards
+      if (cardId === 'deck_gun' || cardId === 'torpedo_line' || cardId === 'ballistic_missile') {
+        if (player.sector === 'P1' && tx < 10) {
+          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols A–J).' };
+        }
+        if (player.sector === 'P2' && tx >= 10) {
+          return { success: false, error: 'Illegal target! Attacks cannot target friendly sector (Cols K–T).' };
+        }
+      }
+
       player.cp = Math.max(0, player.cp - 1);
       player.hand.splice(cIdx, 1);
       player.discard.push(cardId);
@@ -4005,6 +4015,12 @@ function isValidShipMove(tx,ty){
 function previewCells(id,hx,hy){
   if(!id||hx===null)return[];
   const c=CARDS[id];if(!c)return[];
+  const isAttackCard = (c.fam === 'Direct fire');
+  if (isAttackCard) {
+    const isP2 = (typeof G !== 'undefined' && G && G.mySector === 'P2');
+    const inFriendly = isP2 ? (hx >= 10) : (hx < 10);
+    if (inFriendly) return [];
+  }
   const cells=[];
   switch(c.tgt){
     case'LINE5':for(let i=-2;i<=2;i++){
@@ -4061,6 +4077,18 @@ function execCard(id,tx,ty){
     }
     if(!isValidShipMove(tx,ty)){
       pushLog('sys',`${c.name}: Movement blocked! Cell is impassable or occupied.`);
+      cancelTgt();
+      renderAll();
+      return;
+    }
+  }
+  if(c.fam==='Direct fire'){
+    const isP2 = (G.mySector === 'P2');
+    const inFriendly = isP2 ? (tx >= 10) : (tx < 10);
+    if(inFriendly){
+      const friendlySec = isP2 ? 'Cols K–T' : 'Cols A–J';
+      const hostileSec = isP2 ? 'Cols A–J' : 'Cols K–T';
+      pushLog('sys',`${c.name}: Cannot fire into friendly waters (${friendlySec})! Target hostile sector (${hostileSec}).`);
       cancelTgt();
       renderAll();
       return;
