@@ -7,7 +7,7 @@
 <meta name="description" content="Naval hidden-information tactics. Find the enemy fleet through deduction, not luck.">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:'Courier New',monospace;color:#b8c8d8}
+html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:'Courier New',monospace;color:#e2edf8}
 
 /* ── SCREENS ─────────────────────────────────────────── */
 .screen{display:none;position:absolute;inset:0;align-items:center;justify-content:center}
@@ -15,38 +15,38 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 
 /* ── TITLE ───────────────────────────────────────────── */
 #scr-title{flex-direction:column;align-items:center;
-  background:radial-gradient(ellipse at 50% 40%,#0d1f35 0%,#060e1a 70%)}
-.t-logo{font-size:2.6rem;font-weight:bold;letter-spacing:.35em;color:#d4a843;
-  text-shadow:0 0 24px rgba(212,168,67,.45);margin-bottom:.25rem}
-.t-sub{font-size:.8rem;color:#4a6a8a;letter-spacing:.25em;margin-bottom:1.6rem}
-.t-pitch{max-width:460px;text-align:center;font-size:.78rem;color:#6a8a70;
-  line-height:1.7;margin-bottom:1.8rem;border:1px solid #1a3a5a;padding:1rem}
+  background:radial-gradient(ellipse at 50% 40%,#183862 0%,#0b192e 75%)}
+.t-logo{font-size:2.6rem;font-weight:bold;letter-spacing:.35em;color:#ffcf40;
+  text-shadow:0 0 28px rgba(255,207,64,.6);margin-bottom:.25rem}
+.t-sub{font-size:.82rem;color:#8eb8dc;letter-spacing:.25em;margin-bottom:1.6rem;font-weight:bold}
+.t-pitch{max-width:460px;text-align:center;font-size:.8rem;color:#9ae6a0;
+  line-height:1.7;margin-bottom:1.8rem;border:1px solid #2d5684;background:#10223a;padding:1rem;box-shadow:0 4px 16px rgba(0,0,0,0.35)}
 .seed-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1.2rem}
-.seed-row label{font-size:.72rem;color:#4a6a8a;letter-spacing:.1em}
-.seed-in{background:#0a1628;border:1px solid #2a4a6a;color:#d4a843;
-  font-family:inherit;font-size:.88rem;padding:.3rem .6rem;width:110px}
-.btn{background:transparent;border:1px solid #d4a843;color:#d4a843;
-  font-family:inherit;font-size:.82rem;padding:.45rem 1.4rem;cursor:pointer;
-  letter-spacing:.12em;transition:background .2s}
-.btn:hover{background:rgba(212,168,67,.1)}
-.btn.g{border-color:#50c878;color:#50c878}.btn.g:hover{background:rgba(80,200,120,.1)}
-.btn.r{border-color:#e05050;color:#e05050}.btn.r:hover{background:rgba(224,80,80,.1)}
+.seed-row label{font-size:.75rem;color:#8eb8dc;letter-spacing:.1em;font-weight:bold}
+.seed-in{background:#122540;border:1px solid #366092;color:#ffcf40;
+  font-family:inherit;font-size:.9rem;padding:.3rem .6rem;width:110px;font-weight:bold}
+.btn{background:#122540;border:1px solid #ffcf40;color:#ffcf40;
+  font-family:inherit;font-size:.84rem;font-weight:bold;padding:.5rem 1.4rem;cursor:pointer;
+  letter-spacing:.12em;transition:all .2s;border-radius:3px}
+.btn:hover{background:rgba(255,207,64,.25);transform:translateY(-1px);box-shadow:0 0 12px rgba(255,207,64,.3)}
+.btn.g{border-color:#38ef7d;color:#38ef7d;background:#0e2820}.btn.g:hover{background:rgba(56,239,125,.25);box-shadow:0 0 12px rgba(56,239,125,.3)}
+.btn.r{border-color:#ff5252;color:#ff5252;background:#2c1218}.btn.r:hover{background:rgba(255,82,82,.25);box-shadow:0 0 12px rgba(255,82,82,.3)}
 
 /* ── TUTORIAL OVERLAY ────────────────────────────────── */
-#tut-overlay{display:none;position:absolute;inset:0;background:rgba(4,10,20,.92);
+#tut-overlay{display:none;position:absolute;inset:0;background:rgba(6,14,26,.95);
   z-index:100;align-items:center;justify-content:center}
 #tut-overlay.open{display:flex}
-.tut-box{border:1px solid #2a4a6a;background:#0a1628;padding:1.4rem;max-width:540px;width:92%}
-.tut-box h2{color:#d4a843;font-size:1rem;margin-bottom:.9rem;letter-spacing:.08em}
-.tut-box p{font-size:.76rem;color:#8aa8c8;line-height:1.65;margin-bottom:.6rem}
+.tut-box{border:1px solid #3b689a;background:#11223a;padding:1.4rem;max-width:540px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,0.6)}
+.tut-box h2{color:#ffcf40;font-size:1.05rem;margin-bottom:.9rem;letter-spacing:.08em}
+.tut-box p{font-size:.78rem;color:#cce0f5;line-height:1.65;margin-bottom:.6rem}
 .tut-box ul{padding-left:1.1rem;margin-bottom:.9rem}
-.tut-box li{font-size:.73rem;color:#8aa8c8;line-height:1.9}
-.key{display:inline-block;background:#1a3a5a;border:1px solid #2a5a8a;
-  padding:0 .3rem;font-size:.67rem;color:#b8c8d8}
-.tut-note{font-size:.7rem;color:#7040a0;margin-top:.5rem}
+.tut-box li{font-size:.76rem;color:#cce0f5;line-height:1.9}
+.key{display:inline-block;background:#23446b;border:1px solid #3a689e;
+  padding:0 .3rem;font-size:.7rem;color:#ffffff;font-weight:bold;border-radius:2px}
+.tut-note{font-size:.72rem;color:#c088ff;margin-top:.5rem;font-weight:bold}
 
 /* ── BATTLE SCREEN ───────────────────────────────────── */
-#scr-battle{flex-direction:column;background:#060e1a}
+#scr-battle{flex-direction:column;background:#0a1628}
 .battle-wrap{
   display:grid;
   grid-template-columns:175px 544px 233px;
@@ -55,206 +55,206 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
     "st   tmr  intel"
     "log  brd  intel"
     "log  hand hand";
-  gap:3px;width:960px;height:752px
+  gap:4px;width:960px;height:752px
 }
 
 /* ── PANELS ──────────────────────────────────────────── */
-.pnl{background:#0a1628;border:1px solid #192f4a;padding:.4rem .5rem;overflow:hidden}
+.pnl{background:#10223a;border:1px solid #264b75;padding:.4rem .5rem;overflow:hidden;box-shadow:inset 0 0 12px rgba(0,0,0,0.2)}
 
 /* STATUS */
 #pnl-st{grid-area:st;display:flex;flex-direction:column;justify-content:center;gap:3px}
-.s-row{display:flex;align-items:center;gap:.35rem;font-size:.68rem}
-.s-name{color:#4a6a8a;min-width:68px;white-space:nowrap}
-.hp-bar{height:7px;flex:1;background:#0d1e30;position:relative}
-.hp-fill{height:100%;background:#50c878;transition:width .3s}
-.hp-fill.mid{background:#d4a843}.hp-fill.low{background:#e05050}
-.hp-txt{font-size:.63rem;color:#4a6a8a;min-width:34px;text-align:right}
+.s-row{display:flex;align-items:center;gap:.35rem;font-size:.7rem}
+.s-name{color:#8eb8dc;min-width:68px;white-space:nowrap;font-weight:bold}
+.hp-bar{height:8px;flex:1;background:#152b46;position:relative;border:1px solid #224268}
+.hp-fill{height:100%;background:#38ef7d;transition:width .3s}
+.hp-fill.mid{background:#ffcf40}.hp-fill.low{background:#ff5252}
+.hp-txt{font-size:.66rem;color:#cce0f5;min-width:34px;text-align:right;font-weight:bold}
 
 /* TIMER */
 #pnl-tmr{grid-area:tmr;display:flex;align-items:center;
   justify-content:space-between;gap:.4rem;padding:.3rem .6rem}
 .turn-blk{text-align:center}
-.turn-lbl{font-size:.58rem;color:#3a5a7a;letter-spacing:.1em}
-.turn-n{font-size:1.1rem;color:#d4a843;line-height:1}
-.phase-tag{font-size:.55rem;color:#2a4a6a;letter-spacing:.1em}
+.turn-lbl{font-size:.62rem;color:#8eb8dc;letter-spacing:.1em;font-weight:bold}
+.turn-n{font-size:1.15rem;color:#ffcf40;line-height:1;font-weight:bold}
+.phase-tag{font-size:.58rem;color:#6fa5d6;letter-spacing:.1em;font-weight:bold}
 .cp-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
-.cp-dots{display:flex;gap:2px}
-.cp-dot{width:9px;height:9px;border-radius:50%;background:#d4a843;border:1px solid #7a5a10}
-.cp-dot.e{background:transparent;border-color:#1e3348}
-.cp-lbl{font-size:.56rem;color:#3a5a7a}
+.cp-dots{display:flex;gap:3px}
+.cp-dot{width:10px;height:10px;border-radius:50%;background:#ffcf40;border:1px solid #a67c10;box-shadow:0 0 4px rgba(255,207,64,0.5)}
+.cp-dot.e{background:transparent;border-color:#2a4a6e;box-shadow:none}
+.cp-lbl{font-size:.58rem;color:#8eb8dc;font-weight:bold}
 .tmr-blk{text-align:center;min-width:52px}
-.tmr-val{font-size:1.3rem;color:#50c878}
-.tmr-val.warn{color:#d4a843}.tmr-val.urg{color:#e05050;animation:blink .5s step-end infinite}
+.tmr-val{font-size:1.35rem;color:#38ef7d;font-weight:bold}
+.tmr-val.warn{color:#ffcf40}.tmr-val.urg{color:#ff5252;animation:blink .5s step-end infinite}
 @keyframes blink{50%{opacity:.2}}
-.tmr-lbl{font-size:.56rem;color:#3a5a7a}
+.tmr-lbl{font-size:.58rem;color:#8eb8dc;font-weight:bold}
 .obj-blk{max-width:130px}
-.obj-txt{font-size:.6rem;color:#6a8a58;line-height:1.45}
+.obj-txt{font-size:.64rem;color:#9ae6a0;line-height:1.45;font-weight:bold}
 .ctrl-blk{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-#tmr-tog{font-size:.6rem;color:#3a5a7a;background:transparent;
-  border:1px solid #1e3348;font-family:inherit;padding:2px 6px;cursor:pointer}
-#tmr-tog:hover{color:#d4a843;border-color:#d4a843}
-#tmr-tog.on{color:#50c878;border-color:#50c878}
-#end-turn-btn{font-size:.68rem;background:transparent;border:1px solid #2a4a6a;
-  color:#3a6a9a;font-family:inherit;padding:3px 9px;cursor:pointer;letter-spacing:.08em}
-#end-turn-btn:hover{border-color:#d4a843;color:#d4a843}
+#tmr-tog{font-size:.62rem;color:#8eb8dc;background:#132640;
+  border:1px solid #2a4e76;font-family:inherit;padding:2px 7px;cursor:pointer;border-radius:2px}
+#tmr-tog:hover{color:#ffcf40;border-color:#ffcf40}
+#tmr-tog.on{color:#38ef7d;border-color:#38ef7d}
+#end-turn-btn{font-size:.7rem;background:#132640;border:1px solid #38689c;
+  color:#82b8ea;font-family:inherit;padding:4px 10px;cursor:pointer;letter-spacing:.08em;font-weight:bold;border-radius:2px}
+#end-turn-btn:hover{border-color:#ffcf40;color:#ffcf40;background:#1a3458}
 
 /* LOG */
-#pnl-log{grid-area:log;overflow-y:auto;font-size:.66rem;line-height:1.55}
-#pnl-log::-webkit-scrollbar{width:3px}
-#pnl-log::-webkit-scrollbar-track{background:#060e1a}
-#pnl-log::-webkit-scrollbar-thumb{background:#1e3348}
-.log-e{padding:2px 0;border-bottom:1px solid #0c1c2e;cursor:pointer}
-.log-e:hover{background:#0c1c2e}
-.log-e.sys{color:#2a4a6a}.log-e.ply{color:#6a9a58}
-.log-e.emy{color:#b05040}.log-e.hit{color:#d07828}
-.log-e.mis{color:#2a4060}.log-e.int{color:#7040a0}
-.log-e .cr{color:#d4a843;text-decoration:underline dotted}
+#pnl-log{grid-area:log;overflow-y:auto;font-size:.68rem;line-height:1.55}
+#pnl-log::-webkit-scrollbar{width:4px}
+#pnl-log::-webkit-scrollbar-track{background:#0b192e}
+#pnl-log::-webkit-scrollbar-thumb{background:#2a4e76}
+.log-e{padding:3px 0;border-bottom:1px solid #163050;cursor:pointer}
+.log-e:hover{background:#163256}
+.log-e.sys{color:#6fa8dc}.log-e.ply{color:#80e8a0}
+.log-e.emy{color:#ff7868}.log-e.hit{color:#ffa640}
+.log-e.mis{color:#7faad2}.log-e.int{color:#c080ff}
+.log-e .cr{color:#ffcf40;text-decoration:underline dotted}
 
 /* INTEL */
 #pnl-intel{grid-area:intel;overflow-y:auto;padding:.4rem .5rem}
-#pnl-intel::-webkit-scrollbar{width:3px}
-#pnl-intel::-webkit-scrollbar-track{background:#060e1a}
-#pnl-intel::-webkit-scrollbar-thumb{background:#1e3348}
-.i-ttl{font-size:.62rem;color:#5a3a90;letter-spacing:.1em;margin-bottom:.35rem}
-.i-row{display:flex;justify-content:space-between;font-size:.65rem;
-  margin-bottom:2px;padding-bottom:2px;border-bottom:1px solid #0c1c2e}
-.i-lbl{color:#2a4a6a}.i-val{color:#b8c8d8}
-.i-val.conf{color:#e03030}.i-val.susp{color:#d07820}.i-val.dec{color:#8030b8}
-.cf-lo{color:#2a4a6a}.cf-me{color:#d4a843}.cf-hi{color:#e03030}
-.r-ttl{font-size:.6rem;color:#2a4060;letter-spacing:.1em;margin:.45rem 0 .25rem}
-.r-e{font-size:.63rem;color:#5a6a7a;line-height:1.5;padding:2px 0;
-  border-bottom:1px solid #0c1c2e}
-.r-e .cr{color:#8030b8}
+#pnl-intel::-webkit-scrollbar{width:4px}
+#pnl-intel::-webkit-scrollbar-track{background:#0b192e}
+#pnl-intel::-webkit-scrollbar-thumb{background:#2a4e76}
+.i-ttl{font-size:.66rem;color:#c080ff;letter-spacing:.1em;margin-bottom:.35rem;font-weight:bold}
+.i-row{display:flex;justify-content:space-between;font-size:.68rem;
+  margin-bottom:2px;padding-bottom:2px;border-bottom:1px solid #163050}
+.i-lbl{color:#7faad2}.i-val{color:#ffffff;font-weight:bold}
+.i-val.conf{color:#ff5252}.i-val.susp{color:#ffa640}.i-val.dec{color:#c080ff}
+.cf-lo{color:#7faad2}.cf-me{color:#ffcf40}.cf-hi{color:#ff5252}
+.r-ttl{font-size:.64rem;color:#7faad2;letter-spacing:.1em;margin:.45rem 0 .25rem;font-weight:bold}
+.r-e{font-size:.66rem;color:#b8d0e8;line-height:1.5;padding:2px 0;
+  border-bottom:1px solid #163050}
+.r-e .cr{color:#c080ff;font-weight:bold}
 .ammo-sec{margin-top:.4rem}
-.a-row{display:flex;justify-content:space-between;font-size:.65rem;margin-bottom:2px}
-.a-nm{color:#2a4a6a;text-transform:uppercase;font-size:.58rem}
-.a-pips{display:flex;gap:2px}
-.a-pip{width:6px;height:6px;border-radius:50%;background:#d4a843}
-.a-pip.e{background:transparent;border:1px solid #1e3348}
+.a-row{display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:2px}
+.a-nm{color:#7faad2;text-transform:uppercase;font-size:.6rem;font-weight:bold}
+.a-pips{display:flex;gap:3px}
+.a-pip{width:7px;height:7px;border-radius:50%;background:#ffcf40;box-shadow:0 0 3px rgba(255,207,64,0.5)}
+.a-pip.e{background:transparent;border:1px solid #2a4e76;box-shadow:none}
 .e-fleet-sec{margin-top:.4rem}
-.ef-row{display:flex;justify-content:space-between;font-size:.64rem;
-  margin-bottom:2px;padding-bottom:2px;border-bottom:1px solid #0c1c2e}
-.ef-nm{color:#5a3030}.ef-st{color:#5a6a7a}
-.ef-st.sunk{color:#e03030;text-decoration:line-through}
-.ef-st.hit{color:#d07820}
+.ef-row{display:flex;justify-content:space-between;font-size:.66rem;
+  margin-bottom:2px;padding-bottom:2px;border-bottom:1px solid #163050}
+.ef-nm{color:#e08080;font-weight:bold}.ef-st{color:#90b4d4}
+.ef-st.sunk{color:#ff5252;text-decoration:line-through}
+.ef-st.hit{color:#ffa640}
 
 /* BOARD */
-#brd-area{grid-area:brd;position:relative;background:#040c18}
+#brd-area{grid-area:brd;position:relative;background:#0b1a2e}
 #board{display:block;cursor:crosshair;image-rendering:pixelated}
 #tgt-help{position:absolute;top:4px;left:50%;transform:translateX(-50%);
-  background:rgba(8,18,34,.92);border:1px solid #2a4060;
-  font-size:.67rem;color:#d4a843;padding:2px 10px;pointer-events:none;display:none}
+  background:rgba(16,34,58,.95);border:1px solid #3a689e;
+  font-size:.7rem;color:#ffcf40;padding:3px 12px;pointer-events:none;display:none;font-weight:bold;border-radius:2px}
 #orient-btn{position:absolute;top:24px;left:50%;transform:translateX(-50%);
-  background:#080e1a;border:1px solid #1e3040;color:#4a6a8a;
-  font-family:inherit;font-size:.62rem;padding:2px 8px;cursor:pointer;display:none;
-  letter-spacing:.08em}
-#heat-btn{position:absolute;top:4px;right:4px;background:rgba(8,18,34,.85);
-  border:1px solid #1e3040;color:#4a3a7a;font-family:inherit;
-  font-size:.6rem;padding:2px 6px;cursor:pointer;letter-spacing:.08em}
-#heat-btn.on{color:#9040c0;border-color:#6030a0}
+  background:#122540;border:1px solid #305886;color:#8eb8dc;
+  font-family:inherit;font-size:.65rem;padding:3px 10px;cursor:pointer;display:none;
+  letter-spacing:.08em;font-weight:bold;border-radius:2px}
+#heat-btn{position:absolute;bottom:6px;right:6px;background:rgba(16,34,58,.95);
+  border:1px solid #305886;color:#c080ff;font-family:inherit;
+  font-size:.63rem;padding:3px 9px;cursor:pointer;letter-spacing:.08em;font-weight:bold;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
+#heat-btn.on{color:#ffffff;background:#7030b0;border-color:#9040e0;box-shadow:0 0 10px rgba(144,64,224,0.6)}
 
 /* HAND */
 #pnl-hand{grid-area:hand;display:flex;align-items:flex-start;
-  gap:4px;padding:5px;overflow-x:auto;background:#08111e}
-#pnl-hand::-webkit-scrollbar{height:3px}
-#pnl-hand::-webkit-scrollbar-track{background:#060e1a}
-#pnl-hand::-webkit-scrollbar-thumb{background:#1e3348}
-.card{min-width:96px;max-width:96px;height:136px;border:1px solid #1e3040;
-  background:#0c1825;cursor:pointer;display:flex;flex-direction:column;
-  padding:4px 5px;position:relative;transition:transform .15s,border-color .15s;
-  flex-shrink:0;user-select:none}
-.card:hover:not(.dis){transform:translateY(-5px);border-color:#3a5a70}
-.card.sel{border-color:#d4a843!important;transform:translateY(-7px)!important;
-  box-shadow:0 0 10px rgba(212,168,67,.3)}
-.card.dis{opacity:.32;cursor:not-allowed}
+  gap:6px;padding:6px;overflow-x:auto;background:#0d1c30;border:1px solid #264b75}
+#pnl-hand::-webkit-scrollbar{height:4px}
+#pnl-hand::-webkit-scrollbar-track{background:#0b192e}
+#pnl-hand::-webkit-scrollbar-thumb{background:#2a4e76}
+.card{min-width:98px;max-width:98px;height:136px;border:1px solid #2d5684;
+  background:#132640;cursor:pointer;display:flex;flex-direction:column;
+  padding:5px 6px;position:relative;transition:transform .15s,border-color .15s;
+  flex-shrink:0;user-select:none;border-radius:4px;box-shadow:0 3px 8px rgba(0,0,0,0.3)}
+.card:hover:not(.dis){transform:translateY(-5px);border-color:#ffcf40;background:#183254}
+.card.sel{border-color:#ffcf40!important;transform:translateY(-7px)!important;
+  box-shadow:0 0 14px rgba(255,207,64,.5)}
+.card.dis{opacity:.35;cursor:not-allowed}
 .card-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px}
-.card-nm{font-size:.6rem;color:#c8d8e8;font-weight:bold;line-height:1.3;flex:1}
-.card-cp{font-size:.68rem;color:#d4a843;font-weight:bold;white-space:nowrap}
-.card-fam{font-size:.53rem;margin-bottom:3px;display:flex;align-items:center;gap:3px}
-.fam-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
-.card-desc{font-size:.56rem;color:#4a6a8a;line-height:1.4;flex:1}
-.card-ammo{font-size:.57rem;color:#6a4820;margin-top:auto;padding-top:3px;
-  border-top:1px solid #0f1e30}
+.card-nm{font-size:.62rem;color:#ffffff;font-weight:bold;line-height:1.3;flex:1}
+.card-cp{font-size:.7rem;color:#ffcf40;font-weight:bold;white-space:nowrap}
+.card-fam{font-size:.56rem;margin-bottom:3px;display:flex;align-items:center;gap:3px;color:#a8c8e8}
+.fam-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.card-desc{font-size:.58rem;color:#9fc4ea;line-height:1.4;flex:1}
+.card-ammo{font-size:.6rem;color:#ffd060;margin-top:auto;padding-top:3px;
+  border-top:1px solid #1c3d64;font-weight:bold}
 
 /* RESULT SCREENS */
 #scr-vic,#scr-def,#scr-cs{flex-direction:column;align-items:center;
-  background:radial-gradient(ellipse at 50% 40%,#0d1f35 0%,#060e1a 70%)}
-.res-ttl{font-size:1.9rem;letter-spacing:.2em;margin-bottom:.8rem}
-.res-ttl.v{color:#50c878;text-shadow:0 0 20px rgba(80,200,120,.4)}
-.res-ttl.d{color:#e05050;text-shadow:0 0 20px rgba(224,80,80,.4)}
-.res-ttl.c{color:#d4a843}
-.res-stats{font-size:.78rem;color:#4a6a8a;text-align:center;line-height:2.1;margin-bottom:1.4rem}
+  background:radial-gradient(ellipse at 50% 40%,#183862 0%,#0b192e 75%)}
+.res-ttl{font-size:2rem;letter-spacing:.2em;margin-bottom:.8rem;font-weight:bold}
+.res-ttl.v{color:#38ef7d;text-shadow:0 0 24px rgba(56,239,125,.5)}
+.res-ttl.d{color:#ff5252;text-shadow:0 0 24px rgba(255,82,82,.5)}
+.res-ttl.c{color:#ffcf40}
+.res-stats{font-size:.82rem;color:#cce0f5;text-align:center;line-height:2.1;margin-bottom:1.4rem}
 .res-btns{display:flex;gap:.8rem}
 
 /* PREP SCREEN */
-#scr-prep{flex-direction:column;align-items:center;background:#060e1a;padding:10px}
+#scr-prep{flex-direction:column;align-items:center;background:#0a1628;padding:10px}
 .prep-layout{display:flex;gap:12px;max-width:950px;width:100%;height:680px}
 .prep-sidebar{display:flex;flex-direction:column;gap:10px;width:370px}
-.prep-card{background:#0a1628;border:1px solid #1a3a5a;padding:.75rem}
-.prep-card h3{color:#d4a843;font-size:.82rem;letter-spacing:.08em;margin-bottom:.5rem}
+.prep-card{background:#10223a;border:1px solid #28507c;padding:.85rem;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,0.3)}
+.prep-card h3{color:#ffcf40;font-size:.86rem;letter-spacing:.08em;margin-bottom:.5rem;font-weight:bold}
 .prep-ship-btn{display:flex;justify-content:space-between;align-items:center;
-  background:#0d1e30;border:1px solid #204060;color:#c0d0e0;
-  padding:6px 10px;font-family:inherit;font-size:.72rem;cursor:pointer;margin-bottom:4px;
-  width:100%;transition:all .15s}
-.prep-ship-btn:hover{background:#142840;border-color:#d4a843}
-.prep-ship-btn.active{background:#1a3858;border-color:#d4a843;box-shadow:0 0 8px rgba(212,168,67,.3)}
-.doctrine-btn{display:flex;flex-direction:column;gap:3px;background:#0d1e30;
-  border:1px solid #204060;color:#8aa8c8;padding:6px 8px;cursor:pointer;
-  font-family:inherit;font-size:.66rem;text-align:left;margin-bottom:6px;width:100%}
-.doctrine-btn:hover{border-color:#3a6a9a}
-.doctrine-btn.active{border-color:#50c878;background:#0a2418;color:#c0e8d0}
-.doctrine-title{font-weight:bold;color:#d4a843}
-.prep-err{color:#e05050;font-size:.66rem;min-height:1.2rem;line-height:1.3}
+  background:#142a46;border:1px solid #305886;color:#e2edf8;
+  padding:7px 12px;font-family:inherit;font-size:.75rem;cursor:pointer;margin-bottom:5px;
+  width:100%;transition:all .15s;border-radius:3px;font-weight:bold}
+.prep-ship-btn:hover{background:#1a3658;border-color:#ffcf40}
+.prep-ship-btn.active{background:#204875;border-color:#ffcf40;box-shadow:0 0 10px rgba(255,207,64,.4)}
+.doctrine-btn{display:flex;flex-direction:column;gap:3px;background:#142a46;
+  border:1px solid #305886;color:#cce0f5;padding:7px 9px;cursor:pointer;
+  font-family:inherit;font-size:.68rem;text-align:left;margin-bottom:6px;width:100%;border-radius:3px}
+.doctrine-btn:hover{border-color:#5090d0;background:#1a3658}
+.doctrine-btn.active{border-color:#38ef7d;background:#0f3824;color:#f0fcf4}
+.doctrine-title{font-weight:bold;color:#ffcf40}
+.prep-err{color:#ff5252;font-size:.68rem;min-height:1.2rem;line-height:1.3;font-weight:bold}
 
 /* DEBRIEF & UPGRADE SCREENS */
 #scr-debrief,#scr-upgrade{flex-direction:column;align-items:center;
-  background:radial-gradient(ellipse at 50% 30%,#0e223a 0%,#060e1a 75%);padding:1.5rem}
-.debrief-box{background:#0a1628;border:1px solid #204060;padding:1.2rem;
-  max-width:760px;width:95%;margin-bottom:1.2rem}
-.debrief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:1rem 0}
-.debrief-col{display:flex;flex-direction:column;gap:5px;font-size:.73rem;color:#8aa8c8}
-.debrief-row{display:flex;justify-content:space-between;border-bottom:1px solid #142840;padding-bottom:3px}
+  background:radial-gradient(ellipse at 50% 30%,#183862 0%,#0b192e 80%);padding:1.5rem}
+.debrief-box{background:#10223a;border:1px solid #28507c;padding:1.3rem;
+  max-width:760px;width:95%;margin-bottom:1.2rem;border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.debrief-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:1rem 0}
+.debrief-col{display:flex;flex-direction:column;gap:6px;font-size:.76rem;color:#cce0f5}
+.debrief-row{display:flex;justify-content:space-between;border-bottom:1px solid #1a3658;padding-bottom:3px}
 .upgrade-grid{display:flex;gap:15px;justify-content:center;margin:1.5rem 0;max-width:860px}
-.upgrade-card{background:#0a1628;border:1px solid #2a4a6a;padding:1rem;
+.upgrade-card{background:#10223a;border:1px solid #325e90;padding:1.1rem;
   width:260px;cursor:pointer;display:flex;flex-direction:column;gap:8px;
-  transition:all .2s;text-align:left;user-select:none}
-.upgrade-card:hover{transform:translateY(-6px);border-color:#d4a843;box-shadow:0 0 16px rgba(212,168,67,.25)}
-.upgrade-card h4{color:#d4a843;font-size:.85rem}
-.upgrade-type{font-size:.62rem;letter-spacing:.1em;color:#50a0c0;text-transform:uppercase}
-.upgrade-desc{font-size:.72rem;color:#8aa8c8;line-height:1.5;flex:1}
+  transition:all .2s;text-align:left;user-select:none;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.upgrade-card:hover{transform:translateY(-6px);border-color:#ffcf40;box-shadow:0 0 18px rgba(255,207,64,.35);background:#162e4c}
+.upgrade-card h4{color:#ffcf40;font-size:.9rem}
+.upgrade-type{font-size:.65rem;letter-spacing:.1em;color:#60c0f0;text-transform:uppercase;font-weight:bold}
+.upgrade-desc{font-size:.75rem;color:#cce0f5;line-height:1.5;flex:1}
 
 /* ROUTE MAP SCREEN */
-#scr-route-map{flex-direction:column;align-items:center;background:radial-gradient(ellipse at 50% 20%,#091a2c 0%,#040a12 85%);padding:1rem;overflow-y:auto}
-.route-header{display:flex;justify-content:space-between;align-items:center;max-width:960px;width:100%;background:#0a1628;border:1px solid #1a3a5a;padding:.6rem 1rem;border-radius:4px;margin-bottom:1rem}
+#scr-route-map{flex-direction:column;align-items:center;background:radial-gradient(ellipse at 50% 20%,#183862 0%,#081424 85%);padding:1rem;overflow-y:auto}
+.route-header{display:flex;justify-content:space-between;align-items:center;max-width:960px;width:100%;background:#10223a;border:1px solid #28507c;padding:.7rem 1.1rem;border-radius:4px;margin-bottom:1rem;box-shadow:0 4px 14px rgba(0,0,0,0.3)}
 .route-map-container{display:flex;flex-direction:column;gap:18px;max-width:960px;width:100%;align-items:center;position:relative}
 .route-tier{display:flex;justify-content:center;gap:30px;width:100%}
-.route-node{background:#0a1628;border:2px solid #1a3a5a;border-radius:6px;padding:10px 14px;width:220px;cursor:pointer;transition:all .2s;text-align:left;position:relative}
-.route-node.available{border-color:#d4a843;box-shadow:0 0 14px rgba(212,168,67,.3);background:#10243c}
-.route-node.available:hover{transform:scale(1.04);border-color:#50c878;box-shadow:0 0 18px rgba(80,200,120,.4)}
-.route-node.visited{border-color:#50c878;background:#091e14;opacity:0.8}
+.route-node{background:#10223a;border:2px solid #28507c;border-radius:6px;padding:11px 15px;width:220px;cursor:pointer;transition:all .2s;text-align:left;position:relative;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.route-node.available{border-color:#ffcf40;box-shadow:0 0 16px rgba(255,207,64,.4);background:#163458}
+.route-node.available:hover{transform:scale(1.04);border-color:#38ef7d;box-shadow:0 0 20px rgba(56,239,125,.5)}
+.route-node.visited{border-color:#38ef7d;background:#0d2c1c;opacity:0.85}
 .route-node.locked{opacity:0.35;cursor:not-allowed;filter:grayscale(60%)}
-.route-node.boss{border-color:#ff1744;box-shadow:0 0 20px rgba(255,23,68,.35);width:280px}
-.node-type-badge{font-size:.6rem;font-weight:bold;letter-spacing:.1em;padding:2px 6px;border-radius:2px;display:inline-block;margin-bottom:4px;text-transform:uppercase}
-.badge-fight{background:rgba(212,168,67,.2);color:#d4a843;border:1px solid #d4a843}
-.badge-elite{background:rgba(255,61,0,.2);color:#ff3d00;border:1px solid #ff3d00}
-.badge-event{background:rgba(0,229,255,.2);color:#00e5ff;border:1px solid #00e5ff}
-.badge-repair{background:rgba(80,200,120,.2);color:#50c878;border:1px solid #50c878}
-.badge-supply{background:rgba(186,104,200,.2);color:#ba68c8;border:1px solid #ba68c8}
-.badge-boss{background:rgba(255,23,68,.25);color:#ff1744;border:1px solid #ff1744}
+.route-node.boss{border-color:#ff5252;box-shadow:0 0 22px rgba(255,82,82,.45);width:280px}
+.node-type-badge{font-size:.63rem;font-weight:bold;letter-spacing:.1em;padding:3px 7px;border-radius:2px;display:inline-block;margin-bottom:4px;text-transform:uppercase}
+.badge-fight{background:rgba(255,207,64,.25);color:#ffcf40;border:1px solid #ffcf40}
+.badge-elite{background:rgba(255,82,82,.25);color:#ff5252;border:1px solid #ff5252}
+.badge-event{background:rgba(0,245,255,.25);color:#00f5ff;border:1px solid #00f5ff}
+.badge-repair{background:rgba(56,239,125,.25);color:#38ef7d;border:1px solid #38ef7d}
+.badge-supply{background:rgba(200,120,240,.25);color:#d080ff;border:1px solid #d080ff}
+.badge-boss{background:rgba(255,82,82,.3);color:#ff5252;border:1px solid #ff5252}
 
 /* EVENT & REPAIR MODAL */
 .event-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:900;opacity:0;pointer-events:none;transition:opacity .2s}
 .event-modal.active{opacity:1;pointer-events:auto}
-.event-dialog{background:#081628;border:1px solid #d4a843;border-radius:6px;width:520px;padding:22px;box-shadow:0 0 35px rgba(212,168,67,.25);display:flex;flex-direction:column;gap:12px}
-.event-choice-btn{background:#0d1e30;border:1px solid #204060;color:#c0d8f0;padding:10px 14px;border-radius:4px;cursor:pointer;text-align:left;font-family:inherit;font-size:.75rem;transition:all .15s}
-.event-choice-btn:hover{border-color:#d4a843;background:#142840;color:#fff}
+.event-dialog{background:#10223a;border:2px solid #ffcf40;border-radius:6px;width:520px;padding:24px;box-shadow:0 0 45px rgba(255,207,64,.35);display:flex;flex-direction:column;gap:14px;color:#eef6fc}
+.event-choice-btn{background:#162e4c;border:1px solid #325e90;color:#eef6fc;padding:11px 15px;border-radius:4px;cursor:pointer;text-align:left;font-family:inherit;font-size:.78rem;transition:all .15s}
+.event-choice-btn:hover{border-color:#ffcf40;background:#1e3e68;color:#fff;box-shadow:0 0 10px rgba(255,207,64,0.3)}
 
 /* ANALYZE MODE SCREEN */
-#scr-analyze{flex-direction:column;align-items:center;background:#050c16;padding:10px}
+#scr-analyze{flex-direction:column;align-items:center;background:#0a1628;padding:10px}
 .analyze-wrap{display:grid;grid-template-columns:544px 380px;gap:14px;max-width:960px;width:100%;height:680px}
-.analyze-ctrls{background:#0a1628;border:1px solid #1a3a5a;padding:12px;display:flex;flex-direction:column;gap:10px}
-.heat-legend{display:flex;align-items:center;gap:8px;font-size:.65rem;color:#7a9abb;margin-top:6px}
-.heat-swatch{height:8px;border-radius:2px;flex:1}
+.analyze-ctrls{background:#10223a;border:1px solid #28507c;padding:14px;display:flex;flex-direction:column;gap:12px;border-radius:4px}
+.heat-legend{display:flex;align-items:center;gap:8px;font-size:.68rem;color:#a8c8e8;margin-top:6px}
+.heat-swatch{height:9px;border-radius:2px;flex:1}
 </style>
 </head>
 <body>
@@ -277,11 +277,11 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
     <div style="display:flex;flex-direction:column;gap:8px;width:100%">
       <button class="btn" id="btn-campaign" style="width:100%;padding:10px;font-size:.82rem" onclick="startCampaignRun()">▶ START CAMPAIGN RUN (ROGUE-LITE)</button>
       <button class="btn" id="btn-1v1-online" style="width:100%;border-color:#00e5ff;color:#00e5ff;font-weight:bold" onclick="open1v1Lobby()">⚔ 1v1 TACTICAL ONLINE (20×10)</button>
-      <button class="btn" id="btn-multiplayer" style="width:100%;border-color:#d4a843;color:#d4a843" onclick="openMultiplayerArena()">🌐 TACTICAL MULTIPLAYER ARENA (24×24)</button>
+      <button class="btn" id="btn-multiplayer" style="width:100%;border-color:#ffcf40;color:#ffcf40" onclick="openMultiplayerArena()">🌐 TACTICAL MULTIPLAYER ARENA (24×24)</button>
       <button class="btn" style="width:100%" onclick="startGame()">⚡ SKIRMISH DUEL</button>
       <button class="btn" style="width:100%" onclick="showTut()">📖 TACTICAL BRIEFING & RULES</button>
     </div>
-    <div style="font-size:.65rem;color:#4a6a8a;margin-top:1rem">
+    <div style="font-size:.68rem;color:#8eb8dc;margin-top:1rem;font-weight:bold">
       Offline Single-Player Roguelite + 4-Player Tactical Simulator
     </div>
   </div>
@@ -291,8 +291,8 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 <div id="scr-route-map" class="screen">
   <div class="route-header">
     <div>
-      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#d4a843;font-size:.9rem">REGION 1: THE IRON STRAITS</span>
-      <span style="font-size:.7rem;color:#7a9ab8;margin-left:8px" id="route-tier-lbl">TIER 1 OF 4</span>
+      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#ffcf40;font-size:.9rem">REGION 1: THE IRON STRAITS</span>
+      <span style="font-size:.7rem;color:#9bc4ed;margin-left:8px;font-weight:bold" id="route-tier-lbl">TIER 1 OF 4</span>
     </div>
     <div style="display:flex;gap:14px;font-size:.75rem;font-family:'Share Tech Mono',monospace">
       <span id="route-hull-status">HULL: 20/20</span>
@@ -310,11 +310,11 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 <!-- ── DECISION EVENT MODAL ────────────────────────────── -->
 <div class="event-modal" id="event-modal">
   <div class="event-dialog">
-    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #204060;padding-bottom:8px">
-      <h3 style="color:#d4a843;font-size:.9rem" id="event-title">ENCOUNTER EVENT</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #28507c;padding-bottom:8px">
+      <h3 style="color:#ffcf40;font-size:.9rem" id="event-title">ENCOUNTER EVENT</h3>
       <span class="node-type-badge badge-event" id="event-badge">EVENT</span>
     </div>
-    <p style="font-size:.75rem;color:#a0b8d0;line-height:1.5" id="event-desc">An uncharted contact signals through the mist.</p>
+    <p style="font-size:.78rem;color:#cce0f5;line-height:1.5" id="event-desc">An uncharted contact signals through the mist.</p>
     <div style="display:flex;flex-direction:column;gap:8px" id="event-choices-wrap">
       <!-- Generated dynamically -->
     </div>
@@ -325,8 +325,8 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 <div id="scr-analyze" class="screen">
   <div class="route-header">
     <div>
-      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#00e5ff;font-size:.9rem">TACTICAL REPLAY & AI PROBABILITY HEATMAP</span>
-      <span style="font-size:.7rem;color:#7a9ab8;margin-left:8px" id="analyze-turn-lbl">TURN 1</span>
+      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#00f5ff;font-size:.9rem">TACTICAL REPLAY & AI PROBABILITY HEATMAP</span>
+      <span style="font-size:.7rem;color:#9bc4ed;margin-left:8px;font-weight:bold" id="analyze-turn-lbl">TURN 1</span>
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn" id="btn-toggle-vision" onclick="toggleAnalyzeVision()">TOGGLE: AI PERSPECTIVE</button>
@@ -335,28 +335,28 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
   </div>
 
   <div class="analyze-wrap">
-    <div style="position:relative;background:#02060b;border:2px solid #1a3a5a;border-radius:4px">
+    <div style="position:relative;background:#0b192e;border:2px solid #28507c;border-radius:4px">
       <canvas id="analyze-canvas" width="544" height="544"></canvas>
     </div>
     <div class="analyze-ctrls">
-      <div style="font-size:.78rem;font-weight:bold;color:#d4a843">TIMELINE SCRUBBER</div>
+      <div style="font-size:.78rem;font-weight:bold;color:#ffcf40">TIMELINE SCRUBBER</div>
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn" onclick="stepAnalyzeTurn(-1)">◀ PREV</button>
         <input type="range" id="analyze-scrubber" min="1" max="1" value="1" style="flex:1" oninput="onAnalyzeScrub(this.value)">
         <button class="btn" onclick="stepAnalyzeTurn(1)">NEXT ▶</button>
       </div>
 
-      <div style="font-size:.75rem;color:#7a9ab8;margin-top:10px;font-weight:bold">AI INFERENCE & MOTIVATION</div>
-      <div id="analyze-reason-box" style="background:#06101c;border:1px solid #162a42;border-radius:4px;padding:10px;font-size:.72rem;color:#c0d8f0;line-height:1.5;min-height:90px">
+      <div style="font-size:.75rem;color:#9bc4ed;margin-top:10px;font-weight:bold">AI INFERENCE & MOTIVATION</div>
+      <div id="analyze-reason-box" style="background:#10223a;border:1px solid #28507c;border-radius:4px;padding:10px;font-size:.72rem;color:#e2edf8;line-height:1.5;min-height:90px">
         No action selected.
       </div>
 
       <div style="margin-top:auto">
-        <div style="font-size:.65rem;color:#7a9abb;margin-bottom:4px">PROBABILITY HEATMAP DENSITY:</div>
+        <div style="font-size:.68rem;color:#9bc4ed;margin-bottom:4px;font-weight:bold">PROBABILITY HEATMAP DENSITY:</div>
         <div class="heat-legend">
-          <span>0% (Cold)</span>
+          <span style="color:#8eb8dc">0% (Cold)</span>
           <div class="heat-swatch" style="background:linear-gradient(to right, rgba(0,50,100,.3), rgba(0,229,255,.5), rgba(255,214,0,.7), rgba(255,23,68,.9))"></div>
-          <span>100% (Hot)</span>
+          <span style="color:#ff5252">100% (Hot)</span>
         </div>
       </div>
     </div>
@@ -405,8 +405,12 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 <div id="scr-prep" class="screen">
   <div class="prep-layout">
     <div style="display:flex;flex-direction:column;align-items:center">
-      <canvas id="prep-board" width="544" height="544" style="background:#040c18;cursor:crosshair"></canvas>
-      <div style="font-size:.64rem;color:#4a6a8a;margin-top:6px">
+      <div style="display:flex;justify-content:space-between;width:544px;font-size:.72rem;font-weight:bold;margin-bottom:6px;padding:0 4px">
+        <span style="color:#ffcf40">◀ ALLIED SECTOR (A–J)</span>
+        <span style="color:#8eb8dc">HOSTILE WATERS (K–T) ▶</span>
+      </div>
+      <canvas id="prep-board" width="544" height="544" style="background:#0b192e;cursor:crosshair"></canvas>
+      <div style="font-size:.68rem;color:#8eb8dc;margin-top:6px;font-weight:bold">
         Click Allied sector (A–J) to place selected ship · Press <span class="key">R</span> to rotate
       </div>
     </div>
@@ -443,9 +447,9 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
       </div>
 
       <div class="prep-card" style="margin-top:auto">
-        <div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:8px">
-          <span style="color:#4a6a8a">ENCOUNTER:</span>
-          <span style="color:#d4a843;font-weight:bold">HUNT — STANDARD RISK</span>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:8px">
+          <span style="color:#8eb8dc;font-weight:bold">ENCOUNTER:</span>
+          <span style="color:#ffcf40;font-weight:bold">HUNT — STANDARD RISK</span>
         </div>
         <button class="btn g" id="btn-confirm-deploy" style="width:100%;padding:.6rem" onclick="confirmDeployment()">
           ▶ CONFIRM DEPLOYMENT
@@ -459,27 +463,27 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 <div id="scr-debrief" class="screen">
   <div class="debrief-box">
     <div class="res-ttl v" style="text-align:center">◆ MISSION DEBRIEF ◆</div>
-    <div style="text-align:center;font-size:.75rem;color:#4a6a8a;margin-bottom:.8rem" id="db-sub">HUNT ENCOUNTER COMPLETE</div>
+    <div style="text-align:center;font-size:.78rem;color:#8eb8dc;margin-bottom:.8rem;font-weight:bold" id="db-sub">HUNT ENCOUNTER COMPLETE</div>
     <div class="debrief-grid">
       <div class="debrief-col">
-        <div style="color:#d4a843;font-size:.78rem;font-weight:bold;margin-bottom:4px">FLEET &amp; RESOURCE STATUS</div>
-        <div class="debrief-row"><span>Flagship Hull:</span><span id="db-hp-flag" style="color:#50c878">20/20</span></div>
-        <div class="debrief-row"><span>Support Ships Surviving:</span><span id="db-supports">2/2</span></div>
+        <div style="color:#ffcf40;font-size:.78rem;font-weight:bold;margin-bottom:4px">FLEET &amp; RESOURCE STATUS</div>
+        <div class="debrief-row"><span>Flagship Hull:</span><span id="db-hp-flag" style="color:#38ef7d;font-weight:bold">20/20</span></div>
+        <div class="debrief-row"><span>Support Ships Surviving:</span><span id="db-supports" style="color:#8eb8dc">2/2</span></div>
         <div class="debrief-row"><span>Torpedoes Expended:</span><span id="db-torps">0</span></div>
         <div class="debrief-row"><span>Sonar Scans Used:</span><span id="db-sonar">0</span></div>
         <div class="debrief-row"><span>Turns Elapsed:</span><span id="db-turns">0</span></div>
       </div>
       <div class="debrief-col">
-        <div style="color:#d4a843;font-size:.78rem;font-weight:bold;margin-bottom:4px">INTELLIGENCE &amp; AI DEDUCTION</div>
-        <div class="debrief-row"><span>Decoys That Fooled AI:</span><span id="db-decoys" style="color:#8030b8">0</span></div>
-        <div class="debrief-row"><span>Confirmed Contacts:</span><span id="db-conf" style="color:#e05050">0</span></div>
-        <div class="debrief-row"><span>AI Strongest Inference:</span><span id="db-ai-inf" style="color:#b8c8d8">Decoy Trap</span></div>
-        <div class="debrief-row"><span>Encounter Result:</span><span style="color:#50c878">FLAGSHIP SUNK</span></div>
+        <div style="color:#ffcf40;font-size:.78rem;font-weight:bold;margin-bottom:4px">INTELLIGENCE &amp; AI DEDUCTION</div>
+        <div class="debrief-row"><span>Decoys That Fooled AI:</span><span id="db-decoys" style="color:#c080ff;font-weight:bold">0</span></div>
+        <div class="debrief-row"><span>Confirmed Contacts:</span><span id="db-conf" style="color:#ff5252;font-weight:bold">0</span></div>
+        <div class="debrief-row"><span>AI Strongest Inference:</span><span id="db-ai-inf" style="color:#cce0f5">Decoy Trap</span></div>
+        <div class="debrief-row"><span>Encounter Result:</span><span style="color:#38ef7d;font-weight:bold">FLAGSHIP SUNK</span></div>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:1rem">
       <button class="btn" onclick="showTitle()">ABANDON RUN</button>
-      <button class="btn" style="border-color:#00e5ff;color:#00e5ff" onclick="openAnalyzeMode()">🔍 ANALYZE REPLAY &amp; HEATMAP</button>
+      <button class="btn" style="border-color:#00f5ff;color:#00f5ff" onclick="openAnalyzeMode()">🔍 ANALYZE REPLAY &amp; HEATMAP</button>
       <button class="btn g" onclick="showUpgradeScreen()">PROCEED TO REWARDS ▶</button>
     </div>
   </div>
@@ -489,7 +493,7 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 <div id="scr-upgrade" class="screen">
   <div style="text-align:center">
     <div class="res-ttl c">FIELD REQUISITION</div>
-    <div style="font-size:.76rem;color:#4a6a8a;margin-bottom:1.5rem">CHOOSE ONE REWARD FOR YOUR FLEET</div>
+    <div style="font-size:.78rem;color:#8eb8dc;margin-bottom:1.5rem;font-weight:bold">CHOOSE ONE REWARD FOR YOUR FLEET</div>
     <div class="upgrade-grid" id="upgrade-cards-container"></div>
   </div>
 </div>
@@ -522,11 +526,11 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 <div id="scr-cs" class="screen">
   <div style="text-align:center">
     <div class="res-ttl c">ROUTE MAP</div>
-    <div style="font-size:.75rem;color:#2a4060;letter-spacing:.12em;margin-bottom:.5rem">PHASE 4 — IN DEVELOPMENT</div>
-    <div style="font-size:.73rem;color:#4a6a8a;max-width:380px;line-height:1.9;margin-bottom:1.4rem">
+    <div style="font-size:.75rem;color:#8eb8dc;letter-spacing:.12em;margin-bottom:.5rem;font-weight:bold">PHASE 4 — IN DEVELOPMENT</div>
+    <div style="font-size:.76rem;color:#cce0f5;max-width:380px;line-height:1.9;margin-bottom:1.4rem">
       The roguelite route map arrives in the next build.<br>
       Your hull, ammo, deck &amp; modules would carry forward.<br>
-      <span style="font-size:.65rem;color:#1e3040">Prototype: Phase 1–3 complete.</span>
+      <span style="font-size:.68rem;color:#8eb8dc">Prototype: Phase 1–3 complete.</span>
     </div>
     <div class="res-btns">
       <button class="btn" onclick="startGame()">▶ PLAY AGAIN (NEW SEED)</button>
@@ -537,15 +541,15 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 
 <!-- ── MULTIPLAYER ARENA SCREEN ────────────────────────── -->
 <div id="scr-mp" class="screen">
-  <div style="display:flex;flex-direction:column;width:960px;height:752px;background:#050d18;border:1px solid #1a3a5a;overflow:hidden">
+  <div style="display:flex;flex-direction:column;width:960px;height:752px;background:#0b192e;border:1px solid #28507c;overflow:hidden">
     <!-- Header with Perspective Tabs -->
-    <div style="display:flex;justify-content:space-between;align-items:center;background:#081628;border-bottom:1px solid #1a3a5a;padding:8px 14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#10223a;border-bottom:1px solid #28507c;padding:8px 14px">
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-family:'Cinzel',serif;font-weight:bold;color:#d4a843;font-size:1rem">TACTICAL MULTIPLAYER ARENA (24×24)</span>
-        <span id="mp-round-lbl" style="font-size:.7rem;color:#7a9ab8">ROUND 1 · TURN P1</span>
+        <span style="font-family:'Cinzel',serif;font-weight:bold;color:#ffcf40;font-size:1rem">TACTICAL MULTIPLAYER ARENA (24×24)</span>
+        <span id="mp-round-lbl" style="font-size:.7rem;color:#9bc4ed;font-weight:bold">ROUND 1 · TURN P1</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:.65rem;color:#4a6a8a">PERSPECTIVE:</span>
+        <span style="font-size:.68rem;color:#8eb8dc;font-weight:bold">PERSPECTIVE:</span>
         <button class="btn" id="mp-tab-0" style="padding:3px 8px;font-size:.68rem" onclick="setMPPerspective(0)">[P1: NW]</button>
         <button class="btn" id="mp-tab-1" style="padding:3px 8px;font-size:.68rem" onclick="setMPPerspective(1)">[P2: NE]</button>
         <button class="btn" id="mp-tab-2" style="padding:3px 8px;font-size:.68rem" onclick="setMPPerspective(2)">[P3: SW]</button>
@@ -556,22 +560,22 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 
     <!-- Main Body: 24x24 Board + Sidebar -->
     <div style="display:grid;grid-template-columns:544px 1fr;gap:12px;padding:12px;flex:1">
-      <div style="position:relative;background:#02060b;border:2px solid #1a3a5a;border-radius:4px;display:flex;align-items:center;justify-content:center">
+      <div style="position:relative;background:#0b192e;border:2px solid #28507c;border-radius:4px;display:flex;align-items:center;justify-content:center">
         <canvas id="mp-board" width="544" height="544"></canvas>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;background:#0a1628;border:1px solid #1a3a5a;border-radius:4px;padding:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #162a42;padding-bottom:6px">
-          <span id="mp-player-status" style="font-weight:bold;color:#00e5ff;font-size:.82rem">P1: NW FLEET</span>
-          <span id="mp-timer-val" style="color:#50c878;font-weight:bold;font-size:1.1rem">30s</span>
+      <div style="display:flex;flex-direction:column;gap:8px;background:#10223a;border:1px solid #28507c;border-radius:4px;padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1c3d64;padding-bottom:6px">
+          <span id="mp-player-status" style="font-weight:bold;color:#00f5ff;font-size:.82rem">P1: NW FLEET</span>
+          <span id="mp-timer-val" style="color:#38ef7d;font-weight:bold;font-size:1.1rem">30s</span>
         </div>
-        <div id="mp-fleet-summary" style="font-size:.7rem;color:#8aa8c8;line-height:1.6">
+        <div id="mp-fleet-summary" style="font-size:.72rem;color:#cce0f5;line-height:1.6">
           <div>FLAGSHIP: 20/20 HP</div>
           <div>PATROL BOAT: 8/8 HP</div>
           <div>MINELAYER: 10/10 HP</div>
           <div>COMMAND POINTS: 4 CP</div>
         </div>
 
-        <div style="font-size:.72rem;color:#d4a843;font-weight:bold;margin-top:4px">TACTICAL ORDERS</div>
+        <div style="font-size:.74rem;color:#ffcf40;font-weight:bold;margin-top:4px">TACTICAL ORDERS</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
           <button class="btn" style="font-size:.68rem;padding:6px" onclick="execMPAction('torpedo')">TORPEDO (2 CP)</button>
           <button class="btn" style="font-size:.68rem;padding:6px" onclick="execMPAction('sonar')">ACTIVE SONAR (1 CP)</button>
@@ -581,8 +585,8 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
           <button class="btn g" style="font-size:.68rem;padding:6px" onclick="execMPAction('pass')">END TURN (PASS)</button>
         </div>
 
-        <div style="font-size:.72rem;color:#d4a843;font-weight:bold;margin-top:6px">PUBLIC TACTICAL FEED (ZERO LEAK)</div>
-        <div id="mp-intel-feed" style="flex:1;background:#06101c;border:1px solid #162a42;border-radius:4px;padding:8px;font-size:.65rem;color:#7a9ab8;overflow-y:auto;line-height:1.5;max-height:180px">
+        <div style="font-size:.74rem;color:#ffcf40;font-weight:bold;margin-top:6px">PUBLIC TACTICAL FEED (ZERO LEAK)</div>
+        <div id="mp-intel-feed" style="flex:1;background:#122540;border:1px solid #28507c;border-radius:4px;padding:8px;font-size:.68rem;color:#cce0f5;overflow-y:auto;line-height:1.5;max-height:180px">
           [00:00] Match initiated. All fleets deployed in home quadrants.
         </div>
       </div>
@@ -592,68 +596,68 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 
 <!-- ── 1v1 TACTICAL ONLINE LOBBY SCREEN ────────────────── -->
 <div id="scr-1v1-lobby" class="screen">
-  <div style="display:flex;flex-direction:column;width:680px;background:#050d18;border:2px solid #1a3a5a;border-radius:6px;overflow:hidden;box-shadow:0 12px 36px rgba(0,0,0,0.8)">
-    <div style="display:flex;justify-content:space-between;align-items:center;background:#081628;border-bottom:1px solid #1a3a5a;padding:12px 18px">
-      <div style="font-family:'Cinzel',serif;font-weight:bold;color:#00e5ff;font-size:1.1rem;letter-spacing:1px">
+  <div style="display:flex;flex-direction:column;width:680px;background:#0d1e34;border:2px solid #2d5a8c;border-radius:6px;overflow:hidden;box-shadow:0 14px 44px rgba(0,0,0,0.85)">
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#122744;border-bottom:1px solid #2d5a8c;padding:12px 18px">
+      <div style="font-family:'Cinzel',serif;font-weight:bold;color:#00f5ff;font-size:1.15rem;letter-spacing:1px">
         ⚔ 1v1 TACTICAL ONLINE DUEL (20×10)
       </div>
-      <button class="btn r" style="padding:4px 10px;font-size:.75rem" onclick="close1v1Lobby()">✕ CLOSE</button>
+      <button class="btn r" style="padding:5px 12px;font-size:.78rem" onclick="close1v1Lobby()">✕ CLOSE</button>
     </div>
 
-    <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+    <div style="padding:22px;display:flex;flex-direction:column;gap:20px">
       <!-- Track A: Quick Match -->
-      <div style="background:#091626;border:1px solid #1c3b5e;border-radius:4px;padding:16px">
+      <div style="background:#122742;border:1px solid #285280;border-radius:4px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#50c878;font-size:.9rem">⚡ QUICK MATCH (AUTOMATIC PAIRING)</div>
-          <span style="font-size:.68rem;background:#062014;color:#50c878;padding:2px 6px;border-radius:2px;border:1px solid #145a32">INSTANT QUEUE</span>
+          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#38ef7d;font-size:.95rem">⚡ QUICK MATCH (AUTOMATIC PAIRING)</div>
+          <span style="font-size:.7rem;background:#0e3620;color:#38ef7d;padding:3px 8px;border-radius:3px;border:1px solid #20683a;font-weight:bold">INSTANT QUEUE</span>
         </div>
-        <div style="font-size:.74rem;color:#8aa8c8;margin-bottom:12px;line-height:1.4">
+        <div style="font-size:.78rem;color:#cce0f5;margin-bottom:12px;line-height:1.5">
           Enter matchmaking queue to automatically pair with the next available commander on a 20×10 dual-sector grid (10×10 per fleet).
         </div>
         <div style="display:flex;align-items:center;gap:12px">
-          <button class="btn g" id="btn-quick-1v1" style="padding:8px 16px;font-size:.82rem" onclick="startQuick1v1()">⚡ FIND OPPONENT</button>
-          <button class="btn r" id="btn-cancel-quick-1v1" style="display:none;padding:8px 14px;font-size:.82rem" onclick="cancelQuick1v1()">CANCEL QUEUE</button>
-          <div id="quick-1v1-status" style="font-size:.75rem;color:#7a9ab8">Ready to queue.</div>
+          <button class="btn g" id="btn-quick-1v1" style="padding:9px 18px;font-size:.84rem" onclick="startQuick1v1()">⚡ FIND OPPONENT</button>
+          <button class="btn r" id="btn-cancel-quick-1v1" style="display:none;padding:9px 16px;font-size:.84rem" onclick="cancelQuick1v1()">CANCEL QUEUE</button>
+          <div id="quick-1v1-status" style="font-size:.78rem;color:#9ec4ea;font-weight:bold">Ready to queue.</div>
         </div>
       </div>
 
       <!-- Track B: Private Room Code -->
-      <div style="background:#091626;border:1px solid #1c3b5e;border-radius:4px;padding:16px">
+      <div style="background:#122742;border:1px solid #285280;border-radius:4px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#d4a843;font-size:.9rem">🔒 PRIVATE DUEL (GAME CODE)</div>
-          <span style="font-size:.68rem;background:#241c06;color:#d4a843;padding:2px 6px;border-radius:2px;border:1px solid #5a4214">CUSTOM ROOM</span>
+          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#ffcf40;font-size:.95rem">🔒 PRIVATE DUEL (GAME CODE)</div>
+          <span style="font-size:.7rem;background:#362608;color:#ffcf40;padding:3px 8px;border-radius:3px;border:1px solid #7a5a14;font-weight:bold">CUSTOM ROOM</span>
         </div>
-        <div style="font-size:.74rem;color:#8aa8c8;margin-bottom:12px;line-height:1.4">
+        <div style="font-size:.78rem;color:#cce0f5;margin-bottom:12px;line-height:1.5">
           Host a direct match with a 4-letter join code, or enter an opponent's code to duel directly.
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
           <!-- Host -->
-          <div style="background:#050d18;border:1px dashed #204060;border-radius:4px;padding:12px;text-align:center">
-            <div style="font-size:.7rem;color:#7a9ab8;margin-bottom:6px">HOST A DUEL</div>
+          <div style="background:#0e2038;border:1px dashed #346092;border-radius:4px;padding:14px;text-align:center">
+            <div style="font-size:.74rem;color:#8eb8dc;margin-bottom:8px;font-weight:bold">HOST A DUEL</div>
             <button class="btn" id="btn-create-1v1" style="width:100%;margin-bottom:8px" onclick="createPrivate1v1()">CREATE ROOM</button>
             <div id="p1v1-code-wrap" style="display:none">
-              <div style="font-size:.65rem;color:#7a9ab8">ROOM CODE:</div>
-              <div id="lbl-room-code" style="font-size:1.6rem;font-family:monospace;font-weight:bold;color:#00e5ff;letter-spacing:4px;margin:4px 0">----</div>
-              <button class="btn" id="btn-copy-code" style="padding:4px 8px;font-size:.68rem" onclick="copy1v1Link()">📋 COPY INVITE LINK</button>
+              <div style="font-size:.68rem;color:#8eb8dc">ROOM CODE:</div>
+              <div id="lbl-room-code" style="font-size:1.7rem;font-family:monospace;font-weight:bold;color:#00f5ff;letter-spacing:4px;margin:5px 0">----</div>
+              <button class="btn" id="btn-copy-code" style="padding:5px 10px;font-size:.72rem" onclick="copy1v1Link()">📋 COPY INVITE LINK</button>
             </div>
           </div>
 
           <!-- Join -->
-          <div style="background:#050d18;border:1px dashed #204060;border-radius:4px;padding:12px;text-align:center">
-            <div style="font-size:.7rem;color:#7a9ab8;margin-bottom:6px">JOIN WITH CODE</div>
+          <div style="background:#0e2038;border:1px dashed #346092;border-radius:4px;padding:14px;text-align:center">
+            <div style="font-size:.74rem;color:#8eb8dc;margin-bottom:8px;font-weight:bold">JOIN WITH CODE</div>
             <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px">
-              <input type="text" id="txt-join-1v1" maxlength="4" placeholder="CODE" style="text-transform:uppercase;width:90px;text-align:center;font-family:monospace;font-size:1.1rem;font-weight:bold;background:#030810;border:1px solid #1a3a5a;color:#00e5ff;padding:4px">
+              <input type="text" id="txt-join-1v1" maxlength="4" placeholder="CODE" style="text-transform:uppercase;width:100px;text-align:center;font-family:monospace;font-size:1.15rem;font-weight:bold;background:#091628;border:1px solid #366092;color:#00f5ff;padding:5px;border-radius:3px">
               <button class="btn" id="btn-join-1v1" onclick="joinPrivate1v1()">JOIN</button>
             </div>
-            <div id="join-1v1-status" style="font-size:.68rem;color:#7a9ab8">Enter 4-letter room code</div>
+            <div id="join-1v1-status" style="font-size:.72rem;color:#8eb8dc">Enter 4-letter room code</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div style="background:#06101c;border-top:1px solid #1a3a5a;padding:10px 18px;display:flex;justify-content:space-between;align-items:center">
-      <div id="lbl-server-endpoint" style="font-size:.68rem;color:#4a6a8a">Authoritative Server: ws://localhost:8090</div>
+    <div style="background:#0d1e34;border-top:1px solid #2d5a8c;padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
+      <div id="lbl-server-endpoint" style="font-size:.74rem;color:#8eb8dc;font-weight:bold">Authoritative Server: ws://localhost:8090</div>
       <button class="btn" onclick="close1v1Lobby()">RETURN TO BRIDGE</button>
     </div>
   </div>
@@ -2083,7 +2087,7 @@ function renderRouteMap() {
   for (let t = 0; t < tiers.length; t++) {
     const tier = tiers[t];
     htmlOut += '<div style="display:flex;flex-direction:column;align-items:center;width:100%">';
-    htmlOut += '<div style="font-size:.65rem;color:#4a6a8a;letter-spacing:.15em;margin-bottom:6px">' + (tierLabels[t] || ('TIER ' + (t + 1))) + '</div>';
+    htmlOut += '<div style="font-size:.68rem;color:#8eb8dc;letter-spacing:.15em;margin-bottom:6px;font-weight:bold">' + (tierLabels[t] || ('TIER ' + (t + 1))) + '</div>';
     htmlOut += '<div class="route-tier">';
     for (let i = 0; i < tier.length; i++) {
       const node = tier[i];
@@ -2097,15 +2101,15 @@ function renderRouteMap() {
       htmlOut += '<div class="route-node ' + statusClass + (isBoss ? ' boss' : '') + '" onclick="selectRouteNode(\'' + node.id + '\')">';
       htmlOut += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
       htmlOut += '<span class="node-type-badge ' + badgeClass + '">' + node.type.toUpperCase() + '</span>';
-      htmlOut += '<span style="font-size:.6rem;color:' + (isAvailable ? '#50c878' : '#3a5a7a') + '">' + node.status.toUpperCase() + '</span>';
+      htmlOut += '<span style="font-size:.62rem;font-weight:bold;color:' + (isAvailable ? '#38ef7d' : '#8eb8dc') + '">' + node.status.toUpperCase() + '</span>';
       htmlOut += '</div>';
-      htmlOut += '<div style="font-size:.78rem;font-weight:bold;color:#d4a843;margin-bottom:3px">' + node.title + '</div>';
-      htmlOut += '<div style="font-size:.65rem;color:#8aa8c8;line-height:1.4">' + node.desc + '</div>';
+      htmlOut += '<div style="font-size:.82rem;font-weight:bold;color:#ffcf40;margin-bottom:3px">' + node.title + '</div>';
+      htmlOut += '<div style="font-size:.68rem;color:#cce0f5;line-height:1.4">' + node.desc + '</div>';
       htmlOut += '</div>';
     }
     htmlOut += '</div>';
     if (t < tiers.length - 1) {
-      htmlOut += '<div style="color:#1a3a5a;font-size:.9rem;margin:4px 0">▼ &nbsp; ▼ &nbsp; ▼</div>';
+      htmlOut += '<div style="color:#3b689a;font-size:.9rem;margin:4px 0">▼ &nbsp; ▼ &nbsp; ▼</div>';
     }
     htmlOut += '</div>';
   }
@@ -2384,7 +2388,7 @@ function renderAnalyzeHeatmap(turnNumber) {
     reasonBox.textContent = RouteEngine.explainAIAction(snap.aiAction, snap.evidence);
   }
 
-  ctx.fillStyle = '#060e1a';
+  ctx.fillStyle = '#0b192e';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const cellSz = 26;
@@ -2401,7 +2405,7 @@ function renderAnalyzeHeatmap(turnNumber) {
   }
 
   // Draw Grid Lines
-  ctx.strokeStyle = 'rgba(26, 58, 90, 0.4)';
+  ctx.strokeStyle = 'rgba(50, 95, 150, 0.6)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 20; i++) {
     ctx.beginPath();
@@ -2500,8 +2504,9 @@ function setMPPerspective(pIdx) {
   for (let i = 0; i < 4; i++) {
     const tab = document.getElementById('mp-tab-' + i);
     if (tab) {
-      tab.style.borderColor = i === pIdx ? '#00e5ff' : '#2a4a6a';
-      tab.style.background = i === pIdx ? 'rgba(0,229,255,0.2)' : 'transparent';
+      tab.style.borderColor = i === pIdx ? '#00f5ff' : '#2e5888';
+      tab.style.color = i === pIdx ? '#00f5ff' : '#8eb8dc';
+      tab.style.background = i === pIdx ? 'rgba(0,245,255,0.25)' : 'transparent';
     }
   }
   const qNames = ['NW (P1)', 'NE (P2)', 'SW (P3)', 'SE (P4)'];
@@ -2519,11 +2524,11 @@ function renderMPBoard() {
   const cellSz = 21;
   const offset = 18;
 
-  ctx.fillStyle = '#040d18';
+  ctx.fillStyle = '#0b192e';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Quadrant dividers
-  ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+  ctx.strokeStyle = 'rgba(0, 245, 255, 0.75)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(offset + 12 * cellSz, offset);
@@ -2543,7 +2548,7 @@ function renderMPBoard() {
   }
 
   // Grid lines
-  ctx.strokeStyle = 'rgba(25, 45, 70, 0.5)';
+  ctx.strokeStyle = 'rgba(60, 110, 170, 0.6)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 24; i++) {
     ctx.beginPath();
@@ -2828,10 +2833,10 @@ const FC={ // family colors
   'Deception':'#6a2a6a','Air ops':'#6a5a1a','Land ops':'#3a3a3a','Sustain':'#2a4a4a'
 };
 
-// Terrain paint colors
+// Terrain paint colors - High contrast & illuminated palette
 const TC={
-  o:'#0c1e35',i:'#3a4825',s:'#142a42',d:'#071525',
-  r:'#2a3a1a',R:'#243320',S:'#243a24'
+  o:'#16355c',i:'#5c7a36',s:'#244e80',d:'#102646',
+  r:'#3d5224',R:'#344b2c',S:'#325232'
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -4063,8 +4068,8 @@ function cp2px(x,y){return{px:LBL+x*CELL,py:LBL+y*CELL};}
 function drawDivider(ctx){
   const midX=LBL+10*CELL;
   ctx.save();
-  ctx.strokeStyle='rgba(212,168,67,0.3)';
-  ctx.lineWidth=1.5;
+  ctx.strokeStyle='rgba(255,207,64,0.7)';
+  ctx.lineWidth=2;
   ctx.setLineDash([4,4]);
   ctx.beginPath();
   ctx.moveTo(midX,LBL);
@@ -4077,16 +4082,16 @@ function drawDivider(ctx){
 function drawTerrain(ctx){
   for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
     const{px,py}=cp2px(x,y);
-    ctx.fillStyle=TC[G.grid[y][x]]||'#0c1e35';
+    ctx.fillStyle=TC[G.grid[y][x]]||'#16355c';
     ctx.fillRect(px,py,CELL,CELL);
-    ctx.strokeStyle='#0d1e32';ctx.lineWidth=.5;
+    ctx.strokeStyle='#244874';ctx.lineWidth=.7;
     ctx.strokeRect(px,py,CELL,CELL);
     if(G.grid[y][x]===T.ISLAND){
-      ctx.fillStyle='rgba(90,110,50,.3)';
+      ctx.fillStyle='rgba(140,190,80,.5)';
       [[3,3],[CELL-6,4],[4,CELL-6]].forEach(([ox,oy])=>ctx.fillRect(px+ox,py+oy,2,2));
     }
     if(G.grid[y][x]===T.RADAR){
-      ctx.fillStyle='#50a030';ctx.font=`${CELL*.48}px monospace`;
+      ctx.fillStyle='#38ef7d';ctx.font=`bold ${CELL*.48}px monospace`;
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText('R',px+CELL/2,py+CELL/2);
     }
@@ -4102,7 +4107,7 @@ function drawFog(ctx){
     const alpha=patrolClear?0:revealed?.18:.84;
     if(alpha>0){
       const{px,py}=cp2px(x,y);
-      ctx.fillStyle=`rgba(3,8,18,${alpha})`;
+      ctx.fillStyle=`rgba(8,18,36,${alpha})`;
       ctx.fillRect(px,py,CELL,CELL);
     }
   }
@@ -4267,8 +4272,8 @@ function drawTargetPreview(ctx){
 }
 
 function drawLabels(ctx){
-  ctx.fillStyle='#2a4a6a';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`${CELL*.38}px monospace`;
+  ctx.fillStyle='#9bc4ed';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`bold ${CELL*.38}px monospace`;
   for(let x=0;x<GW;x++)ctx.fillText(COLS[x],LBL+x*CELL+CELL/2,LBL/2);
   ctx.textAlign='right';
   for(let y=0;y<GH;y++)ctx.fillText(y+1,LBL-3,LBL+y*CELL+CELL/2);
@@ -4573,17 +4578,17 @@ function renderPrepBoard(){
   // 1. Terrain
   for(let y=0; y<GH; y++) for(let x=0; x<GW; x++){
     const { px, py } = cp2px(x, y);
-    ctx.fillStyle = TC[prepState.grid[y][x]] || '#0c1e35';
+    ctx.fillStyle = TC[prepState.grid[y][x]] || '#16355c';
     ctx.fillRect(px, py, CELL, CELL);
-    ctx.strokeStyle = '#0d1e32'; ctx.lineWidth = .5;
+    ctx.strokeStyle = '#244874'; ctx.lineWidth = .7;
     ctx.strokeRect(px, py, CELL, CELL);
 
     if(prepState.grid[y][x] === T.ISLAND){
-      ctx.fillStyle = 'rgba(90,110,50,.3)';
+      ctx.fillStyle = 'rgba(140,190,80,.5)';
       [[3,3],[CELL-6,4],[4,CELL-6]].forEach(([ox,oy])=>ctx.fillRect(px+ox,py+oy,2,2));
     }
     if(prepState.grid[y][x] === T.RADAR){
-      ctx.fillStyle = '#50a030'; ctx.font = `${CELL*.48}px monospace`;
+      ctx.fillStyle = '#38ef7d'; ctx.font = `bold ${CELL*.48}px monospace`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('R', px+CELL/2, py+CELL/2);
     }
@@ -4592,7 +4597,7 @@ function renderPrepBoard(){
   // 2. Allied Sector divider
   const midX = LBL + 10 * CELL;
   ctx.save();
-  ctx.strokeStyle = 'rgba(212,168,67,0.6)';
+  ctx.strokeStyle = 'rgba(255,207,64,0.75)';
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 4]);
   ctx.beginPath();
@@ -4601,13 +4606,6 @@ function renderPrepBoard(){
   ctx.stroke();
   ctx.setLineDash([]);
 
-  ctx.fillStyle = 'rgba(212,168,67,0.7)';
-  ctx.font = 'bold 10px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('◀ ALLIED SECTOR (A–J)', LBL + 6, LBL - 8);
-  ctx.fillStyle = 'rgba(100,120,150,0.5)';
-  ctx.textAlign = 'right';
-  ctx.fillText('HOSTILE WATERS (K–T) ▶', CW - 6, LBL - 8);
   ctx.restore();
 
   // 3. Placed ships
@@ -4650,8 +4648,8 @@ function renderPrepBoard(){
   }
 
   // 5. Grid Labels
-  ctx.fillStyle = '#2a4a6a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `${CELL*.38}px monospace`;
+  ctx.fillStyle = '#9bc4ed'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `bold ${CELL*.38}px monospace`;
   for(let x=0; x<GW; x++) ctx.fillText(COLS[x], LBL+x*CELL+CELL/2, LBL/2);
   ctx.textAlign = 'right';
   for(let y=0; y<GH; y++) ctx.fillText(y+1, LBL-3, LBL+y*CELL+CELL/2);
