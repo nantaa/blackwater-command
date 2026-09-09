@@ -3526,7 +3526,14 @@ function buildMap(seed){
 ════════════════════════════════════════════════════════════════ */
 const cid=(x,y)=>`${COLS[x]}${y+1}`;
 
-const SHIP_LENS = { flagship: 3, patrol: 2, minelayer: 2, eflag: 3, escout: 2, estrike: 2 };
+const SHIP_LENS = { flagship: 3, patrol: 2, minelayer: 2, eflag: 3, escout: 2, estrike: 2, transport: 2 };
+
+function setupEncounter(run, archetype) {
+  if (typeof RouteEngine !== 'undefined' && RouteEngine.setupEncounter) {
+    return RouteEngine.setupEncounter(run, archetype);
+  }
+  return { archetype, objective: 'Destroy Hostile Flagship' };
+}
 
 function getShipCells(shipId, x, y, orientation) {
   const len = SHIP_LENS[shipId] || 2;
@@ -3656,10 +3663,12 @@ function defaultPlacement(grid, rng) {
   return quickDeploy(grid, rng || mkRng(Date.now()));
 }
 
-function initGame(seed,customPlacements,chosenDoctrine){
+function initGame(seed,customPlacements,chosenDoctrine,encounterConfig){
   stopTimer();
   const run=getRun();
   const{grid,rng}=buildMap(seed);
+
+  const activeEncounter = encounterConfig || (typeof activeEncounterArchetype !== 'undefined' ? activeEncounterArchetype : null);
 
   // default or manual placements with full multi-cell segments
   const pPlacements = (customPlacements && customPlacements.flagship)
@@ -3712,6 +3721,28 @@ function initGame(seed,customPlacements,chosenDoctrine){
 
   // Enemy fleet: multi-cell ships in Hostile sector (Cols K-T, x 10–19)
   const eFleet = quickDeployEnemyFleet(grid, rng);
+  if (activeEncounter && activeEncounter.archetype === 'Convoy Raid') {
+    let trX = 17, trY = 10;
+    for (let tryY = 5; tryY <= 15; tryY++) {
+      const c = getShipCells('transport', 17, tryY, 'H');
+      if (c.every(pt => pt.x < GW && grid[pt.y][pt.x] !== T.ISLAND && !getShipAt(eFleet, pt.x, pt.y))) {
+        trX = 17; trY = tryY; break;
+      }
+    }
+    eFleet.push({
+      id: 'transport',
+      lbl: 'CONVOY TRANSPORT',
+      len: 2,
+      orient: 'H',
+      hp: 12,
+      max: 12,
+      pos: { x: trX, y: trY },
+      cells: getShipCells('transport', trX, trY, 'H'),
+      alive: true,
+      cs: CS.UNK,
+      prev: null
+    });
+  }
 
   // deck: use run deck (max 28)
   const deckCards=[...(run.deck||START_DECK)];
@@ -3745,6 +3776,7 @@ function initGame(seed,customPlacements,chosenDoctrine){
 
     pFleet,
     eFleet,
+    encounter: activeEncounter,
 
     ammo:{...run.ammo},
     deck:rest,hand,discard:[],
@@ -3873,15 +3905,19 @@ function doReport(){
   const now=Date.now();
   G.effects=G.effects.filter(e=>now-e.startMs<e.durMs);
   G.markers=G.markers.slice(-30);
-  // enemy micro-movement (hidden)
+  // enemy micro-movement (hidden, strictly confined to Hostile sector Cols K-T)
   G.eFleet.forEach(s=>{
     if(!s.alive)return;
     if(mkRng(G.seed+G.turn*13+s.id.length).nx()<0.4){
       const d=mkRng(G.seed+G.turn*17+s.id.charCodeAt(0)).pick([[0,1],[0,-1],[1,0],[-1,0]]);
       const nx=s.pos.x+d[0],ny=s.pos.y+d[1];
-      if(nx>=0&&nx<GW&&ny>=0&&ny<GH&&G.grid[ny][nx]!==T.ISLAND&&G.grid[ny][nx]!==T.REEF){
+      const newCells = getShipCells(s.id, nx, ny, s.orient || 'H');
+      const valid = newCells.every(c => c.x >= 10 && c.x < GW && c.y >= 0 && c.y < GH && G.grid[c.y][c.x] !== T.ISLAND && G.grid[c.y][c.x] !== T.REEF)
+        && !G.eFleet.some(other => other !== s && other.alive && other.cells && other.cells.some(oc => newCells.some(nc => nc.x === oc.x && nc.y === oc.y)));
+      if(valid){
         s.prev={...s.pos};
         s.pos={x:nx,y:ny};
+        s.cells=newCells;
         if(s.cs===CS.CONF){s.cs=CS.LOST;}
       }
     }
@@ -4126,14 +4162,22 @@ function toggleOrient(){
   render();
 }
 
-function isValidShipMove(tx,ty){
+function isValidShipMove(tx, ty){
+  const shipId = arguments[2];
+  const orient = arguments[3];
   if(!G||tx===null||ty===null||tx<0||tx>=GW||ty<0||ty>=GH)return false;
   const isP2 = (G.mySector === 'P2');
   const minX = isP2 ? 10 : 0;
   const maxX = isP2 ? 20 : 10;
-  if(tx < minX || tx >= maxX) return false;
-  if(G.grid[ty][tx]===T.ISLAND)return false;
-  if(G.pFleet.some(s=>s.alive&&s.cells&&s.cells.some(c=>c.x===tx&&c.y===ty)))return false;
+  const testOrient = orient || (G.tOrient || 'H');
+  const cells = shipId ? getShipCells(shipId, tx, ty, testOrient) : [{ x: tx, y: ty }];
+
+  for (let i = 0; i < cells.length; i++) {
+    const c = cells[i];
+    if (c.x < minX || c.x >= maxX || c.y < 0 || c.y >= GH) return false;
+    if (G.grid[c.y][c.x] === T.ISLAND || G.grid[c.y][c.x] === T.REEF) return false;
+    if (G.pFleet.some(s => s.id !== shipId && s.alive && s.cells && s.cells.some(sc => sc.x === c.x && sc.y === c.y))) return false;
+  }
   return true;
 }
 
@@ -4176,9 +4220,20 @@ function previewCells(id,hx,hy){
       const x=hx+dx,y=hy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
     case'AREA5':for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
       const x=hx+dx,y=hy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
-    case'MOVE_SUP':
+    case'MOVE_SUP':{
+      const sup=G.pFleet.filter(s=>s.id!=='flagship'&&s.alive);
+      if(sup.length){
+        const s=sup.reduce((a,b)=>Math.abs(a.pos.x-hx)+Math.abs(a.pos.y-hy)<=Math.abs(b.pos.x-hx)+Math.abs(b.pos.y-hy)?a:b);
+        if(isValidShipMove(hx,hy,s.id,s.orient||'H')){
+          cells.push({x:hx,y:hy});
+        }
+      }
+      break;}
     case'MOVE_FLAG':{
-      if(isValidShipMove(hx,hy))cells.push({x:hx,y:hy});
+      const f=G.pFleet[0];
+      if(f && isValidShipMove(hx,hy,'flagship',f.orient||'H')){
+        cells.push({x:hx,y:hy});
+      }
       break;}
     default:if(hx>=0&&hx<GW&&hy>=0&&hy<GH)cells.push({x:hx,y:hy});
   }
@@ -4191,20 +4246,23 @@ function previewCells(id,hx,hy){
 function execCard(id,tx,ty){
   const c=CARDS[id];if(!c)return;
   if(c.tgt==='MOVE_SUP'||c.tgt==='MOVE_FLAG'){
-    const isP2 = (G.mySector === 'P2');
-    const inEnemy = isP2 ? (tx < 10) : (tx >= 10);
-    if(inEnemy){
-      const enemySec = isP2 ? 'Cols A–J' : 'Cols K–T';
-      pushLog('sys',`${c.name}: Movement restricted! Ships cannot enter enemy sector (${enemySec}).`);
-      cancelTgt();
-      renderAll();
-      return;
+    const isFlag = (c.tgt === 'MOVE_FLAG');
+    let shipToMove = null;
+    if(isFlag){
+      shipToMove = G.pFleet[0];
+    } else {
+      const sup = G.pFleet.filter(s=>s.id!=='flagship'&&s.alive);
+      if(sup.length){
+        shipToMove = sup.reduce((a,b)=>Math.abs(a.pos.x-tx)+Math.abs(a.pos.y-ty)<=Math.abs(b.pos.x-tx)+Math.abs(b.pos.y-ty)?a:b);
+      }
     }
-    if(!isValidShipMove(tx,ty)){
-      pushLog('sys',`${c.name}: Movement blocked! Cell is impassable or occupied.`);
-      cancelTgt();
-      renderAll();
-      return;
+    if(!shipToMove || !shipToMove.alive){
+      pushLog('sys',`${c.name}: No eligible ship available to move.`);
+      cancelTgt();renderAll();return;
+    }
+    if(!isValidShipMove(tx,ty,shipToMove.id,shipToMove.orient||'H')){
+      pushLog('sys',`${c.name}: Movement restricted! Ship segments cannot cross territory, collide with islands, or leave bounds.`);
+      cancelTgt();renderAll();return;
     }
   }
   if(c.fam==='Direct fire'){
@@ -4506,6 +4564,11 @@ function execSalvo(tx,ty){
 ════════════════════════════════════════════════════════════════ */
 function checkVic(){
   if(!G||G.result)return;
+  if(G.encounter && G.encounter.archetype === 'Convoy Raid'){
+    const tr = G.eFleet.find(s => s.id === 'transport');
+    if(tr && !tr.alive){ endBattle('vic'); return; }
+    if(G.turn > (G.encounter.turnsToEscape || 5)){ endBattle('def'); return; }
+  }
   if(!G.eFleet[0].alive){endBattle('vic');return;}
   if(!G.pFleet[0].alive)endBattle('def');
 }
@@ -4937,7 +5000,7 @@ function renderTmr(){
     <div class="cp-wrap"><div class="cp-dots">${dots}</div><div class="cp-lbl">${G.cp}/${G.maxCp} CP</div></div>
     ${tmrHTML}
     <div class="obj-blk"><div style="font-size:.56rem;color:#2a4060">${G.phase}</div>
-      <div class="obj-txt">HUNT: Destroy enemy flagship</div></div>
+      <div class="obj-txt" id="obj-txt">${(G && G.encounter && G.encounter.objective) ? G.encounter.objective : 'HUNT: Destroy enemy flagship'}</div></div>
     <div class="ctrl-blk">
       <div class="ctrl-row">
         <button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>

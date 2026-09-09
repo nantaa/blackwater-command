@@ -627,11 +627,12 @@
     let hitShip = null;
     let targetPlayer = null;
 
+    match.eventsLog = match.eventsLog || [];
     for (const p of match.players) {
       if (!p.alive || p.eliminated || !p.fleet) continue;
-      for (const sId of ['flagship', 'patrol', 'minelayer']) {
-        const ship = p.fleet[sId];
-        if (ship && ship.alive && ship.cells.some(c => c.x === tx && c.y === ty)) {
+      const fleetList = Array.isArray(p.fleet) ? p.fleet : Object.values(p.fleet || {});
+      for (const ship of fleetList) {
+        if (ship && ship.alive && ship.cells && ship.cells.some(c => c.x === tx && c.y === ty)) {
           hitShip = ship;
           targetPlayer = p;
           break;
@@ -661,6 +662,7 @@
         hit: true,
         targetPlayerId: targetPlayer.id,
         shipId: hitShip.id,
+        targetShip: hitShip.id,
         sunk,
         damage
       };
@@ -882,6 +884,7 @@
       GH: 20,
       grid,
       phase: 'DEPLOY',
+      eventsLog: [],
       round: 1,
       turnOrder: [p1Id, p2Id],
       activePlayerId: p1Id,
@@ -1004,26 +1007,31 @@
       const tx = action.target ? action.target.x : null;
       const ty = action.target ? action.target.y : null;
 
-      // Validate Movement Cards against Midline Border Rule
+      // Validate Movement Cards against Midline Border Rule & Full Segment Bounds
       if (cardId === 'flank_speed' || cardId === 'go_silent') {
-        if (player.sector === 'P1' && tx >= 10) {
-          return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols K–T).' };
-        }
-        if (player.sector === 'P2' && tx < 10) {
-          return { success: false, error: 'Movement restricted! Ships cannot enter enemy sector (Cols A–J).' };
-        }
-        if (tx < 0 || tx >= 20 || ty < 0 || ty >= (match.GH || 20) || match.grid[ty][tx] === T.ISLAND) {
-          return { success: false, error: 'Movement blocked! Impassable terrain.' };
-        }
-        // Move ship
+        const fleetList = Array.isArray(player.fleet) ? player.fleet : Object.values(player.fleet || {});
         const ship = cardId === 'go_silent'
-          ? player.fleet.find(s => s.id === 'flagship')
-          : player.fleet.find(s => s.id !== 'flagship' && s.alive);
-        if (ship) {
-          ship.x = tx;
-          ship.y = ty;
-          ship.cells = getShipCells(ship.id, tx, ty, ship.orient || 'H');
+          ? fleetList.find(s => s.id === 'flagship')
+          : fleetList.find(s => s.id !== 'flagship' && s.alive);
+        if (!ship) return { success: false, error: 'No eligible ship to move' };
+
+        const sec = get1v1Sector(player.sector);
+        const newCells = getShipCells(ship.id, tx, ty, ship.orient || 'H');
+        for (const pt of newCells) {
+          if (pt.x < sec.x0 || pt.x > sec.x1 || pt.y < sec.y0 || pt.y > sec.y1) {
+            return { success: false, error: `Movement restricted! Ship segment (${pt.x},${pt.y}) leaves friendly sector (${sec.colStart}–${sec.colEnd}).` };
+          }
+          if (match.grid[pt.y][pt.x] === T.ISLAND) {
+            return { success: false, error: 'Movement blocked! Impassable terrain.' };
+          }
+          const collides = fleetList.some(other => other !== ship && other.alive && other.cells && other.cells.some(c => c.x === pt.x && c.y === pt.y));
+          if (collides) {
+            return { success: false, error: 'Movement blocked! Overlaps another ship.' };
+          }
         }
+        ship.x = tx;
+        ship.y = ty;
+        ship.cells = newCells;
         player.cp = Math.max(0, player.cp - 1);
         player.hand.splice(cIdx, 1);
         player.discard.push(cardId);
