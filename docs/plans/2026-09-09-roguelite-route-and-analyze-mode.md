@@ -1,6 +1,5 @@
 # Blackwater Command — Roguelite Route Map, Mirage Carrier Boss & AI Heatmap Analyze Mode Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Complete the full roguelite vertical slice from `final-prototype.md`: build the interactive Branching Route Map (Region 1), multiple encounter types (Hunt, Convoy Raid, Silent Duel), the Mirage Carrier Regional Boss (60s timer + false contacts), Decision Events, and the post-battle AI Probability Heatmap Analyze Mode, unifying the campaign and multiplayer tactical modes into one polished itch.io package.
 

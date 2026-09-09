@@ -1,6 +1,5 @@
 # Tactical 1v1 Online Mode (20×10 Dual-Sector) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a dedicated, low-latency Tactical 1v1 Online multiplayer mode featuring a fast-paced 20×10 grid (10×10 per player), supporting both automatic Quick Match pairing (FIFO queue) and 4-letter Private Room codes with 1-click invite links, fully integrated into the standalone single-file release.
 

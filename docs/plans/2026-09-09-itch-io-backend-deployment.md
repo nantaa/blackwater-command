@@ -1,6 +1,5 @@
 # itch.io Production Backend Deployment & Guide Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Author a definitive, battle-tested deployment guide for hosting the Blackwater Command authoritative WebSocket backend when the standalone HTML is uploaded to itch.io, plus implement necessary production adaptations (WSS auto-detection, HTTP health-check probe, and cloud environment readiness).
 

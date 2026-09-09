@@ -1,6 +1,5 @@
 # Blackwater Command — Multiplayer v0 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a complete 4-player multiplayer system (1v1v1v1 FFA and 2v2 Teams) for Blackwater Command with secret deployment on a 24×24 quadrant board, contiguous multi-cell ship footprints, zero-leak fog-of-war filtering, turn timers, and an authoritative WebSocket server.
 
