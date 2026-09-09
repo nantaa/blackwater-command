@@ -310,6 +310,28 @@ function handleClientMessage(ws, data) {
       const player = room.match.players.find(p => p.id === client.playerId);
       if (!player) return;
 
+      if (room.mode === '1v1_duel') {
+        let fleet = msg.fleet;
+        if (msg.quickDeploy || !fleet) {
+          fleet = MP.quickDeploy1v1(room.match.grid, player.sector, room.match.rng);
+        }
+        const val = MP.validate1v1Placement(room.match.grid, player.sector, fleet);
+        if (!val.valid) {
+          ws.send(JSON.stringify({ type: 'ERROR', message: val.error }));
+          return;
+        }
+        player.fleet = fleet;
+        player.deployed = true;
+        ws.send(JSON.stringify({ type: 'DEPLOYMENT_ACCEPTED', fleet }));
+
+        if (room.match.players.every(p => p.deployed)) {
+          room.match.phase = 'BATTLE_ACTIVE';
+          room.startTurnTimer();
+          room.broadcastState();
+        }
+        break;
+      }
+
       let fleet = msg.fleet;
       if (msg.quickDeploy || !fleet) {
         fleet = MP.quickDeployMP(room.match.grid, player.quadrant, room.match.rng);
@@ -336,6 +358,36 @@ function handleClientMessage(ws, data) {
       if (!room || !room.match) return;
       const client = room.getClientByWs(ws);
       if (!client) return;
+
+      if (room.mode === '1v1_duel') {
+        if (room.match.activePlayerId !== client.playerId) {
+          ws.send(JSON.stringify({ type: 'ERROR', message: 'Not your turn' }));
+          return;
+        }
+        const cardId = msg.action === 'salvo' ? 'torpedo_line' : (msg.action || 'torpedo_line');
+        const actResult = MP.exec1v1Action(room.match, client.playerId, {
+          type: 'PLAY_CARD',
+          cardId,
+          target: { x: msg.x, y: msg.y }
+        });
+        if (!actResult.success) {
+          ws.send(JSON.stringify({ type: 'ERROR', message: actResult.error }));
+          return;
+        }
+        // Advance turn between p1 and p2
+        const nextPid = client.playerId === 'p1' ? 'p2' : 'p1';
+        room.match.activePlayerId = nextPid;
+        room.timerRemaining = 30;
+
+        ws.send(JSON.stringify({
+          type: 'ACTION_RESOLVED',
+          success: true,
+          result: actResult
+        }));
+
+        room.broadcastState();
+        break;
+      }
 
       if (room.match.activePlayerId !== client.playerId) {
         ws.send(JSON.stringify({ type: 'ERROR', message: 'Not your turn' }));
