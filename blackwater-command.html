@@ -664,6 +664,7 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
 
 <script>
 'use strict';
+window.BLACKWATER_PROD_WS_URL = 'wss://blackwater-command-production.up.railway.app';
 
 /* ════════════════════════════════════════════════════════════════
    §0A  INLINED ROUTE ENGINE (Roguelite DAG & Replay Analysis)
@@ -2669,7 +2670,7 @@ function getDuelWsUrl() {
     if (typeof window.BLACKWATER_PROD_WS_URL === 'string' && window.BLACKWATER_PROD_WS_URL.trim() !== '') {
       return window.BLACKWATER_PROD_WS_URL.trim();
     }
-    return isLocal ? `wss://${hostname}:8090` : `wss://${hostname}/ws`;
+    return isLocal ? `wss://${hostname}:8090` : 'wss://blackwater-command-production.up.railway.app';
   }
 
   return `ws://${hostname}:8090`;
