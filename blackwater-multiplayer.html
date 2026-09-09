@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blackwater Command — Tactical Multiplayer v0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #03080e;
+      --bg-panel: rgba(8, 18, 30, 0.88);
+      --bg-card: rgba(14, 29, 48, 0.75);
+      --border-subtle: rgba(0, 229, 255, 0.15);
+      --border-bright: rgba(0, 229, 255, 0.45);
+      --border-gold: rgba(255, 183, 0, 0.6);
+      --cyan: #00e5ff;
+      --cyan-dim: rgba(0, 229, 255, 0.25);
+      --gold: #ffb300;
+      --gold-dim: rgba(255, 179, 0, 0.2);
+      --red: #ff1744;
+      --green: #00e676;
+      --p1-col: #00e5ff;
+      --p2-col: #ff3d00;
+      --p3-col: #76ff03;
+      --p4-col: #ffd600;
+      --font-display: 'Cinzel', serif;
+      --font-ui: 'Rajdhani', sans-serif;
+      --font-mono: 'Share Tech Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-deep);
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(0, 229, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 10% 90%, rgba(255, 179, 0, 0.05) 0%, transparent 50%),
+        linear-gradient(to bottom, #03080e, #06111e 60%, #03080e);
+      color: #d1e8ff;
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header & Nav */
+    header {
+      background: rgba(4, 12, 22, 0.92);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      z-index: 100;
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-shadow: 0 0 15px var(--cyan);
+    }
+    .brand-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      background: rgba(0, 229, 255, 0.15);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 7px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: #d1e8ff;
+    }
+    .btn:hover:not(:disabled) {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 255, 0.15);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+      transform: translateY(-1px);
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: rgba(255,255,255,0.1);
+    }
+    .btn-gold {
+      background: rgba(255, 179, 0, 0.15);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .btn-gold:hover:not(:disabled) {
+      background: rgba(255, 179, 0, 0.3);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 179, 0, 0.4);
+    }
+    .btn-red {
+      background: rgba(255, 23, 68, 0.15);
+      border-color: var(--red);
+      color: var(--red);
+    }
+    .btn-red:hover:not(:disabled) {
+      background: rgba(255, 23, 68, 0.3);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 23, 68, 0.4);
+    }
+
+    /* Viewer / Perspective Tabs */
+    .perspective-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,0,0,0.4);
+      padding: 4px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .perspective-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #799bbb;
+      margin-right: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .ptab {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #8da6c2;
+      transition: all 0.15s;
+    }
+    .ptab:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.05);
+    }
+    .ptab.active[data-p="0"] { background: rgba(0, 229, 255, 0.2); border-color: var(--p1-col); color: var(--p1-col); box-shadow: 0 0 10px rgba(0,229,255,0.3); }
+    .ptab.active[data-p="1"] { background: rgba(255, 61, 0, 0.2); border-color: var(--p2-col); color: var(--p2-col); box-shadow: 0 0 10px rgba(255,61,0,0.3); }
+    .ptab.active[data-p="2"] { background: rgba(118, 255, 3, 0.2); border-color: var(--p3-col); color: var(--p3-col); box-shadow: 0 0 10px rgba(118,255,3,0.3); }
+    .ptab.active[data-p="3"] { background: rgba(255, 214, 0, 0.2); border-color: var(--p4-col); color: var(--p4-col); box-shadow: 0 0 10px rgba(255,214,0,0.3); }
+
+    /* Main Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 310px 1fr 340px;
+      gap: 16px;
+      padding: 16px;
+      flex: 1;
+      max-width: 1700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Panels */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 8px;
+    }
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: 1.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Left Sidebar: Fleet & Tactical Cards */
+    .fleet-status-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .fleet-status-card.active-turn {
+      border-color: var(--cyan);
+      box-shadow: 0 0 14px rgba(0, 229, 255, 0.2);
+    }
+    .fleet-status-card.eliminated {
+      opacity: 0.4;
+      filter: grayscale(80%);
+    }
+    .fleet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .player-badge {
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .quadrant-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.08);
+    }
+    .hp-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .hp-bar-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.3s ease;
+    }
+    .support-ships-icons {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+      color: #7d9bb8;
+    }
+
+    /* Center Board Area */
+    .board-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+    }
+
+    .tactical-turn-banner {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(10px);
+    }
+    .turn-identity {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .turn-num {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--cyan);
+      font-weight: bold;
+    }
+    .turn-actor {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .timer-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .timer-box {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold);
+      padding: 4px 10px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 4px;
+      border: 1px solid var(--gold-dim);
+      min-width: 55px;
+      text-align: center;
+    }
+    .timer-bar-container {
+      width: 140px;
+      height: 8px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .timer-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--cyan);
+      transition: width 1s linear;
+    }
+
+    /* Canvas Wrapper */
+    .canvas-wrap {
+      position: relative;
+      background: #02060b;
+      border: 2px solid var(--border-bright);
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0, 229, 255, 0.15), inset 0 0 40px rgba(0,0,0,0.8);
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Deployment Overlay Panel */
+    .deployment-bar {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .ship-select-group {
+      display: flex;
+      gap: 8px;
+    }
+    .ship-btn {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #9cb5cf;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ship-btn:hover {
+      border-color: var(--cyan);
+      color: #fff;
+    }
+    .ship-btn.active {
+      background: rgba(0, 229, 255, 0.2);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 10px rgba(0,229,255,0.3);
+    }
+
+    /* Right Sidebar: Public Intel & Actions */
+    .intel-feed {
+      background: rgba(2, 6, 12, 0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      height: 240px;
+      overflow-y: auto;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .intel-feed::-webkit-scrollbar {
+      width: 4px;
+    }
+    .intel-feed::-webkit-scrollbar-thumb {
+      background: rgba(0, 229, 255, 0.2);
+      border-radius: 2px;
+    }
+    .log-item {
+      padding: 3px 6px;
+      border-left: 2px solid #5a738e;
+      background: rgba(255,255,255,0.02);
+      line-height: 1.4;
+    }
+    .log-item.hit { border-left-color: var(--red); color: #ff8a80; }
+    .log-item.miss { border-left-color: #546e7a; color: #90a4ae; }
+    .log-item.scan { border-left-color: var(--cyan); color: #80d8ff; }
+    .log-item.sunk { border-left-color: var(--gold); color: #ffd54f; font-weight: bold; }
+    .log-item.storm { border-left-color: #e040fb; color: #ea80fc; }
+
+    /* Action Cards Bar */
+    .action-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .action-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s;
+    }
+    .action-card:hover:not(.disabled) {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 255, 0.1);
+      transform: translateX(3px);
+    }
+    .action-card.selected {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 255, 0.2);
+      box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+    }
+    .action-card.disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .card-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .card-desc {
+      font-size: 10px;
+      color: #8da3bb;
+    }
+    .card-cost {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--gold);
+      background: rgba(255, 179, 0, 0.12);
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--gold-dim);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: #081626;
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      width: 480px;
+      padding: 24px;
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand-title">
+      <span>BLACKWATER COMMAND</span>
+      <span class="brand-tag">MP v0 SIMULATION</span>
+    </div>
+
+    <!-- Viewer Perspective Switcher -->
+    <div class="perspective-bar">
+      <span class="perspective-label">PERSPECTIVE:</span>
+      <button class="ptab active" id="tab-p1" data-p="0">P1 [NW]</button>
+      <button class="ptab" id="tab-p2" data-p="1">P2 [NE]</button>
+      <button class="ptab" id="tab-p3" data-p="2">P3 [SW]</button>
+      <button class="ptab" id="tab-p4" data-p="3">P4 [SE]</button>
+    </div>
+
+    <!-- Mode Selector & Network Lobby -->
+    <div class="header-controls">
+      <select id="mode-select" class="btn" style="padding: 6px 12px;">
+        <option value="1v1v1v1" id="mode-ffa">1v1v1v1 Free For All</option>
+        <option value="2v2">2v2 Teams (NW+SW vs NE+SE)</option>
+      </select>
+      <button class="btn btn-gold" id="btn-remote-lobby">🌐 Remote Lobby</button>
+      <button class="btn" id="btn-reset-match">🔄 Restart</button>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="main-grid">
+
+    <!-- Left Column: Fleets & CP Status -->
+    <aside class="panel">
+      <div class="panel-header">
+        <span class="panel-title">FLEET SURVEILLANCE</span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan);" id="cp-meter">CP: 3 / 6</span>
+      </div>
+
+      <div id="fleet-list" style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- Player 1 Status Card -->
+        <div class="fleet-status-card active-turn" id="fleet-card-0">
+          <div class="fleet-header">
+            <span class="player-badge" style="color: var(--p1-col);">● Player 1</span>
+            <span class="quadrant-tag">NW [A–L, 1–12]</span>
+          </div>
+          <div class="hp-bar-wrap"><div class="hp-bar-fill" id="hp-bar-0" style="width: 100%;"></div></div>
+          <div class="support-ships-icons">
+            <span id="flagship-status-0">Flagship: 20 HP</span>
+            <span id="supports-status-0">Supports: 2/2</span>
+          </div>
+        </div>
+
+        <!-- Player 2 Status Card -->
+        <div class="fleet-status-card" id="fleet-card-1">
+          <div class="fleet-header">
+            <span class="player-badge" style="color: var(--p2-col);">● Player 2</span>
+            <span class="quadrant-tag">NE [M–X, 1–12]</span>
+          </div>
+          <div class="hp-bar-wrap"><div class="hp-bar-fill" id="hp-bar-1" style="width: 100%;"></div></div>
+          <div class="support-ships-icons">
+            <span id="flagship-status-1">Flagship: 20 HP</span>
+            <span id="supports-status-1">Supports: 2/2</span>
+          </div>
+        </div>
+
+        <!-- Player 3 Status Card -->
+        <div class="fleet-status-card" id="fleet-card-2">
+          <div class="fleet-header">
+            <span class="player-badge" style="color: var(--p3-col);">● Player 3</span>
+            <span class="quadrant-tag">SW [A–L, 13–24]</span>
+          </div>
+          <div class="hp-bar-wrap"><div class="hp-bar-fill" id="hp-bar-2" style="width: 100%;"></div></div>
+          <div class="support-ships-icons">
+            <span id="flagship-status-2">Flagship: 20 HP</span>
+            <span id="supports-status-2">Supports: 2/2</span>
+          </div>
+        </div>
+
+        <!-- Player 4 Status Card -->
+        <div class="fleet-status-card" id="fleet-card-3">
+          <div class="fleet-header">
+            <span class="player-badge" style="color: var(--p4-col);">● Player 4</span>
+            <span class="quadrant-tag">SE [M–X, 13–24]</span>
+          </div>
+          <div class="hp-bar-wrap"><div class="hp-bar-fill" id="hp-bar-3" style="width: 100%;"></div></div>
+          <div class="support-ships-icons">
+            <span id="flagship-status-3">Flagship: 20 HP</span>
+            <span id="supports-status-3">Supports: 2/2</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Card Deck / Available Actions -->
+      <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px;">
+        <div class="panel-header" style="margin-bottom: 8px;">
+          <span class="panel-title">TACTICAL DOCTRINES</span>
+        </div>
+        <div class="action-cards" id="action-cards-container">
+          <div class="action-card selected" data-action="strike">
+            <div class="card-info">
+              <span class="card-name">Standard Strike</span>
+              <span class="card-desc">Single cell pinpoint kinetic strike</span>
+            </div>
+            <span class="card-cost">1 CP</span>
+          </div>
+          <div class="action-card" data-action="salvo">
+            <div class="card-info">
+              <span class="card-name">Torpedo Salvo</span>
+              <span class="card-desc">Horizontal/Vertical 2-cell impact</span>
+            </div>
+            <span class="card-cost">2 CP</span>
+          </div>
+          <div class="action-card" data-action="sonar">
+            <div class="card-info">
+              <span class="card-name">Acoustic Sonar Sweep</span>
+              <span class="card-desc">Reconnaissance on 3x3 sector</span>
+            </div>
+            <span class="card-cost">1 CP</span>
+          </div>
+          <div class="action-card" data-action="decoy">
+            <div class="card-info">
+              <span class="card-name">Decoy Buoy Deploy</span>
+              <span class="card-desc">Spawn acoustic phantom in home quadrant</span>
+            </div>
+            <span class="card-cost">1 CP</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Column: Tactical 24x24 Board & Deployment -->
+    <section class="board-container">
+      
+      <!-- Live Turn Banner -->
+      <div class="tactical-turn-banner" id="turn-banner">
+        <div class="turn-identity">
+          <span class="turn-num" id="round-indicator">ROUND 1</span>
+          <span class="turn-actor" id="active-actor-text">Active: Player 1 (NW)</span>
+        </div>
+        <div class="timer-wrap">
+          <div class="timer-bar-container">
+            <div class="timer-bar-fill" id="timer-bar"></div>
+          </div>
+          <span class="timer-box" id="turn-timer">30s</span>
+          <button class="btn btn-red" id="btn-skip-turn">Skip / End Turn</button>
+        </div>
+      </div>
+
+      <!-- Deployment Controls (Visible only during secret deployment phase) -->
+      <div class="deployment-bar" id="deployment-bar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 700; color: var(--gold); font-size: 13px;">DEPLOY FLEET:</span>
+          <div class="ship-select-group">
+            <button class="ship-btn active" data-ship="flagship">Flagship (3c)</button>
+            <button class="ship-btn" data-ship="patrol">Patrol (2c)</button>
+            <button class="ship-btn" data-ship="minelayer">Minelayer (2c)</button>
+          </div>
+          <button class="btn" id="btn-rotate-ship">Rotate: Horizontal</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-gold" id="btn-quick-deploy">⚡ Quick Deploy</button>
+          <button class="btn btn-gold" id="btn-confirm-deploy">✓ Confirm Deploy</button>
+        </div>
+      </div>
+
+      <!-- 24x24 Tactical Canvas -->
+      <div class="canvas-wrap">
+        <canvas id="boardCanvas" width="624" height="624"></canvas>
+      </div>
+
+      <div style="font-family: var(--font-mono); font-size: 11px; color: #6a88a6; text-align: center;">
+        Coordinates: A–X (Cols), 1–24 (Rows). Gold crosshair demarcates home quadrants.
+      </div>
+    </section>
+
+    <!-- Right Column: Public Intel & Operations Log -->
+    <aside class="panel">
+      <div class="panel-header">
+        <span class="panel-title">PUBLIC INTEL FEED</span>
+        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--green);">LIVE ENCRYPTED</span>
+      </div>
+
+      <!-- Intel Feed -->
+      <div class="intel-feed" id="public-intel-feed">
+        <div class="log-item">[00:00:00] Simulation initialized. 4 Fleets standing by.</div>
+        <div class="log-item">[00:00:00] Secret deployment phase active. Place vessels within home quadrant.</div>
+      </div>
+
+      <div class="panel-header" style="margin-top: 10px;">
+        <span class="panel-title">PLATFORM CAPABILITIES</span>
+      </div>
+
+      <div style="font-size: 12px; line-height: 1.6; color: #a1bed8; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="margin-bottom: 6px;"><strong>⚓ Flagship:</strong> Fleet command core (20 HP). Destruction eliminates fleet.</div>
+        <div style="margin-bottom: 6px;"><strong>⚡ Patrol Boat:</strong> Fast hunter (8 HP). Allows 1 High-Res Sonar per round.</div>
+        <div><strong>💣 Minelayer:</strong> Heavy ordnance (10 HP). Allows 1 Decoy/Mine deploy per round.</div>
+      </div>
+
+      <div style="margin-top: auto;">
+        <button class="btn btn-red" id="btn-surrender" style="width: 100%; justify-content: center;">Flagship Surrender</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Remote Server Lobby Modal -->
+  <div class="modal-overlay" id="lobby-modal">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>AUTHORITATIVE MULTIPLAYER LOBBY</span>
+      </div>
+      <p style="font-size: 13px; color: #8faec9; line-height: 1.5;">
+        Connect to an authoritative Node.js WebSocket server (<code style="color: var(--cyan);">ws://localhost:8090</code>) with zero-leak state filtering.
+      </p>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="input-room-code" placeholder="ENTER 4-LETTER CODE (e.g. BW7K)" style="flex: 1; padding: 8px 12px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-bright); border-radius: 4px; color: #fff; font-family: var(--font-mono); text-transform: uppercase;">
+        <button class="btn btn-gold" id="btn-join-room">Join Room</button>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <button class="btn" id="btn-create-room">Create New Room</button>
+        <button class="btn" id="btn-close-modal">Close</button>
+      </div>
+      <div id="lobby-status" style="font-family: var(--font-mono); font-size: 11px; color: var(--gold); min-height: 18px;"></div>
+    </div>
+  </div>
+
+  <!-- Core Multiplayer Engine Script -->
+  <script src="src/mp-engine.js"></script>
+
+  <!-- UI Controller Script -->
+  <script>
+    (function() {
+      // Setup Canvas
+      const canvas = document.getElementById('boardCanvas');
+      const ctx = canvas.getContext('2d');
+      const CELL_SIZE = 26; // 24 * 26 = 624 px
+      const GW = 24;
+      const GH = 24;
+
+      // State
+      let viewerIndex = 0; // 0=P1, 1=P2, 2=P3, 3=P4
+      let match = null;
+      let selectedAction = 'strike';
+      let selectedShipType = 'flagship';
+      let shipOrientation = 'H';
+      let hoverCell = null;
+      let turnTimerInterval = null;
+      let timerRemaining = 30;
+
+      // Track manual placement per player for secret deployment phase
+      let stagedFleets = [
+        { flagship: null, patrol: null, minelayer: null },
+        { flagship: null, patrol: null, minelayer: null },
+        { flagship: null, patrol: null, minelayer: null },
+        { flagship: null, patrol: null, minelayer: null }
+      ];
+
+      function getViewerPlayer() {
+        return match ? match.players[viewerIndex] : null;
+      }
+
+      function getActivePlayer() {
+        if (!match || !match.activePlayerId) return match ? match.players[0] : null;
+        return match.players.find(p => p.id === match.activePlayerId) || match.players[0];
+      }
+
+      // Initialize match
+      function initGame() {
+        const mode = document.getElementById('mode-select').value;
+        match = window.MP.createMPMatch({ mode });
+        
+        // Auto-deploy all 4 fleets with quickDeploy so the game is immediately playable
+        for (let i = 0; i < 4; i++) {
+          const p = match.players[i];
+          const fleet = window.MP.quickDeployMP(match.grid, p.quadrant, match.rng);
+          stagedFleets[i] = fleet;
+          window.MP.submitDeployment(match, p.id, fleet);
+        }
+
+        logIntel(`Match initialized in ${mode} mode. All 4 fleets deployed secretly.`, 'normal');
+        logIntel(`Initiative determined. First turn belongs to ${getActivePlayer().name} [${getActivePlayer().quadrant}].`, 'scan');
+        renderUI();
+        startTurnTimer();
+      }
+
+      // Logging
+      function logIntel(msg, type = 'normal') {
+        const feed = document.getElementById('public-intel-feed');
+        if (!feed) return;
+        const d = new Date();
+        const timeStr = d.toTimeString().split(' ')[0];
+        const item = document.createElement('div');
+        item.className = 'log-item ' + type;
+        item.textContent = `[${timeStr}] ${msg}`;
+        feed.appendChild(item);
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      // Turn Timer
+      function startTurnTimer() {
+        if (turnTimerInterval) clearInterval(turnTimerInterval);
+        timerRemaining = 30;
+        updateTimerDisplay();
+
+        turnTimerInterval = setInterval(() => {
+          if (!match || match.phase === 'FINISHED') return;
+          timerRemaining--;
+          updateTimerDisplay();
+
+          if (timerRemaining <= 0) {
+            const activeP = getActivePlayer();
+            logIntel(`Turn timer expired for ${activeP.name}! Voluntary skip / timeout penalty applied.`, 'miss');
+            window.MP.handleTurnTimeoutOrSkip(match, activeP.id);
+            timerRemaining = 30;
+            renderUI();
+          }
+        }, 1000);
+      }
+
+      function updateTimerDisplay() {
+        const timerEl = document.getElementById('turn-timer');
+        if (!timerEl) return;
+        timerEl.textContent = `${timerRemaining}s`;
+        const pct = (timerRemaining / 30) * 100;
+        const bar = document.getElementById('timer-bar');
+        if (bar) {
+          bar.style.width = `${pct}%`;
+          if (timerRemaining <= 5) {
+            bar.style.background = 'var(--red)';
+          } else if (timerRemaining <= 10) {
+            bar.style.background = 'var(--gold)';
+          } else {
+            bar.style.background = 'var(--cyan)';
+          }
+        }
+      }
+
+      // Render UI elements
+      function renderUI() {
+        if (!match) return;
+        const activeP = getActivePlayer();
+        const activeIdx = match.players.findIndex(p => p.id === activeP.id);
+
+        document.getElementById('active-actor-text').textContent = `Active: ${activeP.name} [${activeP.quadrant}]`;
+        document.getElementById('active-actor-text').style.color = getPlayerColor(activeIdx);
+        document.getElementById('round-indicator').textContent = `ROUND ${match.round}`;
+        document.getElementById('cp-meter').textContent = `CP: ${activeP.cp} / ${match.rules ? match.rules.maxCP : 6}`;
+
+        // Deployment bar visibility
+        document.getElementById('deployment-bar').style.display = match.phase === 'DEPLOYMENT' ? 'flex' : 'none';
+
+        // Update Fleet Status Cards (Zero leak - derived only from public filtered info)
+        for (let i = 0; i < 4; i++) {
+          const p = match.players[i];
+          const card = document.getElementById(`fleet-card-${i}`);
+          if (!card) continue;
+
+          if (!p.alive || p.eliminated) {
+            card.className = 'fleet-status-card eliminated';
+          } else if (p.id === activeP.id && match.phase !== 'FINISHED') {
+            card.className = 'fleet-status-card active-turn';
+          } else {
+            card.className = 'fleet-status-card';
+          }
+
+          let flagshipHp = 0;
+          let survivingSupports = 0;
+          if (p.fleet) {
+            if (p.fleet.flagship && p.fleet.flagship.alive) flagshipHp = p.fleet.flagship.hp;
+            if (p.fleet.patrol && p.fleet.patrol.alive) survivingSupports++;
+            if (p.fleet.minelayer && p.fleet.minelayer.alive) survivingSupports++;
+          }
+
+          const hpBar = document.getElementById(`hp-bar-${i}`);
+          const hpPct = Math.max(0, (flagshipHp / 20) * 100);
+          if (hpBar) {
+            hpBar.style.width = `${hpPct}%`;
+            if (hpPct < 30) hpBar.style.background = 'var(--red)';
+            else if (hpPct < 60) hpBar.style.background = 'var(--gold)';
+            else hpBar.style.background = 'var(--green)';
+          }
+
+          document.getElementById(`flagship-status-${i}`).textContent = `Flagship: ${flagshipHp}/20 HP`;
+          document.getElementById(`supports-status-${i}`).textContent = `Supports: ${survivingSupports}/2`;
+        }
+
+        renderBoard();
+      }
+
+      function getPlayerColor(pIdx) {
+        return ['var(--p1-col)', 'var(--p2-col)', 'var(--p3-col)', 'var(--p4-col)'][pIdx] || 'var(--cyan)';
+      }
+
+      // Canvas Rendering with Zero-Leak Filtering
+      function renderBoard() {
+        if (!match) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Filtered State for viewer
+        const filtered = window.MP.getFilteredState(match, viewerIndex);
+        if (!filtered) return;
+
+        // Draw Grid Cells
+        for (let y = 0; y < GH; y++) {
+          for (let x = 0; x < GW; x++) {
+            const px = x * CELL_SIZE;
+            const py = y * CELL_SIZE;
+
+            // Quadrant background tint
+            const quad = window.MP.getCellQuadrant(x, y);
+            if (quad === 'NW') ctx.fillStyle = 'rgba(0, 229, 255, 0.03)';
+            else if (quad === 'NE') ctx.fillStyle = 'rgba(255, 61, 0, 0.03)';
+            else if (quad === 'SW') ctx.fillStyle = 'rgba(118, 255, 3, 0.03)';
+            else ctx.fillStyle = 'rgba(255, 214, 0, 0.03)';
+            ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+
+            // Grid lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.strokeRect(px, py, CELL_SIZE, CELL_SIZE);
+          }
+        }
+
+        // Draw Gold Quadrant Crosshairs
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 183, 0, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        // Vertical divider between col 11 and 12 (x=12)
+        ctx.beginPath();
+        ctx.moveTo(12 * CELL_SIZE, 0);
+        ctx.lineTo(12 * CELL_SIZE, GH * CELL_SIZE);
+        ctx.stroke();
+        // Horizontal divider between row 11 and 12 (y=12)
+        ctx.beginPath();
+        ctx.moveTo(0, 12 * CELL_SIZE);
+        ctx.lineTo(GW * CELL_SIZE, 12 * CELL_SIZE);
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw Viewer's Own Ships (NEVER Opponent Ships)
+        if (filtered.self && filtered.self.fleet) {
+          const fleet = filtered.self.fleet;
+          ['flagship', 'patrol', 'minelayer'].forEach(sType => {
+            const ship = fleet[sType];
+            if (!ship || !ship.alive || !ship.cells) return;
+            
+            ship.cells.forEach((c, idx) => {
+              const px = c.x * CELL_SIZE;
+              const py = c.y * CELL_SIZE;
+              
+              ctx.fillStyle = sType === 'flagship' ? 'rgba(0, 229, 255, 0.35)' : 'rgba(0, 229, 255, 0.2)';
+              ctx.fillRect(px + 2, py + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+              ctx.strokeStyle = 'rgba(0, 229, 255, 0.8)';
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(px + 2, py + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+
+              // Center label for ship
+              if (idx === 0) {
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Rajdhani';
+                ctx.fillText(sType[0].toUpperCase(), px + 8, py + 17);
+              }
+            });
+          });
+        }
+
+        // Draw Shared Intel (e.g. Scanned cells in 2v2)
+        if (filtered.sharedIntel && filtered.sharedIntel.length > 0) {
+          filtered.sharedIntel.forEach(intel => {
+            if (intel.x !== undefined && intel.y !== undefined) {
+              const px = intel.x * CELL_SIZE;
+              const py = intel.y * CELL_SIZE;
+              ctx.fillStyle = 'rgba(0, 230, 118, 0.15)';
+              ctx.fillRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+            }
+          });
+        }
+
+        // Hover Crosshair
+        if (hoverCell) {
+          const hpx = hoverCell.x * CELL_SIZE;
+          const hpy = hoverCell.y * CELL_SIZE;
+          ctx.strokeStyle = 'rgba(0, 229, 255, 0.85)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(hpx, hpy, CELL_SIZE, CELL_SIZE);
+        }
+      }
+
+      // Event Listeners
+      // Perspective Switcher Tabs
+      document.querySelectorAll('.ptab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          viewerIndex = parseInt(btn.getAttribute('data-p'), 10);
+          const vPlayer = match.players[viewerIndex];
+          logIntel(`Perspective switched to ${vPlayer.name} [${vPlayer.quadrant}]. Radar fog active over opposing sectors.`, 'scan');
+          renderUI();
+        });
+      });
+
+      // Action Card Selection
+      document.querySelectorAll('.action-card').forEach(card => {
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.action-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedAction = card.getAttribute('data-action');
+        });
+      });
+
+      // Ship Selection in Deployment
+      document.querySelectorAll('.ship-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.ship-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedShipType = btn.getAttribute('data-ship');
+        });
+      });
+
+      // Rotate Ship
+      const rotateBtn = document.getElementById('btn-rotate-ship');
+      if (rotateBtn) {
+        rotateBtn.addEventListener('click', () => {
+          shipOrientation = shipOrientation === 'H' ? 'V' : 'H';
+          rotateBtn.textContent = `Rotate: ${shipOrientation === 'H' ? 'Horizontal' : 'Vertical'}`;
+        });
+      }
+
+      // Quick Deploy Button
+      const quickDeployBtn = document.getElementById('btn-quick-deploy');
+      if (quickDeployBtn) {
+        quickDeployBtn.addEventListener('click', () => {
+          const p = getViewerPlayer();
+          const fleet = window.MP.quickDeployMP(match.grid, p.quadrant, match.rng);
+          stagedFleets[viewerIndex] = fleet;
+          window.MP.submitDeployment(match, p.id, fleet);
+          logIntel(`Quick deploy generated legal coordinates for ${p.name}.`, 'scan');
+          renderUI();
+        });
+      }
+
+      // Canvas Mouse Move & Click
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+        const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+        if (x >= 0 && x < GW && y >= 0 && y < GH) {
+          hoverCell = { x, y };
+          renderBoard();
+        }
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        hoverCell = null;
+        renderBoard();
+      });
+
+      canvas.addEventListener('click', () => {
+        if (!hoverCell || !match) return;
+
+        const activeP = getActivePlayer();
+
+        // If in Combat Phase
+        if (match.phase === 'BATTLE') {
+          const cost = selectedAction === 'salvo' ? 2 : 1;
+          if (activeP.cp < cost) {
+            logIntel(`Insufficient CP for ${selectedAction}! Needed: ${cost}, Available: ${activeP.cp}`, 'miss');
+            return;
+          }
+
+          // Deduct CP
+          activeP.cp -= cost;
+
+          // Damage
+          const damage = selectedAction === 'salvo' ? 4 : 3;
+
+          // Execute Attack
+          const attackResult = window.MP.resolveAttack(match, activeP.id, hoverCell.x, hoverCell.y, damage);
+          const targetQuad = window.MP.getCellQuadrant(hoverCell.x, hoverCell.y);
+
+          if (attackResult.hit) {
+            const tgtP = match.players.find(p => p.id === attackResult.targetPlayerId);
+            const tgtName = tgtP ? tgtP.name : 'Unknown Target';
+            logIntel(`🎯 ${activeP.name} launched ${selectedAction} into ${targetQuad} -> DIRECT HIT on ${tgtName}!`, 'hit');
+            if (attackResult.sunk) {
+              logIntel(`💥 CRITICAL! ${tgtName}'s vessel was SUNK!`, 'sunk');
+            }
+          } else {
+            logIntel(`🌊 ${activeP.name} launched ${selectedAction} into ${targetQuad} -> Splash. Ocean impact.`, 'miss');
+          }
+
+          // Advance turn automatically after action
+          window.MP.endMPTurn(match, activeP.id);
+          timerRemaining = 30;
+          renderUI();
+        }
+      });
+
+      // Skip Turn
+      document.getElementById('btn-skip-turn').addEventListener('click', () => {
+        if (!match) return;
+        const activeP = getActivePlayer();
+        logIntel(`${activeP.name} voluntarily skipped their turn. (Penalty applied: costs 1 CP or discards 1 card)`, 'miss');
+        window.MP.handleTurnTimeoutOrSkip(match, activeP.id);
+        timerRemaining = 30;
+        renderUI();
+      });
+
+      // Surrender
+      document.getElementById('btn-surrender').addEventListener('click', () => {
+        if (!match) return;
+        const activeP = getActivePlayer();
+        if (confirm(`Confirm flagship surrender for ${activeP.name}?`)) {
+          const res = window.MP.submitSurrender(match, activeP.id);
+          if (res.eliminated) {
+            logIntel(`🏳️ ${activeP.name} has surrendered! Fleet eliminated.`, 'sunk');
+          } else if (res.pending) {
+            logIntel(`⚠️ Surrender requested by ${activeP.name}. Awaiting confirmation from teammate.`, 'miss');
+          }
+          window.MP.endMPTurn(match, activeP.id);
+          renderUI();
+        }
+      });
+
+      // Restart match
+      document.getElementById('btn-reset-match').addEventListener('click', () => {
+        initGame();
+      });
+
+      // Remote Lobby Modal
+      const modal = document.getElementById('lobby-modal');
+      document.getElementById('btn-remote-lobby').addEventListener('click', () => {
+        modal.classList.add('open');
+      });
+      document.getElementById('btn-close-modal').addEventListener('click', () => {
+        modal.classList.remove('open');
+      });
+      // WebSocket Network Client
+      let socket = null;
+      let isRemoteSession = false;
+      let myPlayerId = null;
+
+      function connectSocket(onOpen) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          onOpen();
+          return;
+        }
+        const wsUrl = `ws://${location.hostname || 'localhost'}:8090`;
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+          logIntel(`Connected to authoritative server at ${wsUrl}`, 'scan');
+          onOpen();
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleServerMessage(data);
+          } catch (e) {}
+        };
+
+        socket.onclose = () => {
+          logIntel('WebSocket disconnected from server.', 'miss');
+          document.getElementById('lobby-status').textContent = 'Disconnected from server.';
+          isRemoteSession = false;
+        };
+
+        socket.onerror = () => {
+          document.getElementById('lobby-status').textContent = 'Cannot connect to ws://localhost:8090. Start server first.';
+        };
+      }
+
+      function handleServerMessage(msg) {
+        switch(msg.type) {
+          case 'ROOM_CREATED':
+            isRemoteSession = true;
+            myPlayerId = msg.playerId;
+            viewerIndex = msg.slot;
+            document.getElementById('lobby-status').textContent = `Room created: [${msg.roomCode}]. Waiting for players...`;
+            logIntel(`Room [${msg.roomCode}] created. You are assigned to ${msg.playerId.toUpperCase()} [${msg.slot === 0 ? 'NW' : ''}].`, 'scan');
+            break;
+
+          case 'ROOM_JOINED':
+            isRemoteSession = true;
+            myPlayerId = msg.playerId;
+            viewerIndex = msg.slot;
+            document.getElementById('lobby-status').textContent = `Joined Room [${msg.roomCode}] as Player ${msg.slot + 1}!`;
+            logIntel(`Joined room [${msg.roomCode}]. Assigned to ${msg.playerId.toUpperCase()}.`, 'scan');
+            break;
+
+          case 'PLAYER_JOINED':
+            logIntel(`${msg.playerName} entered the lobby (${msg.count}/4 ready).`, 'normal');
+            break;
+
+          case 'MATCH_READY':
+            logIntel('All 4 commanders assembled! Secret deployment authorized.', 'scan');
+            // Auto submit deployment in remote mode for seamless hotstart
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({ type: 'SUBMIT_DEPLOYMENT', quickDeploy: true }));
+            }
+            break;
+
+          case 'STATE_UPDATE':
+            if (msg.state) {
+              timerRemaining = msg.timer || 30;
+              updateTimerDisplay();
+              // Apply filtered state directly
+              if (match) {
+                match.phase = msg.state.phase;
+                match.round = msg.state.round;
+                match.activePlayerId = msg.state.activePlayerId;
+                if (msg.state.turnOrder) match.turnOrder = msg.state.turnOrder;
+              }
+              renderUI();
+            }
+            break;
+
+          case 'ACTION_RESOLVED':
+            if (msg.result) {
+              logIntel(`Command action resolved by authoritative server.`, msg.result.hit ? 'hit' : 'miss');
+            }
+            break;
+        }
+      }
+
+      document.getElementById('btn-create-room').addEventListener('click', () => {
+        const mode = document.getElementById('mode-select').value;
+        document.getElementById('lobby-status').textContent = 'Connecting to server...';
+        connectSocket(() => {
+          socket.send(JSON.stringify({
+            type: 'CREATE_ROOM',
+            mode,
+            playerName: `Commander ${Math.floor(10 + Math.random() * 89)}`
+          }));
+        });
+      });
+
+      document.getElementById('btn-join-room').addEventListener('click', () => {
+        const code = document.getElementById('input-room-code').value.trim();
+        if (!code) {
+          document.getElementById('lobby-status').textContent = 'Please enter a valid 4-letter room code.';
+          return;
+        }
+        document.getElementById('lobby-status').textContent = `Connecting to room [${code.toUpperCase()}]...`;
+        connectSocket(() => {
+          socket.send(JSON.stringify({
+            type: 'JOIN_ROOM',
+            roomCode: code.toUpperCase(),
+            playerName: `Commander ${Math.floor(10 + Math.random() * 89)}`
+          }));
+        });
+      });
+
+      // Run on startup
+      window.addEventListener('DOMContentLoaded', () => {
+        initGame();
+      });
+    })();
+  </script>
+</body>
+</html>

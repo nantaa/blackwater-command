@@ -1,0 +1,12 @@
+{
+  "name": "blackwater-command",
+  "version": "1.0.0",
+  "main": "server/mp-server.js",
+  "scripts": {
+    "start": "node server/mp-server.js",
+    "test": "node test/test-runner.js"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}
