@@ -105,6 +105,9 @@ class Room {
 
   broadcastState() {
     if (!this.match) return;
+    if (this.match.phase === 'FINISHED') {
+      this.stopTurnTimer();
+    }
 
     this.clients.forEach(c => {
       if (c.ws && c.ws.readyState === WebSocket.OPEN) {

@@ -146,16 +146,16 @@ it('Defeat screen displays CONVOY ESCAPED instead of FLAGSHIP LOST when convoy e
   assert(combined.includes('CONVOY ESCAPED'), `Defeat screen must display CONVOY ESCAPED, got: ${combined}`);
 });
 
-console.log('\n--- Test Suite 3: AI Vision Heatmap Button Rebranding ---');
+console.log('\n--- Test Suite 3: Tactical Heatmap Button Rebranding ---');
 
-it('Heatmap toggle button is rebranded as AI VISION', () => {
+it('Heatmap toggle button is rebranded as HEATMAP', () => {
   vm.runInContext(`
     initGame(83559);
     G.showHeat = false;
     renderTmr();
   `, context);
   const pnlTmr = getOrCreateEl('pnl-tmr').innerHTML;
-  assert(pnlTmr.includes('AI VISION'), `Button must be labeled AI VISION, got: ${pnlTmr}`);
+  assert(pnlTmr.includes('HEATMAP'), `Button must be labeled HEATMAP, got: ${pnlTmr}`);
 });
 
 console.log('====================================================');
