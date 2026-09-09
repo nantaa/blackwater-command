@@ -104,6 +104,13 @@ runTest('Contains Tactical 1v1 Online entrypoint, lobby screen and controls', ()
   assert(html.includes('id="btn-join-1v1"'), 'Must have btn-join-1v1');
 });
 
+// 10. Production WSS & Mixed Content Safety
+runTest('Contains production WSS endpoint resolution and mixed-content protection', () => {
+  assert(html.includes('BLACKWATER_WS_URL'), 'Must support BLACKWATER_WS_URL config override');
+  assert(html.includes('wss://'), 'Must contain secure wss:// protocol branch for HTTPS / itch.io');
+  assert(html.includes('getDuelWsUrl'), 'Must define getDuelWsUrl');
+});
+
 console.log('\n====================================================');
 console.log(` Tests Completed: ${total} | Passed: ${passed} | Failed: ${total - passed}`);
 console.log('====================================================');

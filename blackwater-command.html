@@ -653,7 +653,7 @@ html,body{width:100%;height:100%;background:#060e1a;overflow:hidden;font-family:
     </div>
 
     <div style="background:#06101c;border-top:1px solid #1a3a5a;padding:10px 18px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:.68rem;color:#4a6a8a">Authoritative Server: ws://localhost:8090</div>
+      <div id="lbl-server-endpoint" style="font-size:.68rem;color:#4a6a8a">Authoritative Server: ws://localhost:8090</div>
       <button class="btn" onclick="close1v1Lobby()">RETURN TO BRIDGE</button>
     </div>
   </div>
@@ -2616,6 +2616,10 @@ let duelMatch = null;
 
 function open1v1Lobby() {
   showScreen('scr-1v1-lobby');
+  const srvLbl = document.getElementById('lbl-server-endpoint');
+  if (srvLbl) {
+    srvLbl.textContent = 'Authoritative Server: ' + getDuelWsUrl();
+  }
   if (window.location && window.location.hash) {
     const m = window.location.hash.match(/#room=([A-Za-z0-9]{4})/i);
     if (m) {
@@ -2641,9 +2645,34 @@ function close1v1Lobby() {
 }
 
 function getDuelWsUrl() {
-  const host = (window.location && window.location.hostname) ? window.location.hostname : 'localhost';
-  const port = 8090;
-  return `ws://${host}:${port}`;
+  // 1. Explicit developer/host override
+  if (typeof window.BLACKWATER_WS_URL === 'string' && window.BLACKWATER_WS_URL.trim() !== '') {
+    return window.BLACKWATER_WS_URL.trim();
+  }
+
+  // 2. Query parameter override (e.g. ?server=wss://... or ?ws=wss://...)
+  if (typeof window !== 'undefined' && window.location && window.location.search) {
+    const params = new URLSearchParams(window.location.search);
+    const srv = params.get('server') || params.get('ws');
+    if (srv && srv.trim() !== '') {
+      return srv.trim();
+    }
+  }
+
+  // 3. Protocol & host based resolution
+  const isHttps = typeof window !== 'undefined' && window.location && window.location.protocol === 'https:';
+  const hostname = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+
+  if (isHttps) {
+    // If on HTTPS and not local (e.g. itch.io iframe, *.hwcdn.net), must use secure wss://
+    if (typeof window.BLACKWATER_PROD_WS_URL === 'string' && window.BLACKWATER_PROD_WS_URL.trim() !== '') {
+      return window.BLACKWATER_PROD_WS_URL.trim();
+    }
+    return isLocal ? `wss://${hostname}:8090` : `wss://${hostname}/ws`;
+  }
+
+  return `ws://${hostname}:8090`;
 }
 
 function ensureDuelWs() {
