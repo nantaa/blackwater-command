@@ -481,6 +481,70 @@ function handleClientMessage(ws, data) {
       room.broadcastState();
       break;
     }
+
+    case 'LEAVE_ROOM':
+    case 'ABANDON_ROOM': {
+      if (!ws.roomCode) return;
+      const room = rooms.get(ws.roomCode);
+      if (!room) return;
+
+      const cIdx = room.clients.findIndex(c => c.ws === ws);
+      if (cIdx >= 0) {
+        room.clients.splice(cIdx, 1);
+      }
+      ws.roomCode = null;
+      ws.send(JSON.stringify({ type: 'ROOM_LEFT', status: 'OK' }));
+
+      const activeClients = room.clients.filter(c => c.ws && c.ws.readyState === WebSocket.OPEN);
+      if (activeClients.length === 0) {
+        closeRoom(room.code, 'ABANDONED_BY_ALL');
+      } else {
+        room.broadcastMessage({
+          type: 'OPPONENT_ABANDONED',
+          message: 'Opponent has abandoned the room.'
+        });
+        if (room.match && room.match.phase === 'BATTLE') {
+          if (room.mode === '1v1_duel' && activeClients.length === 1) {
+            room.match.phase = 'FINISHED';
+            room.match.winner = activeClients[0].playerId;
+            room.broadcastState();
+          }
+        }
+      }
+      break;
+    }
+  }
+}
+
+function closeRoom(code, reason = 'ABANDONED') {
+  const room = rooms.get(code);
+  if (!room) return;
+  room.stopTurnTimer();
+  if (room.cleanupTimer) {
+    clearTimeout(room.cleanupTimer);
+    room.cleanupTimer = null;
+  }
+  // Notify any remaining connected clients
+  room.clients.forEach(c => {
+    if (c.ws && c.ws.readyState === WebSocket.OPEN) {
+      try {
+        c.ws.send(JSON.stringify({
+          type: 'ROOM_CLOSED',
+          roomCode: code,
+          reason
+        }));
+      } catch (e) {}
+    }
+  });
+  rooms.delete(code);
+}
+
+function pruneStaleRooms() {
+  for (const [code, room] of rooms.entries()) {
+    const activeClients = room.clients.filter(c => c.ws && c.ws.readyState === WebSocket.OPEN);
+    if (activeClients.length === 0) {
+      closeRoom(code, 'JANITOR_CLEANUP_EMPTY');
+    }
   }
 }
 
@@ -495,10 +559,32 @@ function handleClientDisconnect(ws) {
   const client = room.getClientByWs(ws);
   if (client) {
     client.disconnectedAt = Date.now();
-    // 10s Disconnect Grace Period
+  }
+
+  // Count active connected clients in this room (excluding current ws)
+  const activeClients = room.clients.filter(c => c.ws && c.ws.readyState === WebSocket.OPEN && c.ws !== ws);
+
+  if (activeClients.length === 0) {
+    // All parties have disconnected or abandoned the room!
+    // Auto-close immediately if lobby/deploy/finished, or after 10s grace period for active match
+    if (!room.match || room.match.phase === 'LOBBY' || room.match.phase === 'DEPLOY' || room.match.phase === 'FINISHED') {
+      closeRoom(room.code, 'ALL_PARTIES_DISCONNECTED');
+    } else {
+      if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
+      room.cleanupTimer = setTimeout(() => {
+        const stillConnected = room.clients.filter(c => c.ws && c.ws.readyState === WebSocket.OPEN);
+        if (stillConnected.length === 0) {
+          closeRoom(room.code, 'ALL_PARTIES_ABANDONED');
+        }
+      }, 10000);
+    }
+    return;
+  }
+
+  // If one party remains:
+  if (client) {
     setTimeout(() => {
       if (client.ws && client.ws.readyState !== WebSocket.OPEN) {
-        // If still disconnected and match in progress, execute timeout fallback
         if (room.match && room.match.activePlayerId === client.playerId) {
           MP.handleTurnTimeoutOrSkip(room.match, client.playerId);
           room.broadcastState();
@@ -558,6 +644,9 @@ function startServer(port = 8090) {
       });
     }, 25000);
 
+    // 30s Periodic Janitor to prune abandoned/empty rooms
+    const janitorInterval = setInterval(pruneStaleRooms, 30000);
+
     wss.on('connection', (ws) => {
       ws.isAlive = true;
       ws.on('pong', () => { ws.isAlive = true; });
@@ -567,11 +656,13 @@ function startServer(port = 8090) {
 
     server.on('close', () => {
       clearInterval(heartbeatInterval);
+      clearInterval(janitorInterval);
     });
 
     server.listen(port, () => {
       server.wss = wss;
       server.heartbeatInterval = heartbeatInterval;
+      server.janitorInterval = janitorInterval;
       resolve(server);
     });
 
@@ -588,5 +679,6 @@ if (require.main === module) {
 
 module.exports = {
   startServer,
-  rooms
+  rooms,
+  closeRoom
 };

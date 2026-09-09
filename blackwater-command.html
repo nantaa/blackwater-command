@@ -1953,6 +1953,7 @@ const MP = (function () {
       myCp: player.cp,
       myAmmo: { ...player.ammo },
       revealed: Array.from(match.revealed[forPlayerId] || []),
+      hits: (match.hits && match.hits[forPlayerId]) ? match.hits[forPlayerId].map(h => ({ ...h })) : [],
       opponent: {
         id: opp.id,
         name: opp.name,
@@ -2971,6 +2972,7 @@ function init1v1OnlineBattle(state) {
   G.grid = grid;
   G.isOnline1v1 = true;
   G.mySector = state.mySector || prepState.sector || 'P1';
+  G.eFleet = []; // Clear single-player phantom AI ships
 
   if (state.myFleet && Array.isArray(state.myFleet)) {
     G.pFleet = state.myFleet.map(s => ({
@@ -2985,6 +2987,13 @@ function init1v1OnlineBattle(state) {
 
   if (state.revealed && Array.isArray(state.revealed)) {
     G.revealed = new Set(state.revealed);
+  }
+  if (state.hits && Array.isArray(state.hits)) {
+    state.hits.forEach(h => {
+      if (!G.markers.some(m => m.type === 'hit' && m.pos.x === h.x && m.pos.y === h.y)) {
+        addMark('hit', { x: h.x, y: h.y }, `${h.dmg || 3}`);
+      }
+    });
   }
 
   pushLog('sys', `Tactical 1v1 Duel active. Room: ${duelRoomCode || 'LOCAL'}. Sector: ${G.mySector}.`);
@@ -3007,6 +3016,13 @@ function sync1v1OnlineBattle(state) {
   }
   if (state.revealed && Array.isArray(state.revealed)) {
     G.revealed = new Set(state.revealed);
+  }
+  if (state.hits && Array.isArray(state.hits)) {
+    state.hits.forEach(h => {
+      if (!G.markers.some(m => m.type === 'hit' && m.pos.x === h.x && m.pos.y === h.y)) {
+        addMark('hit', { x: h.x, y: h.y }, `${h.dmg || 3}`);
+      }
+    });
   }
   G.cp = state.myCp !== undefined ? state.myCp : G.cp;
   if (state.myAmmo) G.ammo = { ...state.myAmmo };
@@ -3386,17 +3402,27 @@ function validatePlacement(grid,shipId,x,y,orientation){
   const maxX = isP2 ? 20 : 10;
   const secName = isP2 ? 'East sector (cols K–T)' : 'Allied sector (cols A–J)';
 
-  if(x < minX || x >= maxX || y < 0 || y >= GH){
-    return { valid: false, reason: `Deployment must be inside ${secName}.` };
+  const shipLens = (typeof MP !== 'undefined' && MP.MP_SHIPS && MP.MP_SHIPS[shipId])
+    ? MP.MP_SHIPS[shipId].len
+    : (shipId === 'flagship' ? 3 : (shipId === 'patrol' ? 2 : 1));
+  const len = shipLens || 1;
+  const orient = orientation === 'V' ? 'V' : 'H';
+
+  for (let i = 0; i < len; i++) {
+    const sx = orient === 'H' ? x + i : x;
+    const sy = orient === 'V' ? y + i : y;
+    if (sx < minX || sx >= maxX || sy < 0 || sy >= GH) {
+      return { valid: false, reason: `Ship segment (${cid(sx, sy)}) placed outside ${secName}.` };
+    }
+    const tile = grid[sy][sx];
+    if (tile === T.ISLAND || tile === T.RADAR) {
+      return { valid: false, reason: `Ship segment (${cid(sx, sy)}) overlaps land or radar.` };
+    }
+    if ((shipId === 'flagship' || shipId === 'minelayer') && tile === T.REEF) {
+      return { valid: false, reason: 'Only Patrol Boat can navigate reefs.' };
+    }
   }
-  const tile=grid[y][x];
-  if(tile===T.ISLAND||tile===T.RADAR){
-    return{valid:false,reason:'Cannot deploy ships on land or radar islands.'};
-  }
-  if((shipId==='flagship'||shipId==='minelayer')&&tile===T.REEF){
-    return{valid:false,reason:'Only Patrol Boat can navigate reefs.'};
-  }
-  return{valid:true,reason:'Legal position.'};
+  return { valid: true, reason: 'Legal position.' };
 }
 
 function getShipEscapeRoutes(grid,x,y){
@@ -3424,11 +3450,20 @@ function validateFullFleet(grid,placements){
     if(!p){errors.push(`Missing position for ${s}.`);continue;}
     const chk=validatePlacement(grid,s,p.x,p.y,p.o||'H');
     if(!chk.valid){errors.push(`${s}: ${chk.reason}`);continue;}
-    const key=`${p.x},${p.y}`;
-    if(occupied.has(key)){
-      errors.push(`Ship collision at ${cid(p.x,p.y)}.`);
+    const shipLens = (typeof MP !== 'undefined' && MP.MP_SHIPS && MP.MP_SHIPS[s])
+      ? MP.MP_SHIPS[s].len
+      : (s === 'flagship' ? 3 : (s === 'patrol' ? 2 : 1));
+    const len = shipLens || 1;
+    const orient = (p.o || 'H') === 'V' ? 'V' : 'H';
+    for(let i=0; i<len; i++){
+      const sx = orient === 'H' ? p.x + i : p.x;
+      const sy = orient === 'V' ? p.y + i : p.y;
+      const key=`${sx},${sy}`;
+      if(occupied.has(key)){
+        errors.push(`Ship collision at ${cid(sx,sy)} (${s} & ${occupied.get(key)}).`);
+      }
+      occupied.set(key,s);
     }
-    occupied.set(key,s);
   }
 
   // Flagship safety: ≥ 2 legal adjacent escape routes
@@ -3957,7 +3992,11 @@ function toggleOrient(){
 }
 
 function isValidShipMove(tx,ty){
-  if(!G||tx===null||ty===null||tx<0||tx>=10||ty<0||ty>=GH)return false;
+  if(!G||tx===null||ty===null||tx<0||tx>=GW||ty<0||ty>=GH)return false;
+  const isP2 = (G.mySector === 'P2');
+  const minX = isP2 ? 10 : 0;
+  const maxX = isP2 ? 20 : 10;
+  if(tx < minX || tx >= maxX) return false;
   if(G.grid[ty][tx]===T.ISLAND)return false;
   if(G.pFleet.some(s=>s.alive&&s.pos.x===tx&&s.pos.y===ty))return false;
   return true;
@@ -4011,8 +4050,11 @@ function previewCells(id,hx,hy){
 function execCard(id,tx,ty){
   const c=CARDS[id];if(!c)return;
   if(c.tgt==='MOVE_SUP'||c.tgt==='MOVE_FLAG'){
-    if(tx>=10){
-      pushLog('sys',`${c.name}: Movement restricted! Ships cannot enter enemy sector (Cols K–T).`);
+    const isP2 = (G.mySector === 'P2');
+    const inEnemy = isP2 ? (tx < 10) : (tx >= 10);
+    if(inEnemy){
+      const enemySec = isP2 ? 'Cols A–J' : 'Cols K–T';
+      pushLog('sys',`${c.name}: Movement restricted! Ships cannot enter enemy sector (${enemySec}).`);
       cancelTgt();
       renderAll();
       return;
@@ -4229,18 +4271,24 @@ function execPatrol(cx,cy){
 }
 
 function execDecoy(tx,ty){
-  if(tx>=10){pushLog('ply','Decoy Buoy: place in your sector (A–J).  ');return;}
+  const isP2 = (G.mySector === 'P2');
+  const outsideFriendly = isP2 ? (tx < 10) : (tx >= 10);
+  if(outsideFriendly){
+    const friendlySec = isP2 ? 'K–T' : 'A–J';
+    pushLog('ply',`Decoy Buoy: place in your sector (${friendlySec}).`);
+    return;
+  }
   addFx('decoy',[{x:tx,y:ty}],1100);
   const d={pos:{x:tx,y:ty},turn:G.turn,conf:0.8};
   G.ev.decoys.push(d);
   G.prob[ty][tx]+=0.35;
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
     const cx=tx+dx,cy=ty+dy;
-    if(cx>=0&&cx<10&&cy>=0&&cy<GH)G.prob[cy][cx]+=0.08;
+    const inFriendly = isP2 ? (cx>=10&&cx<20) : (cx>=0&&cx<10);
+    if(inFriendly&&cy>=0&&cy<GH)G.prob[cy][cx]+=0.08;
   }
   normProb();
-  pushLog('ply',`Decoy Buoy at ${cid(tx,ty)}: false contact injected. Watch AI Intel Panel.`);
-  pushLog('int',`AI prob-map spiked near ${cid(tx,ty)} — AI has no idea this is fake.`);
+  pushLog('ply',`Decoy Buoy at ${cid(tx,ty)}: false contact injected.`);
 }
 
 function execJammer(cx,cy){
@@ -4445,8 +4493,9 @@ function drawTerrain(ctx){
 }
 
 function drawFog(ctx){
+  const isP2 = (G && G.mySector === 'P2');
   for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
-    if(x<10)continue; // player half: no fog
+    if(isP2 ? (x >= 10) : (x < 10)) continue; // friendly sector: no fog
     const key=`${x},${y}`;
     const revealed=G.revealed.has(key);
     const patrolClear=G.patrolReveal&&G.patrolReveal.cells.has(key);
@@ -4681,6 +4730,37 @@ function renderIntel(){
     const nm=k.replace(/([A-Z])/,' $1').toUpperCase();
     return`<div class="a-row"><span class="a-nm">${nm}</span><div class="a-pips">${pips}</div></div>`;
   }).join('');
+
+  if (G.isOnline1v1) {
+    const oppName = (G.opponent && G.opponent.name) || 'OPPONENT';
+    const efRows = (G.eFleet && G.eFleet.length > 0) ? G.eFleet.map(s => {
+      const st = !s.alive ? 'SUNK' : s.cs === CS.CONF ? `${s.hp}/${s.max} HP` : s.cs === CS.UNK ? 'UNKNOWN' : 'CONTACT';
+      const sc = !s.alive ? ' sunk' : s.cs === CS.CONF ? ' hit' : '';
+      return `<div class="ef-row"><span class="ef-nm">${s.lbl}</span><span class="ef-st${sc}">${st}</span></div>`;
+    }).join('') : `
+      <div class="ef-row"><span class="ef-nm">DEST. FLAGSHIP</span><span class="ef-st">UNKNOWN</span></div>
+      <div class="ef-row"><span class="ef-nm">PATROL BOAT</span><span class="ef-st">UNKNOWN</span></div>
+      <div class="ef-row"><span class="ef-nm">MINELAYER</span><span class="ef-st">UNKNOWN</span></div>
+    `;
+
+    const combatLogs = G.bLog.slice(0, 8).map(r => {
+      const t2 = r.text.replace(/([A-T]\d+)/g, '<span class="cr">$1</span>');
+      return `<div class="r-e">T${r.turn}: ${t2}</div>`;
+    }).join('') || '<div class="r-e" style="color:#1e3040">Engaging enemy commander…</div>';
+
+    el.innerHTML = `
+      <div class="i-ttl">◈ OPPONENT INTEL (${oppName})</div>
+      <div class="i-row"><span class="i-lbl">Confirmed contacts</span><span class="i-val conf">${p.conf}</span></div>
+      <div class="i-row"><span class="i-lbl">Suspected zones</span><span class="i-val susp">${p.susp}</span></div>
+      <div class="i-row"><span class="i-lbl">Active trails</span><span class="i-val">${p.trails}</span></div>
+      <div class="i-row"><span class="i-lbl">Decoys deployed</span><span class="i-val dec">${p.decoys}</span></div>
+      <div class="i-row"><span class="i-lbl">Sector</span><span class="i-val" style="color:#ffcf40">${G.mySector === 'P2' ? 'P2 (EAST K–T)' : 'P1 (WEST A–J)'}</span></div>
+      <div class="e-fleet-sec"><div class="i-ttl">OPPONENT FLEET STATUS</div>${efRows}</div>
+      <div class="ammo-sec"><div class="i-ttl">AMMUNITION</div>${ammoHtml}</div>
+      <div class="r-ttl">▸ COMBAT ACTIVITY</div>${combatLogs}`;
+    return;
+  }
+
   const reasons=G.rLog.slice(0,8).map(r=>{
     const t2=r.text.replace(/([A-T]\d+)/g,'<span class="cr">$1</span>');
     return`<div class="r-e">T${r.turn}: ${t2}</div>`;
@@ -5065,34 +5145,60 @@ function renderPrepBoard(){
   shipConfigs.forEach(s => {
     const p = prepState.placements[s.id];
     if(!p) return;
-    const { px, py } = cp2px(p.x, p.y);
-    ctx.fillStyle = 'rgba(20, 60, 120, 0.9)';
-    ctx.fillRect(px + 2, py + 2, CELL - 4, CELL - 4);
-    ctx.strokeStyle = s.col;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
+    const shipLens = (typeof MP !== 'undefined' && MP.MP_SHIPS && MP.MP_SHIPS[s.id])
+      ? MP.MP_SHIPS[s.id].len
+      : (s.id === 'flagship' ? 3 : (s.id === 'patrol' ? 2 : 1));
+    const len = shipLens || 1;
+    const orient = (p.o || 'H') === 'V' ? 'V' : 'H';
+    for(let i=0; i<len; i++){
+      const sx = orient === 'H' ? p.x + i : p.x;
+      const sy = orient === 'V' ? p.y + i : p.y;
+      if(sx < 0 || sx >= GW || sy < 0 || sy >= GH) continue;
+      const { px, py } = cp2px(sx, sy);
+      ctx.fillStyle = 'rgba(20, 60, 120, 0.9)';
+      ctx.fillRect(px + 2, py + 2, CELL - 4, CELL - 4);
+      ctx.strokeStyle = s.col;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
 
-    ctx.fillStyle = s.col;
-    ctx.font = `bold ${CELL*.55}px monospace`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(s.icon, px + CELL/2, py + CELL/2);
+      if(i === 0){
+        ctx.fillStyle = s.col;
+        ctx.font = `bold ${CELL*.55}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(s.icon, px + CELL/2, py + CELL/2);
 
-    ctx.font = 'bold 8px monospace';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(s.id.substring(0, 3).toUpperCase(), px + CELL/2, py + CELL - 4);
+        ctx.font = 'bold 8px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(s.id.substring(0, 3).toUpperCase(), px + CELL/2, py + CELL - 4);
+      } else {
+        ctx.fillStyle = s.col;
+        ctx.fillRect(px + CELL/2 - 2, py + CELL/2 - 2, 4, 4);
+      }
+    }
   });
 
   // 4. Ghost hover preview
   if(prepState.hov && prepState.selectedShip){
     const { x, y } = prepState.hov;
     const val = validatePlacement(prepState.grid, prepState.selectedShip, x, y, prepState.orient);
-    const { px, py } = cp2px(x, y);
+    const shipLens = (typeof MP !== 'undefined' && MP.MP_SHIPS && MP.MP_SHIPS[prepState.selectedShip])
+      ? MP.MP_SHIPS[prepState.selectedShip].len
+      : (prepState.selectedShip === 'flagship' ? 3 : (prepState.selectedShip === 'patrol' ? 2 : 1));
+    const len = shipLens || 1;
+    const orient = prepState.orient === 'V' ? 'V' : 'H';
 
-    ctx.fillStyle = val.valid ? 'rgba(80, 200, 120, 0.35)' : 'rgba(220, 50, 50, 0.35)';
-    ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
-    ctx.strokeStyle = val.valid ? '#50c878' : '#e05050';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
+    for(let i=0; i<len; i++){
+      const sx = orient === 'H' ? x + i : x;
+      const sy = orient === 'V' ? y + i : y;
+      if(sx >= 0 && sx < GW && sy >= 0 && sy < GH){
+        const { px, py } = cp2px(sx, sy);
+        ctx.fillStyle = val.valid ? 'rgba(80, 200, 120, 0.35)' : 'rgba(220, 50, 50, 0.35)';
+        ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+        ctx.strokeStyle = val.valid ? '#50c878' : '#e05050';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
+      }
+    }
   }
 
   // 5. Grid Labels
