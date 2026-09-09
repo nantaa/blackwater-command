@@ -3526,6 +3526,102 @@ function buildMap(seed){
 ════════════════════════════════════════════════════════════════ */
 const cid=(x,y)=>`${COLS[x]}${y+1}`;
 
+const SHIP_LENS = { flagship: 3, patrol: 2, minelayer: 2, eflag: 3, escout: 2, estrike: 2 };
+
+function getShipCells(shipId, x, y, orientation) {
+  const len = SHIP_LENS[shipId] || 2;
+  const orient = (orientation === 'V') ? 'V' : 'H';
+  const cells = [];
+  for (let i = 0; i < len; i++) {
+    cells.push({
+      x: orient === 'H' ? x + i : x,
+      y: orient === 'V' ? y + i : y
+    });
+  }
+  return cells;
+}
+
+function getShipAt(fleet, x, y) {
+  if (!fleet) return null;
+  return fleet.find(s => {
+    if (!s.alive) return false;
+    if (s.pos && s.cells && s.cells.length > 0) {
+      if (s.cells[0].x !== s.pos.x || s.cells[0].y !== s.pos.y) {
+        s.cells = getShipCells(s.id, s.pos.x, s.pos.y, s.orient || 'H');
+      }
+    }
+    if (s.cells && s.cells.length > 0) {
+      if (s.cells.some(c => c.x === x && c.y === y)) return true;
+    }
+    return (s.pos && s.pos.x === x && s.pos.y === y);
+  });
+}
+
+function quickDeployEnemyFleet(grid, rng) {
+  const shipTypes = [
+    { id: 'eflag', lbl: 'ENEMY FLAG', len: 3, hp: 28, max: 28 },
+    { id: 'escout', lbl: 'SCOUT', len: 2, hp: 9, max: 9 },
+    { id: 'estrike', lbl: 'STRIKE', len: 2, hp: 10, max: 10 }
+  ];
+
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const occupied = new Set();
+    const fleet = [];
+    let allPlaced = true;
+
+    for (const def of shipTypes) {
+      const orient = rng.nx() < 0.5 ? 'H' : 'V';
+      const maxX = orient === 'H' ? (GW - def.len) : (GW - 1);
+      const maxY = orient === 'V' ? (GH - def.len) : (GH - 1);
+      const minX = 10;
+      if (minX > maxX) { allPlaced = false; break; }
+
+      let placed = false;
+      for (let candAttempt = 0; candAttempt < 60; candAttempt++) {
+        const x = rng.int(minX, maxX);
+        const y = rng.int(0, maxY);
+        const cells = getShipCells(def.id, x, y, orient);
+
+        const legal = cells.every(c => {
+          if (c.x < 10 || c.x >= GW || c.y < 0 || c.y >= GH) return false;
+          if (grid[c.y][c.x] === T.ISLAND || grid[c.y][c.x] === T.RADAR) return false;
+          if (occupied.has(`${c.x},${c.y}`)) return false;
+          return true;
+        });
+
+        if (legal) {
+          cells.forEach(c => occupied.add(`${c.x},${c.y}`));
+          fleet.push({
+            id: def.id,
+            lbl: def.lbl,
+            len: def.len,
+            hp: def.hp,
+            max: def.max,
+            pos: { x, y },
+            orient,
+            cells,
+            cs: CS.UNK,
+            alive: true,
+            prev: null
+          });
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) { allPlaced = false; break; }
+    }
+
+    if (allPlaced) return fleet;
+  }
+
+  // Guaranteed fallback in East sector (Cols K-T)
+  return [
+    { id: 'eflag', lbl: 'ENEMY FLAG', len: 3, hp: 28, max: 28, pos: { x: 15, y: 5 }, orient: 'H', cells: [{ x: 15, y: 5 }, { x: 16, y: 5 }, { x: 17, y: 5 }], cs: CS.UNK, alive: true, prev: null },
+    { id: 'escout', lbl: 'SCOUT', len: 2, hp: 9, max: 9, pos: { x: 14, y: 10 }, orient: 'V', cells: [{ x: 14, y: 10 }, { x: 14, y: 11 }], cs: CS.UNK, alive: true, prev: null },
+    { id: 'estrike', lbl: 'STRIKE', len: 2, hp: 10, max: 10, pos: { x: 17, y: 14 }, orient: 'H', cells: [{ x: 17, y: 14 }, { x: 18, y: 14 }], cs: CS.UNK, alive: true, prev: null }
+  ];
+}
+
 function rollSeed(){
   document.getElementById('seed-in').value=Math.floor(Math.random()*99998)+1;
 }
@@ -3556,29 +3652,66 @@ function toggleHeat(){
 let G=null;
 let timerIv=null;
 
+function defaultPlacement(grid, rng) {
+  return quickDeploy(grid, rng || mkRng(Date.now()));
+}
+
 function initGame(seed,customPlacements,chosenDoctrine){
   stopTimer();
   const run=getRun();
   const{grid,rng}=buildMap(seed);
 
-  // default or manual placements
-  let fPos,paPos,mPos;
-  if(customPlacements&&customPlacements.flagship){
-    fPos={x:customPlacements.flagship.x,y:customPlacements.flagship.y};
-    paPos={x:customPlacements.patrol.x,y:customPlacements.patrol.y};
-    mPos={x:customPlacements.minelayer.x,y:customPlacements.minelayer.y};
-  }else{
-    const pCells=rng.shuffle(validCells(grid,1,8));
-    fPos=pCells[0]||{x:2,y:5};
-    paPos=pCells[1]||{x:3,y:8};
-    mPos=pCells[2]||{x:2,y:12};
-  }
+  // default or manual placements with full multi-cell segments
+  const pPlacements = (customPlacements && customPlacements.flagship)
+    ? customPlacements
+    : quickDeploy(grid, rng);
 
-  // enemy ships: right third (x 12–18)
-  const eCells=rng.shuffle(validCells(grid,12,19));
-  const efPos=eCells[0]||{x:16,y:5};
-  const esPos=eCells[1]||{x:15,y:10};
-  const estPos=eCells[2]||{x:17,y:14};
+  const fOrient = pPlacements.flagship.o || 'H';
+  const paOrient = pPlacements.patrol.o || 'H';
+  const mOrient = pPlacements.minelayer.o || 'H';
+
+  const fPos = { x: pPlacements.flagship.x, y: pPlacements.flagship.y };
+  const paPos = { x: pPlacements.patrol.x, y: pPlacements.patrol.y };
+  const mPos = { x: pPlacements.minelayer.x, y: pPlacements.minelayer.y };
+
+  const pFleet = [
+    {
+      id: 'flagship',
+      lbl: 'DESTROYER',
+      len: 3,
+      orient: fOrient,
+      hp: run.hull.flagship,
+      max: run.hull.maxFlagship,
+      pos: { ...fPos },
+      cells: getShipCells('flagship', fPos.x, fPos.y, fOrient),
+      alive: run.hull.flagship > 0
+    },
+    {
+      id: 'patrol',
+      lbl: 'PAT.BOAT',
+      len: 2,
+      orient: paOrient,
+      hp: run.hull.patrol,
+      max: run.hull.maxPatrol,
+      pos: { ...paPos },
+      cells: getShipCells('patrol', paPos.x, paPos.y, paOrient),
+      alive: run.hull.patrol > 0
+    },
+    {
+      id: 'minelayer',
+      lbl: 'MINELAYER',
+      len: 2,
+      orient: mOrient,
+      hp: run.hull.minelayer,
+      max: run.hull.maxMinelayer,
+      pos: { ...mPos },
+      cells: getShipCells('minelayer', mPos.x, mPos.y, mOrient),
+      alive: run.hull.minelayer > 0
+    }
+  ];
+
+  // Enemy fleet: multi-cell ships in Hostile sector (Cols K-T, x 10–19)
+  const eFleet = quickDeployEnemyFleet(grid, rng);
 
   // deck: use run deck (max 28)
   const deckCards=[...(run.deck||START_DECK)];
@@ -3610,16 +3743,8 @@ function initGame(seed,customPlacements,chosenDoctrine){
     revealed:new Set(),        // "x,y" keys — fog lifted
     patrolReveal:null,         // {cells:Set, turnsLeft}
 
-    pFleet:[
-      {id:'flagship',lbl:'DESTROYER',hp:run.hull.flagship,max:run.hull.maxFlagship,pos:{...fPos},alive:run.hull.flagship>0},
-      {id:'patrol',  lbl:'PAT.BOAT', hp:run.hull.patrol,  max:run.hull.maxPatrol,  pos:{...paPos},alive:run.hull.patrol>0},
-      {id:'minelayer',lbl:'MINELAYER',hp:run.hull.minelayer,max:run.hull.maxMinelayer,pos:{...mPos},alive:run.hull.minelayer>0},
-    ],
-    eFleet:[
-      {id:'eflag',lbl:'ENEMY FLAG',hp:28,max:28,pos:{...efPos},cs:CS.UNK,alive:true,prev:null},
-      {id:'escout',lbl:'SCOUT',    hp:9, max:9, pos:{...esPos},cs:CS.UNK,alive:true,prev:null},
-      {id:'estrike',lbl:'STRIKE',  hp:10,max:10,pos:{...estPos},cs:CS.UNK,alive:true,prev:null},
-    ],
+    pFleet,
+    eFleet,
 
     ammo:{...run.ammo},
     deck:rest,hand,discard:[],
@@ -3855,7 +3980,7 @@ function resolveAct(act){
 
 function resolveAtk(pos,src){
   const{x,y}=pos;
-  const hit=G.pFleet.find(s=>s.alive&&s.pos.x===x&&s.pos.y===y);
+  const hit=getShipAt(G.pFleet,x,y);
   if(hit){
     const dmg=src==='flag'?4:3;
     hit.hp=Math.max(0,hit.hp-dmg);
@@ -3888,7 +4013,7 @@ function resolveAiScan(pos){
     const cx=x+dx,cy=y+dy;
     if(cx>=0&&cx<GW&&cy>=0&&cy<GH)cells.push({x:cx,y:cy});
   }
-  const found=G.pFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y));
+  const found=G.pFleet.filter(s=>s.alive&&s.cells&&s.cells.some(sc=>cells.some(c=>c.x===sc.x&&c.y===sc.y)));
   if(found.length){
     G.ev.suspected.push({cells,turn:G.turn});
     cells.forEach(c=>{if(G.grid[c.y][c.x]!==T.ISLAND)G.prob[c.y][c.x]*=3;});
@@ -4008,7 +4133,7 @@ function isValidShipMove(tx,ty){
   const maxX = isP2 ? 20 : 10;
   if(tx < minX || tx >= maxX) return false;
   if(G.grid[ty][tx]===T.ISLAND)return false;
-  if(G.pFleet.some(s=>s.alive&&s.pos.x===tx&&s.pos.y===ty))return false;
+  if(G.pFleet.some(s=>s.alive&&s.cells&&s.cells.some(c=>c.x===tx&&c.y===ty)))return false;
   return true;
 }
 
@@ -4042,7 +4167,7 @@ function previewCells(id,hx,hy){
         if(cx<0||cx>=GW||cy<0||cy>=GH)break;
         cells.push({x:cx,y:cy});
         if(G.grid[cy][cx]===T.ISLAND)break;
-        if(G.eFleet.some(s=>s.alive&&s.pos.x===cx&&s.pos.y===cy))break;
+        if(getShipAt(G.eFleet,cx,cy))break;
         cx+=dx;cy+=dy;
       }break;}
     case'AREA3':for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
@@ -4129,14 +4254,14 @@ function execDeckGun(tx,ty){
   G.revealed.add(`${tx},${ty}`);
   addFx('explosion',[{x:tx,y:ty}],800);
   const dmg=3;
-  const hitSh=G.eFleet.find(s=>s.alive&&s.pos.x===tx&&s.pos.y===ty);
+  const hitSh=getShipAt(G.eFleet,tx,ty);
   if(hitSh){
     hitSh.hp=Math.max(0,hitSh.hp-dmg);
     hitSh.cs=CS.CONF;
-    addMark('hit',hitSh.pos,`${dmg}`);
+    addMark('hit',{x:tx,y:ty},`${dmg}`);
     G.ev.confirmed=G.ev.confirmed.filter(item=>item.sid!==hitSh.id);
-    G.ev.confirmed.push({pos:{...hitSh.pos},sid:hitSh.id,turn:G.turn});
-    G.ev.hits.push({pos:{...hitSh.pos},turn:G.turn});
+    G.ev.confirmed.push({pos:{x:tx,y:ty},sid:hitSh.id,turn:G.turn});
+    G.ev.hits.push({pos:{x:tx,y:ty},turn:G.turn});
     pushLog('hit',`Deck Gun battery strike on ${hitSh.lbl} at ${cid(tx,ty)} for ${dmg}! HP:${hitSh.hp}/${hitSh.max}`);
     if(hitSh.hp<=0){hitSh.alive=false;pushLog('hit',`${hitSh.lbl} SUNK!`);}
     playAudio('hit');
@@ -4157,8 +4282,8 @@ function execSonar(cx,cy){
     if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});
   }
   cells.forEach(c=>G.revealed.add(`${c.x},${c.y}`));
-  const cnt=G.eFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y)).length;
-  if(cnt){G.eFleet.forEach(s=>{if(cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y)&&s.cs===CS.UNK)s.cs=CS.CONT;});}
+  const cnt=G.eFleet.filter(s=>s.alive&&s.cells&&s.cells.some(sc=>cells.some(c=>c.x===sc.x&&c.y===sc.y))).length;
+  if(cnt){G.eFleet.forEach(s=>{if(s.cells&&s.cells.some(sc=>cells.some(c=>c.x===sc.x&&c.y===sc.y))&&s.cs===CS.UNK)s.cs=CS.CONT;});}
   addFx('sonar',cells,1400);
   G.ev.scans.push({cells,cnt,turn:G.turn});
   if(cnt) G.ev.suspected.push({cells,turn:G.turn});
@@ -4173,7 +4298,7 @@ function execSweep(cx,cy){
     const x=cx+dx,y=cy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});
   }
   cells.forEach(c=>G.revealed.add(`${c.x},${c.y}`));
-  const found=G.eFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y));
+  const found=G.eFleet.filter(s=>s.alive&&s.cells&&s.cells.some(sc=>cells.some(c=>c.x===sc.x&&c.y===sc.y)));
   found.forEach(s=>{if(s.cs!==CS.CONF)s.cs=CS.CONT;});
   addFx('sweep',cells,1200);
   G.ev.scans.push({cells,cnt:found.length,turn:G.turn});
@@ -4184,7 +4309,7 @@ function execSweep(cx,cy){
 function execWake(tx,ty){
   G.revealed.add(`${tx},${ty}`);
   addFx('sonar',[{x:tx,y:ty}],900);
-  const was=G.eFleet.some(s=>s.alive&&s.prev&&s.prev.x===tx&&s.prev.y===ty);
+  const was=G.eFleet.some(s=>s.alive&&s.prev&&((s.prevCells&&s.prevCells.some(c=>c.x===tx&&c.y===ty))||(s.prev.x===tx&&s.prev.y===ty)));
   pushLog('ply',`Thermal Wake at ${cid(tx,ty)}: ${was?'POSITIVE — ship moved here last turn.':'negative — no movement.'}`);
   if(was){G.ev.trails.push({pos:{x:tx,y:ty},turn:G.turn});probSpike({x:tx,y:ty},0.08);normProb();}
 }
@@ -4202,19 +4327,24 @@ function execMissile(tx,ty,isGuided){
   addFx('explosion',blastCells,1200);
 
   let anyHit=false;
+  const hitShipIds = new Set();
   for(let i=0;i<blastCells.length;i++){
     const c=blastCells[i];
     const isCenter=(c.x===tx&&c.y===ty);
     const dmg=isGuided?5:(isCenter?5:3);
-    const hitSh=G.eFleet.find(s=>s.alive&&s.pos.x===c.x&&s.pos.y===c.y);
+    const hitSh=G.eFleet.find(s => !hitShipIds.has(s.id) && s.alive && (
+      (s.cells && s.cells.some(sc => sc.x === c.x && sc.y === c.y)) ||
+      (s.pos && s.pos.x === c.x && s.pos.y === c.y)
+    ));
     if(hitSh){
+      hitShipIds.add(hitSh.id);
       anyHit=true;
       hitSh.hp=Math.max(0,hitSh.hp-dmg);
       hitSh.cs=CS.CONF;
-      addMark('hit',hitSh.pos,`${dmg}`);
+      addMark('hit',{x:c.x,y:c.y},`${dmg}`);
       G.ev.confirmed=G.ev.confirmed.filter(item=>item.sid!==hitSh.id);
-      G.ev.confirmed.push({pos:{...hitSh.pos},sid:hitSh.id,turn:G.turn});
-      G.ev.hits.push({pos:{...hitSh.pos},turn:G.turn});
+      G.ev.confirmed.push({pos:{x:c.x,y:c.y},sid:hitSh.id,turn:G.turn});
+      G.ev.hits.push({pos:{x:c.x,y:c.y},turn:G.turn});
       pushLog('hit',`Ballistic Missile ${isCenter?'DIRECT HIT':'SPLASH HIT'} on ${hitSh.lbl} at ${cid(c.x,c.y)} for ${dmg}! HP:${hitSh.hp}/${hitSh.max}`);
       if(hitSh.hp<=0){hitSh.alive=false;pushLog('hit',`${hitSh.lbl} SUNK!`);}
     }
@@ -4237,18 +4367,19 @@ function execTorpedo(tx,ty){
     if(cx<0||cx>=GW||cy<0||cy>=GH)break;
     path.push({x:cx,y:cy});G.revealed.add(`${cx},${cy}`);
     if(G.grid[cy][cx]===T.ISLAND){pushLog('ply',`Torpedo stopped at island ${cid(cx,cy)}.`);break;}
-    const sh=G.eFleet.find(s=>s.alive&&s.pos.x===cx&&s.pos.y===cy);
+    const sh=getShipAt(G.eFleet,cx,cy);
     if(sh){hitSh=sh;break;}
     cx+=dx;cy+=dy;
   }
   addFx('torp',path,1400);
   if(hitSh){
     hitSh.hp=Math.max(0,hitSh.hp-5);hitSh.cs=CS.CONF;
-    addMark('hit',hitSh.pos,'5');addFx('explosion',[hitSh.pos],1200);
+    const hitPos = path[path.length-1];
+    addMark('hit',hitPos,'5');addFx('explosion',[hitPos],1200);
     G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!==hitSh.id);
-    G.ev.confirmed.push({pos:{...hitSh.pos},sid:hitSh.id,turn:G.turn});
-    G.ev.hits.push({pos:{...hitSh.pos},turn:G.turn});
-    pushLog('hit',`Torpedo HIT ${hitSh.lbl} at ${cid(hitSh.pos.x,hitSh.pos.y)} for 5! HP:${hitSh.hp}/${hitSh.max}`);
+    G.ev.confirmed.push({pos:{...hitPos},sid:hitSh.id,turn:G.turn});
+    G.ev.hits.push({pos:{...hitPos},turn:G.turn});
+    pushLog('hit',`Torpedo HIT ${hitSh.lbl} at ${cid(hitPos.x,hitPos.y)} for 5! HP:${hitSh.hp}/${hitSh.max}`);
     if(hitSh.hp<=0){hitSh.alive=false;pushLog('hit',`${hitSh.lbl} SUNK!`);}
     playAudio('hit');
   }else{
@@ -4267,12 +4398,13 @@ function execDepth(cx,cy){
   addFx('explosion',cells,1400);let hits=0;
   G.eFleet.forEach(s=>{
     if(!s.alive)return;
-    if(cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y)){
+    const hitCells = s.cells ? s.cells.filter(sc=>cells.some(c=>c.x===sc.x&&c.y===sc.y)) : [];
+    if(hitCells.length){
       s.hp=Math.max(0,s.hp-3);s.cs=CS.CONF;hits++;
-      addMark('hit',s.pos,'3');
+      addMark('hit',hitCells[0],'3');
       G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!==s.id);
-      G.ev.confirmed.push({pos:{...s.pos},sid:s.id,turn:G.turn});
-      G.ev.hits.push({pos:{...s.pos},turn:G.turn});
+      G.ev.confirmed.push({pos:{...hitCells[0]},sid:s.id,turn:G.turn});
+      G.ev.hits.push({pos:{...hitCells[0]},turn:G.turn});
       pushLog('hit',`Depth Pattern HIT ${s.lbl} for 3! HP:${s.hp}/${s.max}`);
       if(s.hp<=0){s.alive=false;pushLog('hit',`${s.lbl} SUNK!`);}
       playAudio('hit');
@@ -4289,10 +4421,13 @@ function execPatrol(cx,cy){
   }
   cells.forEach(c=>G.revealed.add(`${c.x},${c.y}`));
   G.patrolReveal={cells:new Set(cells.map(c=>`${c.x},${c.y}`)),left:2};
-  const found=G.eFleet.filter(s=>s.alive&&cells.some(c=>c.x===s.pos.x&&c.y===s.pos.y));
-  found.forEach(s=>{s.cs=CS.CONF;
+  const found=G.eFleet.filter(s=>s.alive&&s.cells&&s.cells.some(sc=>cells.some(c=>c.x===sc.x&&c.y===sc.y)));
+  found.forEach(s=>{
+    s.cs=CS.CONF;
     G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!==s.id);
-    G.ev.confirmed.push({pos:{...s.pos},sid:s.id,turn:G.turn});});
+    const hitCell = s.cells.find(sc=>cells.some(c=>c.x===sc.x&&c.y===sc.y)) || s.pos;
+    G.ev.confirmed.push({pos:{...hitCell},sid:s.id,turn:G.turn});
+  });
   addFx('sweep',cells,1600);
   pushLog('ply',`Patrol Plane: ${found.length} contact(s) confirmed in 5×5 zone.`);
   playAudio('sonar');
@@ -4333,6 +4468,7 @@ function execFlank(tx,ty){
   const s=sup.reduce((a,b)=>Math.abs(a.pos.x-tx)+Math.abs(a.pos.y-ty)<=Math.abs(b.pos.x-tx)+Math.abs(b.pos.y-ty)?a:b);
   pushLog('ply',`Flank Speed: ${s.lbl} → ${cid(tx,ty)}.`);
   s.pos={x:tx,y:ty};
+  s.cells=getShipCells(s.id,tx,ty,s.orient||'H');
 }
 
 function execSilent(tx,ty){
@@ -4343,6 +4479,7 @@ function execSilent(tx,ty){
   G.ev.confirmed=G.ev.confirmed.filter(c=>c.sid!=='flagship');
   G.prob[old.y][old.x]*=0.2;
   flag.pos={x:tx,y:ty};
+  flag.cells=getShipCells('flagship',tx,ty,flag.orient||'H');
   normProb();
   addFx('smoke',[{x:tx,y:ty}],1300);
   pushLog('ply',`Go Silent: flagship → ${cid(tx,ty)}. Confirmed contact cleared.`);
@@ -4351,11 +4488,11 @@ function execSilent(tx,ty){
 function execSalvo(tx,ty){
   G.revealed.add(`${tx},${ty}`);
   addFx('explosion',[{x:tx,y:ty}],1400);
-  const sh=G.eFleet.find(s=>s.alive&&s.pos.x===tx&&s.pos.y===ty);
+  const sh=getShipAt(G.eFleet,tx,ty);
   if(sh){
-    sh.hp=Math.max(0,sh.hp-8);sh.cs=CS.CONF;addMark('hit',sh.pos,'8');
-    G.ev.hits.push({pos:{...sh.pos},turn:G.turn});
-    pushLog('hit',`Precision Salvo HIT ${sh.lbl} for 8! HP:${sh.hp}/${sh.max}`);
+    sh.hp=Math.max(0,sh.hp-8);sh.cs=CS.CONF;addMark('hit',{x:tx,y:ty},'8');
+    G.ev.hits.push({pos:{x:tx,y:ty},turn:G.turn});
+    pushLog('hit',`Precision Salvo HIT ${sh.lbl} at ${cid(tx,ty)} for 8! HP:${sh.hp}/${sh.max}`);
     if(sh.hp<=0){sh.alive=false;pushLog('hit',`${sh.lbl} SUNK!`);}
     playAudio('hit');
   }else{
@@ -4644,17 +4781,46 @@ function drawEffects(ctx){
 }
 
 function drawPlayerFleet(ctx){
-  G.pFleet.forEach(s=>{
-    if(!s.alive)return;
-    const{px,py}=cp2px(s.pos.x,s.pos.y);
-    ctx.fillStyle='rgba(20,60,120,.85)';ctx.fillRect(px+2,py+2,CELL-4,CELL-4);
-    ctx.fillStyle='#4a9eca';
-    ctx.font=`bold ${CELL*.5}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
-    const ico=s.id==='flagship'?'⊡':s.id==='patrol'?'▸':'▪';
-    ctx.fillText(ico,px+CELL/2,py+CELL/2);
-    const r=s.hp/s.max;
-    ctx.fillStyle=r>.5?'#50c878':r>.25?'#d4a843':'#e05050';
-    ctx.fillRect(px+CELL-5,py+2,3,3);
+  const SHIP_COLORS = {
+    flagship: { fill: 'rgba(20, 80, 50, .85)', stroke: '#38ef7d', ico: '⊡' },
+    patrol:   { fill: 'rgba(20, 60, 120, .85)', stroke: '#4a9eca', ico: '▸' },
+    minelayer:{ fill: 'rgba(100, 70, 20, .85)', stroke: '#f5a623', ico: '▪' }
+  };
+
+  G.pFleet.forEach(s => {
+    if (!s.alive) return;
+    const cfg = SHIP_COLORS[s.id] || { fill: 'rgba(20,60,120,.85)', stroke: '#4a9eca', ico: '▪' };
+    const cells = (s.cells && s.cells.length > 0) ? s.cells : [s.pos];
+
+    cells.forEach((c, idx) => {
+      const { px, py } = cp2px(c.x, c.y);
+      ctx.fillStyle = cfg.fill;
+      ctx.fillRect(px + 2, py + 2, CELL - 4, CELL - 4);
+      ctx.strokeStyle = cfg.stroke;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(px + 2, py + 2, CELL - 4, CELL - 4);
+
+      if (idx === 0) {
+        // Main icon on primary origin cell
+        ctx.fillStyle = cfg.stroke;
+        ctx.font = `bold ${CELL * .5}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(cfg.ico, px + CELL / 2, py + CELL / 2);
+      } else {
+        // Segment indicator pip on trailing cells
+        ctx.fillStyle = cfg.stroke;
+        ctx.beginPath();
+        ctx.arc(px + CELL / 2, py + CELL / 2, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    // Health pip on primary cell corner
+    const prim = cp2px(s.pos.x, s.pos.y);
+    const r = s.hp / s.max;
+    ctx.fillStyle = r > .5 ? '#50c878' : r > .25 ? '#d4a843' : '#e05050';
+    ctx.fillRect(prim.px + CELL - 6, prim.py + 3, 4, 4);
   });
 }
 
@@ -4667,18 +4833,52 @@ function drawEnemyContacts(ctx){
     [CS.DCOY]:{col:'#9040c0',ico:'⊘'},
   };
   G.eFleet.forEach(s=>{
-    if(!s.alive||s.cs===CS.UNK)return;
-    const key=`${s.pos.x},${s.pos.y}`;
-    const vis=G.revealed.has(key)||(G.patrolReveal&&G.patrolReveal.cells.has(key))||s.cs===CS.CONF;
-    if(!vis&&s.cs!==CS.CONF)return;
-    const{px,py}=cp2px(s.pos.x,s.pos.y);
+    if(!s.alive){
+      // Sunk ship: draw all segments
+      const cells = (s.cells && s.cells.length > 0) ? s.cells : [s.pos];
+      cells.forEach(c => {
+        const { px, py } = cp2px(c.x, c.y);
+        ctx.fillStyle = 'rgba(60, 20, 20, .4)';
+        ctx.fillRect(px + 2, py + 2, CELL - 4, CELL - 4);
+        ctx.strokeStyle = '#804040';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 2, py + 2, CELL - 4, CELL - 4);
+        ctx.fillStyle = '#b05050';
+        ctx.font = `bold ${CELL * .4}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('✕', px + CELL / 2, py + CELL / 2);
+      });
+      return;
+    }
+    if(s.cs===CS.UNK)return;
+    const cells = (s.cells && s.cells.length > 0) ? s.cells : [s.pos];
+    const vis = s.cs === CS.CONF || cells.some(c => G.revealed.has(`${c.x},${c.y}`) || (G.patrolReveal && G.patrolReveal.cells.has(`${c.x},${c.y}`)));
+    if(!vis && s.cs !== CS.CONF) return;
+
     const info=CSC[s.cs];if(!info)return;
-    if(s.cs===CS.CONF){ctx.fillStyle='rgba(160,20,20,.3)';ctx.fillRect(px+1,py+1,CELL-2,CELL-2);}
-    ctx.fillStyle=info.col;ctx.font=`bold ${CELL*.52}px monospace`;
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(info.ico,px+CELL/2,py+CELL/2);
-    ctx.font=`${CELL*.3}px monospace`;
-    ctx.fillText(s.lbl.slice(0,3),px+CELL/2,py+CELL-4);
+    cells.forEach((c, idx) => {
+      const key = `${c.x},${c.y}`;
+      const cellVis = G.revealed.has(key) || (G.patrolReveal && G.patrolReveal.cells.has(key)) || s.cs === CS.CONF;
+      if (!cellVis && s.cs !== CS.CONF) return;
+
+      const{px,py}=cp2px(c.x,c.y);
+      if(s.cs===CS.CONF){
+        ctx.fillStyle='rgba(160,20,20,.35)';
+        ctx.fillRect(px+2,py+2,CELL-4,CELL-4);
+        ctx.strokeStyle = '#e03030';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px+2,py+2,CELL-4,CELL-4);
+      }
+      ctx.fillStyle=info.col;ctx.font=`bold ${CELL*.5}px monospace`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      if(idx === 0) {
+        ctx.fillText(info.ico,px+CELL/2,py+CELL/2);
+        ctx.font=`${CELL*.28}px monospace`;
+        ctx.fillText(s.lbl.slice(0,3),px+CELL/2,py+CELL-4);
+      } else {
+        ctx.fillText('▪',px+CELL/2,py+CELL/2);
+      }
+    });
   });
 }
 
