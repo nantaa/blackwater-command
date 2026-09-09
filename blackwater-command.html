@@ -3101,6 +3101,13 @@ function toggleOrient(){
   render();
 }
 
+function isValidShipMove(tx,ty){
+  if(!G||tx===null||ty===null||tx<0||tx>=10||ty<0||ty>=GH)return false;
+  if(G.grid[ty][tx]===T.ISLAND)return false;
+  if(G.pFleet.some(s=>s.alive&&s.pos.x===tx&&s.pos.y===ty))return false;
+  return true;
+}
+
 function previewCells(id,hx,hy){
   if(!id||hx===null)return[];
   const c=CARDS[id];if(!c)return[];
@@ -3134,6 +3141,10 @@ function previewCells(id,hx,hy){
       const x=hx+dx,y=hy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
     case'AREA5':for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
       const x=hx+dx,y=hy+dy;if(x>=0&&x<GW&&y>=0&&y<GH)cells.push({x,y});}break;
+    case'MOVE_SUP':
+    case'MOVE_FLAG':{
+      if(isValidShipMove(hx,hy))cells.push({x:hx,y:hy});
+      break;}
     default:if(hx>=0&&hx<GW&&hy>=0&&hy<GH)cells.push({x:hx,y:hy});
   }
   return cells;
@@ -3144,6 +3155,20 @@ function previewCells(id,hx,hy){
 ════════════════════════════════════════════════════════════════ */
 function execCard(id,tx,ty){
   const c=CARDS[id];if(!c)return;
+  if(c.tgt==='MOVE_SUP'||c.tgt==='MOVE_FLAG'){
+    if(tx>=10){
+      pushLog('sys',`${c.name}: Movement restricted! Ships cannot enter enemy sector (Cols K–T).`);
+      cancelTgt();
+      renderAll();
+      return;
+    }
+    if(!isValidShipMove(tx,ty)){
+      pushLog('sys',`${c.name}: Movement blocked! Cell is impassable or occupied.`);
+      cancelTgt();
+      renderAll();
+      return;
+    }
+  }
   G.cp-=c.cp;
   for(const[k,v]of Object.entries(c.ammo||{}))G.ammo[k]-=v;
   const i=G.hand.indexOf(id);if(i>=0){G.hand.splice(i,1);G.discard.push(id);}

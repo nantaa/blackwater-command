@@ -309,6 +309,46 @@ assert(G.eFleet[1].hp === 6, 'Splash arm hit dealt 3 damage (9 - 3 = 6)');
 assert(G.revealed.has('14,10'), 'Direct center cell fog revealed');
 assert(G.revealed.has('15,10'), 'Splash arm cell fog revealed');
 
+// Test Movement Cards Territory Restriction (Border Rule: Allied waters x < 10)
+const flankEnemyPreview = exportsObj.previewCells('flank_speed', 12, 5);
+assert(flankEnemyPreview.length === 0, 'Flank Speed preview returns empty array for enemy territory (x >= 10)');
+
+const silentEnemyPreview = exportsObj.previewCells('go_silent', 10, 5);
+assert(silentEnemyPreview.length === 0, 'Go Silent preview returns empty array for enemy territory (x >= 10)');
+
+const validAlliedCells = validCells(G.grid, 0, 10).filter(c => !G.pFleet.some(s => s.alive && s.pos.x === c.x && s.pos.y === c.y));
+const targetCell = validAlliedCells[0];
+
+const flankAlliedPreview = exportsObj.previewCells('flank_speed', targetCell.x, targetCell.y);
+assert(flankAlliedPreview.length === 1 && flankAlliedPreview[0].x === targetCell.x && flankAlliedPreview[0].y === targetCell.y, 'Flank Speed preview returns cell for valid allied water');
+
+// Execution checks: Illegal Move to Enemy Territory (x >= 10)
+G.hand.push('flank_speed');
+G.cp = 3;
+const supShip = G.pFleet.find(s => s.id !== 'flagship' && s.alive);
+const origSupPos = { ...supShip.pos };
+
+execCard('flank_speed', 14, 8);
+assert(G.cp === 3, 'Illegal Flank Speed into enemy sector did not consume CP');
+assert(supShip.pos.x === origSupPos.x && supShip.pos.y === origSupPos.y, 'Illegal Flank Speed into enemy sector did not move ship');
+assert(G.hand.includes('flank_speed'), 'Illegal Flank Speed retained card in hand');
+
+// Execution checks: Illegal Go Silent to Enemy Territory (x >= 10)
+G.hand.push('go_silent');
+G.ammo.smoke = 3;
+const origFlagPos = { ...G.pFleet[0].pos };
+
+execCard('go_silent', 11, 4);
+assert(G.cp === 3, 'Illegal Go Silent into enemy sector did not consume CP');
+assert(G.ammo.smoke === 3, 'Illegal Go Silent into enemy sector did not consume smoke');
+assert(G.pFleet[0].pos.x === origFlagPos.x && G.pFleet[0].pos.y === origFlagPos.y, 'Illegal Go Silent into enemy sector did not move flagship');
+assert(G.hand.includes('go_silent'), 'Illegal Go Silent retained card in hand');
+
+// Execution checks: Legal Move within Allied Territory (x < 10)
+execCard('flank_speed', targetCell.x, targetCell.y);
+assert(G.cp === 2, 'Legal Flank Speed deducted 1 CP');
+assert(G.pFleet.some(s => s.id !== 'flagship' && s.pos.x === targetCell.x && s.pos.y === targetCell.y), 'Legal Flank Speed moved support ship to target allied cell');
+
 // ----------------------------------------------------
 // TEST SUITE 6: Turn Loop State Machine
 // ----------------------------------------------------
