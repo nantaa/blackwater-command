@@ -1,0 +1,6 @@
+- generic [ref=f5e234]:
+  - generic [ref=f5e235]: ◆ VICTORY ◆
+  - generic [ref=f5e236]: "Turns: 1 · Torpedoes: 3 · Sonar: 2 Ammo remaining: 22 · Flagship HP: 20/20 Seed: 66456"
+  - generic [ref=f5e237]:
+    - button "▶ MISSION DEBRIEF" [ref=f5e238] [cursor=pointer]
+    - button "TITLE" [ref=f5e239] [cursor=pointer]

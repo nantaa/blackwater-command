@@ -1,0 +1,19 @@
+- generic [ref=f5e280]:
+  - generic [ref=f5e281]: FIELD REQUISITION
+  - generic [ref=f5e282]: CHOOSE ONE REWARD FOR YOUR FLEET
+  - generic [ref=f5e283]:
+    - generic [ref=f5e284] [cursor=pointer]:
+      - generic [ref=f5e285]: PASSIVE MODULE
+      - generic [ref=f5e286]: Signal Interpreter
+      - generic [ref=f5e287]: Enemy wake trails persist 1 additional turn in evidence tracking.
+      - button "SELECT REQUISITION" [ref=f5e288]
+    - generic [ref=f5e289] [cursor=pointer]:
+      - generic [ref=f5e290]: TACTICAL UPGRADE
+      - generic [ref=f5e291]: "Upgrade: Long Patrol"
+      - generic [ref=f5e292]: "[Upgraded] Reveal 5×5 zone. Confirms contacts and persists for 2 enemy turns."
+      - button "SELECT REQUISITION" [ref=f5e293]
+    - generic [ref=f5e294] [cursor=pointer]:
+      - generic [ref=f5e295]: MUNITIONS
+      - generic [ref=f5e296]: Torpedo Crate
+      - generic [ref=f5e297]: Requisition +2 standard torpedoes.
+      - button "SELECT REQUISITION" [ref=f5e298]

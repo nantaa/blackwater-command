@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=960">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b192e">
 <title>Blackwater Command — Naval Tactical Prototype</title>
 <meta name="description" content="Naval hidden-information tactics. Find the enemy fleet through deduction, not luck.">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:'Courier New',monospace;color:#e2edf8}
+html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:'Courier New',monospace;color:#e2edf8;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
+canvas{touch-action:none}
+#app-scaler{width:960px;height:752px;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);transform-origin:center center}
 
 /* ── SCREENS ─────────────────────────────────────────── */
 .screen{display:none;position:absolute;inset:0;align-items:center;justify-content:center}
@@ -90,10 +96,15 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
 .obj-blk{max-width:130px}
 .obj-txt{font-size:.64rem;color:#9ae6a0;line-height:1.45;font-weight:bold}
 .ctrl-blk{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.ctrl-row{display:flex;gap:4px;align-items:center}
 #tmr-tog{font-size:.62rem;color:#8eb8dc;background:#132640;
   border:1px solid #2a4e76;font-family:inherit;padding:2px 7px;cursor:pointer;border-radius:2px}
 #tmr-tog:hover{color:#ffcf40;border-color:#ffcf40}
 #tmr-tog.on{color:#38ef7d;border-color:#38ef7d}
+#heat-btn{font-size:.62rem;color:#c080ff;background:#132640;
+  border:1px solid #305886;font-family:inherit;padding:2px 7px;cursor:pointer;border-radius:2px;font-weight:bold;letter-spacing:.05em}
+#heat-btn:hover{color:#ffffff;border-color:#c080ff;background:#251640}
+#heat-btn.on{color:#ffffff;background:#7030b0;border-color:#c080ff;box-shadow:0 0 8px rgba(192,128,255,.5)}
 #end-turn-btn{font-size:.7rem;background:#132640;border:1px solid #38689c;
   color:#82b8ea;font-family:inherit;padding:4px 10px;cursor:pointer;letter-spacing:.08em;font-weight:bold;border-radius:2px}
 #end-turn-btn:hover{border-color:#ffcf40;color:#ffcf40;background:#1a3458}
@@ -144,14 +155,10 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
 #tgt-help{position:absolute;top:4px;left:50%;transform:translateX(-50%);
   background:rgba(16,34,58,.95);border:1px solid #3a689e;
   font-size:.7rem;color:#ffcf40;padding:3px 12px;pointer-events:none;display:none;font-weight:bold;border-radius:2px}
-#orient-btn{position:absolute;top:24px;left:50%;transform:translateX(-50%);
+#orient-btn{position:absolute;top:20px;left:50%;transform:translateX(-50%);
   background:#122540;border:1px solid #305886;color:#8eb8dc;
-  font-family:inherit;font-size:.65rem;padding:3px 10px;cursor:pointer;display:none;
-  letter-spacing:.08em;font-weight:bold;border-radius:2px}
-#heat-btn{position:absolute;bottom:6px;right:6px;background:rgba(16,34,58,.95);
-  border:1px solid #305886;color:#c080ff;font-family:inherit;
-  font-size:.63rem;padding:3px 9px;cursor:pointer;letter-spacing:.08em;font-weight:bold;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
-#heat-btn.on{color:#ffffff;background:#7030b0;border-color:#9040e0;box-shadow:0 0 10px rgba(144,64,224,0.6)}
+  font-family:inherit;font-size:.72rem;padding:6px 14px;cursor:pointer;display:none;
+  letter-spacing:.08em;font-weight:bold;border-radius:3px;min-height:38px;box-shadow:0 4px 12px rgba(0,0,0,0.5);z-index:40}
 
 /* HAND */
 #pnl-hand{grid-area:hand;display:flex;align-items:flex-start;
@@ -258,6 +265,7 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
 </style>
 </head>
 <body>
+<div id="app-scaler">
 
 <!-- ── TITLE ─────────────────────────────────────────── -->
 <div id="scr-title" class="screen active">
@@ -289,7 +297,7 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
 <div id="scr-route-map" class="screen">
   <div class="route-header">
     <div>
-      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#ffcf40;font-size:.9rem">REGION 1: THE IRON STRAITS</span>
+      <span style="font-family:'Cinzel',serif;font-weight:bold;color:#ffcf40;font-size:.9rem" id="route-region-lbl">REGION 1: THE IRON STRAITS</span>
       <span style="font-size:.7rem;color:#9bc4ed;margin-left:8px;font-weight:bold" id="route-tier-lbl">TIER 1 OF 4</span>
     </div>
     <div style="display:flex;gap:14px;font-size:.75rem;font-family:'Share Tech Mono',monospace">
@@ -393,7 +401,6 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
       <canvas id="board" width="544" height="544"></canvas>
       <div id="tgt-help">SELECT TARGET</div>
       <button id="orient-btn" onclick="toggleOrient()">HORIZONTAL ↔</button>
-      <button id="heat-btn" onclick="toggleHeat()">HEATMAP</button>
     </div>
     <div class="pnl" id="pnl-hand"></div>
   </div>
@@ -479,10 +486,11 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
         <div class="debrief-row"><span>Encounter Result:</span><span style="color:#38ef7d;font-weight:bold">FLAGSHIP SUNK</span></div>
       </div>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-top:1rem">
-      <button class="btn" onclick="showTitle()">ABANDON RUN</button>
-      <button class="btn" style="border-color:#00f5ff;color:#00f5ff" onclick="openAnalyzeMode()">🔍 ANALYZE REPLAY &amp; HEATMAP</button>
-      <button class="btn g" onclick="showUpgradeScreen()">PROCEED TO REWARDS ▶</button>
+    <div style="display:flex;justify-content:space-between;margin-top:1rem;gap:8px">
+      <button class="btn r" onclick="showTitle()">ABANDON</button>
+      <button class="btn" style="border-color:#ffcf40;color:#ffcf40" onclick="returnToRouteMap()">🗺 ROUTE MAP</button>
+      <button class="btn" style="border-color:#00f5ff;color:#00f5ff" onclick="openAnalyzeMode()">🔍 ANALYZE REPLAY</button>
+      <button class="btn g" onclick="showUpgradeScreen()">REQUISITION ▶</button>
     </div>
   </div>
 </div>
@@ -501,9 +509,10 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
   <div style="text-align:center">
     <div class="res-ttl v">◆ VICTORY ◆</div>
     <div class="res-stats" id="vic-stats"></div>
-    <div class="res-btns">
-      <button class="btn g" onclick="showDebrief()">▶ MISSION DEBRIEF</button>
-      <button class="btn" onclick="showTitle()">TITLE</button>
+    <div class="res-btns" id="vic-btns">
+      <button class="btn g" onclick="returnToRouteMap()">🗺 NEXT TIER (ROUTE MAP)</button>
+      <button class="btn" onclick="showDebrief()">▶ MISSION DEBRIEF</button>
+      <button class="btn r" onclick="showTitle()">TITLE</button>
     </div>
   </div>
 </div>
@@ -663,6 +672,7 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
 
 <!-- ── CARD TOOLTIP ───────────────────────────────────── -->
 <div id="card-tip"></div>
+</div> <!-- #app-scaler -->
 
 <script>
 'use strict';
@@ -2147,14 +2157,25 @@ function startCampaignRun(seed) {
 
 function updateRouteHUD() {
   if (!campaignRun) return;
+  const regionEl = document.getElementById('route-region-lbl');
   const hullEl = document.getElementById('route-hull-status');
   const torpEl = document.getElementById('route-torpedo-status');
   const sonEl = document.getElementById('route-sonar-status');
   const tierEl = document.getElementById('route-tier-lbl');
+  const regionNames = [
+    'REGION 1: THE IRON STRAITS',
+    'REGION 2: ARCHIPELAGO OF SHADOWS',
+    'REGION 3: THE ABYSSAL DEEP',
+    'REGION 4: BLACKWATER HIGH COMMAND'
+  ];
+  const regIdx = Math.max(0, (campaignRun.region || 1) - 1);
+  if (regionEl) regionEl.textContent = regionNames[regIdx] || `REGION ${campaignRun.region || 1}: UNCHARTED WATERS`;
   if (hullEl) hullEl.textContent = 'HULL: ' + campaignRun.flagshipHull + '/' + campaignRun.maxHull;
   if (torpEl) torpEl.textContent = 'TORP: ' + (campaignRun.ammo.torpedo || 0);
   if (sonEl) sonEl.textContent = 'SONAR: ' + (campaignRun.ammo.sonar || 0);
-  if (tierEl) tierEl.textContent = 'TIER ' + ((campaignRun.map ? campaignRun.map.currentTier : 0) + 1) + ' OF 4';
+  const curTier = (campaignRun.map ? campaignRun.map.currentTier : 0);
+  const maxTiers = (campaignRun.map && campaignRun.map.tiers) ? campaignRun.map.tiers.length : 4;
+  if (tierEl) tierEl.textContent = 'TIER ' + Math.min(curTier + 1, maxTiers) + ' OF ' + maxTiers;
 }
 
 function renderRouteMap() {
@@ -2364,13 +2385,19 @@ function launchEncounterNode(node) {
 }
 
 function returnToRouteMap() {
-  if (campaignRun) {
-    updateRouteHUD();
-    renderRouteMap();
-    showScreen('scr-route-map');
-  } else {
-    showTitle();
+  if (!campaignRun) {
+    startCampaignRun(G ? G.seed : 1234);
+    return;
   }
+  // If region completed (all tiers cleared), advance to next region page
+  if (campaignRun.map && campaignRun.map.currentTier >= campaignRun.map.tiers.length) {
+    campaignRun.region = (campaignRun.region || 1) + 1;
+    campaignRun.map = RouteEngine.generateRouteMap(campaignRun.seed + campaignRun.region * 10000, campaignRun.region);
+    campaignRun.map.currentTier = 0;
+  }
+  updateRouteHUD();
+  renderRouteMap();
+  showScreen('scr-route-map');
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -3474,7 +3501,7 @@ function dismissTut(){
 function toggleHeat(){
   if(!G)return;
   G.showHeat=!G.showHeat;
-  document.getElementById('heat-btn').classList.toggle('on',G.showHeat);
+  renderTmr();
   render();
 }
 
@@ -4273,10 +4300,30 @@ function endBattle(res){
   if(G.result)return;G.result=res;stopTimer();
   const ammoL=Object.values(G.ammo).reduce((a,b)=>a+b,0);
   if(res==='vic'){
+    if(campaignRun){
+      if(G.pFleet&&G.pFleet[0]) campaignRun.flagshipHull = G.pFleet[0].hp;
+      if(G.ammo) campaignRun.ammo = { ...G.ammo };
+    }
     document.getElementById('vic-stats').innerHTML=
       `Turns: ${G.turn} &nbsp;·&nbsp; Torpedoes: ${G.stats.torps} &nbsp;·&nbsp; Sonar: ${G.stats.sonar}<br>
        Ammo remaining: ${ammoL} &nbsp;·&nbsp; Flagship HP: ${G.pFleet[0].hp}/${G.pFleet[0].max}<br>
        Seed: <span style="color:#d4a843">${G.seed}</span>`;
+    const vicBtns = document.getElementById('vic-btns');
+    if(vicBtns){
+      if(campaignRun && campaignRun.map){
+        vicBtns.innerHTML = `
+          <button class="btn g" onclick="returnToRouteMap()">🗺 RETURN TO ROUTE MAP</button>
+          <button class="btn" onclick="showDebrief()">▶ MISSION DEBRIEF &amp; REQUISITION</button>
+          <button class="btn r" onclick="showTitle()">ABANDON EXPEDITION</button>
+        `;
+      } else {
+        vicBtns.innerHTML = `
+          <button class="btn g" onclick="returnToRouteMap()">🗺 ENTER ROUTE MAP</button>
+          <button class="btn" onclick="showDebrief()">▶ MISSION DEBRIEF</button>
+          <button class="btn r" onclick="showTitle()">TITLE</button>
+        `;
+      }
+    }
     setTimeout(()=>showScreen('scr-vic'),900);
   }else{
     document.getElementById('def-stats').innerHTML=
@@ -4615,7 +4662,10 @@ function renderTmr(){
     <div class="obj-blk"><div style="font-size:.56rem;color:#2a4060">${G.phase}</div>
       <div class="obj-txt">HUNT: Destroy enemy flagship</div></div>
     <div class="ctrl-blk">
-      <button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>
+      <div class="ctrl-row">
+        <button id="tmr-tog" class="${G.timerOn?'on':''}" onclick="toggleTimer()">${G.timerOn?'⏱ ON':'⏱ OFF'}</button>
+        <button id="heat-btn" class="${G.showHeat?'on':''}" onclick="toggleHeat()">${G.showHeat?'🔥 HEAT ON':'🔥 HEAT OFF'}</button>
+      </div>
       <button id="end-turn-btn" onclick="endPlayerTurn()">${G.phase===PH.PLAN?'END TURN ▶':'…WAIT'}</button>
     </div>`;
 }
@@ -4709,6 +4759,22 @@ function hideTip(){document.getElementById('card-tip').style.display='none';}
 ════════════════════════════════════════════════════════════════ */
 function initInput(){
   const cv=document.getElementById('board');if(!cv)return;
+  let lastTapTime=0;
+  cv.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='touch'||e.pointerType==='pen'){
+      lastTapTime=Date.now();
+      if(!G||G.phase!==PH.PLAN)return;
+      const{x,y}=px2cell(e,cv);if(x===null)return;
+      G.hov={x,y};
+      if(G.tCard){
+        execCard(G.tCard,x,y);
+      } else {
+        const sh=G.eFleet.find(s=>s.pos.x===x&&s.pos.y===y&&s.cs===CS.CONF);
+        if(sh){pushLog('int',`${cid(x,y)}: ${sh.lbl} confirmed. HP ${sh.hp}/${sh.max}.`);renderLog();}
+        render();
+      }
+    }
+  });
   cv.addEventListener('mousemove',e=>{
     if(!G||G.phase!==PH.PLAN)return;
     const{x,y}=px2cell(e,cv);
@@ -4716,6 +4782,7 @@ function initInput(){
   });
   cv.addEventListener('mouseleave',()=>{if(G){G.hov=null;if(G.tCard)render();}});
   cv.addEventListener('click',e=>{
+    if(Date.now()-lastTapTime<400)return;
     if(!G||G.phase!==PH.PLAN)return;
     const{x,y}=px2cell(e,cv);if(x===null)return;
     if(G.tCard){execCard(G.tCard,x,y);}
@@ -4736,7 +4803,9 @@ function initInput(){
 function px2cell(e,cv){
   const r=cv.getBoundingClientRect();
   const sx=cv.width/r.width,sy=cv.height/r.height;
-  const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;
+  const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : 0));
+  const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : 0));
+  const mx=(clientX-r.left)*sx,my=(clientY-r.top)*sy;
   const x=Math.floor((mx-LBL)/CELL),y=Math.floor((my-LBL)/CELL);
   if(x<0||x>=GW||y<0||y>=GH)return{x:null,y:null};
   return{x,y};
@@ -5040,18 +5109,7 @@ function initPrepInput(){
   if(!cv) return;
   prepInputInited = true;
 
-  cv.addEventListener('mousemove', e => {
-    const { x, y } = px2cell(e, cv);
-    prepState.hov = (x !== null) ? { x, y } : null;
-    renderPrepBoard();
-  });
-
-  cv.addEventListener('mouseleave', () => {
-    prepState.hov = null;
-    renderPrepBoard();
-  });
-
-  cv.addEventListener('click', e => {
+  function handlePrepClick(e){
     const { x, y } = px2cell(e, cv);
     if(x === null) return;
     const ship = prepState.selectedShip;
@@ -5076,6 +5134,30 @@ function initPrepInput(){
     updatePrepUI();
     renderPrepBoard();
     playAudio('sonar');
+  }
+
+  let lastPrepPointerTime = 0;
+  cv.addEventListener('pointerdown', e => {
+    if(e.pointerType === 'touch' || e.pointerType === 'pen'){
+      lastPrepPointerTime = Date.now();
+      handlePrepClick(e);
+    }
+  });
+
+  cv.addEventListener('mousemove', e => {
+    const { x, y } = px2cell(e, cv);
+    prepState.hov = (x !== null) ? { x, y } : null;
+    renderPrepBoard();
+  });
+
+  cv.addEventListener('mouseleave', () => {
+    prepState.hov = null;
+    renderPrepBoard();
+  });
+
+  cv.addEventListener('click', e => {
+    if(Date.now() - lastPrepPointerTime < 400) return;
+    handlePrepClick(e);
   });
 
   cv.addEventListener('contextmenu', e => {
@@ -5267,20 +5349,29 @@ function chooseReward(idx){
   applyUpgrade(reward);
   const container = document.getElementById('upgrade-cards-container');
   if(container){
+    const nextBtn = (campaignRun && campaignRun.map)
+      ? `<button class="btn g" style="width:100%;padding:.7rem;font-size:.9rem" onclick="returnToRouteMap()">
+           🗺 RETURN TO ROUTE MAP
+         </button>`
+      : `<button class="btn g" style="width:100%;padding:.7rem;font-size:.9rem" onclick="startNextBattle()">
+           ▶ PROCEED TO NEXT BATTLE
+         </button>`;
     container.innerHTML = `
       <div style="background:#091e30;border:1px solid #50c878;border-radius:6px;padding:1.5rem;max-width:440px;margin:1rem auto;grid-column:1/-1">
         <div style="color:#50c878;font-size:1.1rem;font-weight:bold;margin-bottom:6px">✓ REQUISITION CONFIRMED</div>
         <div style="color:#d4a843;font-size:.9rem;font-weight:bold;margin-bottom:8px">${reward.title}</div>
         <div style="font-size:.78rem;color:#8aa8c8;margin-bottom:1.5rem">${reward.desc}</div>
-        <button class="btn g" style="width:100%;padding:.7rem;font-size:.9rem" onclick="startNextBattle()">
-          ▶ PROCEED TO NEXT BATTLE
-        </button>
+        ${nextBtn}
       </div>
     `;
   }
 }
 
 function startNextBattle(){
+  if(campaignRun && campaignRun.map){
+    returnToRouteMap();
+    return;
+  }
   const r = getRun();
   r.battleCount = (r.battleCount || 0) + 1;
   const newSeed = Math.floor(Math.random() * 99998) + 1;
@@ -5322,12 +5413,25 @@ function startGame(){
   startPreparation(seed);
 }
 
+function fitAppToScreen(){
+  const scaler = document.getElementById('app-scaler');
+  if(!scaler) return;
+  const targetW = 960, targetH = 752;
+  const availW = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : targetW) || targetW;
+  const availH = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : targetH) || targetH;
+  const scale = Math.min(availW / targetW, availH / targetH);
+  scaler.style.transform = `translate(-50%, -50%) scale(${scale.toFixed(4)})`;
+}
+
 /* ════════════════════════════════════════════════════════════════
    §25  BOOT
 ════════════════════════════════════════════════════════════════ */
 function boot(){
   rollSeed();
   initInput();
+  fitAppToScreen();
+  window.addEventListener('resize', fitAppToScreen);
+  window.addEventListener('orientationchange', fitAppToScreen);
   showScreen('scr-title');
 }
 

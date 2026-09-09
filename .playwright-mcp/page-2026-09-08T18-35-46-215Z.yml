@@ -1,0 +1,8 @@
+- generic [ref=f5e280]:
+  - generic [ref=f5e281]: FIELD REQUISITION
+  - generic [ref=f5e282]: CHOOSE ONE REWARD FOR YOUR FLEET
+  - generic [ref=f5e299]:
+    - generic [ref=f5e300]: ✓ REQUISITION CONFIRMED
+    - generic [ref=f5e301]: Signal Interpreter
+    - generic [ref=f5e302]: Enemy wake trails persist 1 additional turn in evidence tracking.
+    - button "▶ PROCEED TO NEXT BATTLE" [ref=f5e303] [cursor=pointer]
