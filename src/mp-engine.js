@@ -824,6 +824,7 @@
       grid,
       phase: 'DEPLOY',
       round: 1,
+      turnOrder: [p1Id, p2Id],
       activePlayerId: p1Id,
       winnerId: null,
       players: [

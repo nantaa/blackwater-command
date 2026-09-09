@@ -4,6 +4,7 @@ const http = require('http');
 const MP = require('../src/mp-engine.js');
 
 const rooms = new Map(); // roomCode -> Room
+const quickMatch1v1Queue = []; // [{ ws, playerName }]
 
 function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -26,7 +27,8 @@ class Room {
   }
 
   addClient(ws, playerName) {
-    if (this.clients.length >= 4) return null;
+    const max = this.mode === '1v1_duel' ? 2 : 4;
+    if (this.clients.length >= max) return null;
     const slot = this.clients.length;
     const playerId = `p${slot + 1}`;
     const client = {
@@ -49,6 +51,17 @@ class Room {
   }
 
   initMatch() {
+    if (this.mode === '1v1_duel') {
+      const p1 = this.clients[0];
+      const p2 = this.clients[1];
+      this.match = MP.create1v1Match(
+        Date.now(),
+        { id: p1.playerId, name: p1.playerName },
+        { id: p2.playerId, name: p2.playerName }
+      );
+      return;
+    }
+
     const playerConfigs = this.clients.map((c, idx) => ({
       id: c.playerId,
       name: c.playerName,
@@ -91,7 +104,9 @@ class Room {
 
     this.clients.forEach(c => {
       if (c.ws && c.ws.readyState === WebSocket.OPEN) {
-        const filtered = MP.getFilteredState(this.match, c.playerId);
+        const filtered = this.mode === '1v1_duel'
+          ? MP.getFiltered1v1State(this.match, c.playerId)
+          : MP.getFilteredState(this.match, c.playerId);
         c.ws.send(JSON.stringify({
           type: 'STATE_UPDATE',
           timer: this.timerRemaining,
@@ -120,6 +135,114 @@ function handleClientMessage(ws, data) {
   }
 
   switch (msg.type) {
+    case 'QUEUE_1V1': {
+      // Clean up any stale entries for this socket
+      const idx = quickMatch1v1Queue.findIndex(q => q.ws === ws);
+      if (idx >= 0) quickMatch1v1Queue.splice(idx, 1);
+
+      if (quickMatch1v1Queue.length > 0) {
+        // Pair with waiting player
+        const opponent = quickMatch1v1Queue.shift();
+        const code = generateRoomCode();
+        const room = new Room(code, '1v1_duel', opponent.playerName);
+        const c1 = room.addClient(opponent.ws, opponent.playerName);
+        const c2 = room.addClient(ws, msg.playerName);
+        rooms.set(code, room);
+
+        opponent.ws.roomCode = code;
+        ws.roomCode = code;
+
+        room.initMatch();
+
+        opponent.ws.send(JSON.stringify({
+          type: 'MATCH_FOUND',
+          roomCode: code,
+          mode: '1v1_duel',
+          playerId: c1.playerId,
+          slot: c1.slot,
+          sector: 'P1',
+          grid: room.match.grid,
+          opponent: { name: c2.playerName }
+        }));
+
+        ws.send(JSON.stringify({
+          type: 'MATCH_FOUND',
+          roomCode: code,
+          mode: '1v1_duel',
+          playerId: c2.playerId,
+          slot: c2.slot,
+          sector: 'P2',
+          grid: room.match.grid,
+          opponent: { name: c1.playerName }
+        }));
+      } else {
+        quickMatch1v1Queue.push({ ws, playerName: msg.playerName || 'Commander' });
+        ws.send(JSON.stringify({
+          type: 'QUEUED_1V1',
+          position: quickMatch1v1Queue.length
+        }));
+      }
+      break;
+    }
+
+    case 'CANCEL_QUEUE': {
+      const idx = quickMatch1v1Queue.findIndex(q => q.ws === ws);
+      if (idx >= 0) quickMatch1v1Queue.splice(idx, 1);
+      ws.send(JSON.stringify({ type: 'QUEUE_CANCELLED', status: 'OK' }));
+      break;
+    }
+
+    case 'CREATE_1V1_ROOM': {
+      const code = generateRoomCode();
+      const room = new Room(code, '1v1_duel', msg.playerName);
+      const client = room.addClient(ws, msg.playerName);
+      rooms.set(code, room);
+
+      ws.roomCode = code;
+      ws.send(JSON.stringify({
+        type: 'ROOM_CREATED',
+        roomCode: code,
+        mode: '1v1_duel',
+        slot: client.slot,
+        playerId: client.playerId
+      }));
+      break;
+    }
+
+    case 'JOIN_1V1_ROOM': {
+      const code = (msg.roomCode || '').toUpperCase();
+      const room = rooms.get(code);
+      if (!room || room.mode !== '1v1_duel') {
+        ws.send(JSON.stringify({ type: 'ERROR', message: 'Room not found' }));
+        return;
+      }
+      if (room.clients.length >= 2) {
+        ws.send(JSON.stringify({ type: 'ERROR', message: 'Room is full' }));
+        return;
+      }
+
+      const client = room.addClient(ws, msg.playerName);
+      ws.roomCode = code;
+
+      ws.send(JSON.stringify({
+        type: 'ROOM_JOINED',
+        roomCode: code,
+        mode: room.mode,
+        slot: client.slot,
+        playerId: client.playerId
+      }));
+
+      if (room.clients.length === 2) {
+        room.initMatch();
+        room.broadcastMessage({
+          type: 'MATCH_READY',
+          grid: room.match.grid,
+          mode: '1v1_duel'
+        });
+      }
+      break;
+    }
+
     case 'CREATE_ROOM': {
       const code = generateRoomCode();
       const room = new Room(code, msg.mode, msg.playerName);
@@ -277,6 +400,9 @@ function handleClientMessage(ws, data) {
 }
 
 function handleClientDisconnect(ws) {
+  const qIdx = quickMatch1v1Queue.findIndex(q => q.ws === ws);
+  if (qIdx >= 0) quickMatch1v1Queue.splice(qIdx, 1);
+
   if (!ws.roomCode) return;
   const room = rooms.get(ws.roomCode);
   if (!room) return;
