@@ -5789,6 +5789,11 @@ function rollSeed(){
   if(inp)inp.value=Math.floor(Math.random()*99998)+1;
 }
 
+function showTut(){
+  const el=document.getElementById('tut-overlay');
+  if(el)el.classList.add('open');
+}
+
 function dismissTut(){
   const el=document.getElementById('tut-overlay');
   if(el)el.classList.remove('open');
