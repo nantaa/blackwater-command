@@ -18,10 +18,10 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
   background:radial-gradient(ellipse at 50% 40%,#183862 0%,#0b192e 75%)}
 .t-logo{font-size:2.6rem;font-weight:bold;letter-spacing:.35em;color:#ffcf40;
   text-shadow:0 0 28px rgba(255,207,64,.6);margin-bottom:.25rem}
-.t-sub{font-size:.82rem;color:#8eb8dc;letter-spacing:.25em;margin-bottom:1.6rem;font-weight:bold}
-.t-pitch{max-width:460px;text-align:center;font-size:.8rem;color:#9ae6a0;
-  line-height:1.7;margin-bottom:1.8rem;border:1px solid #2d5684;background:#10223a;padding:1rem;box-shadow:0 4px 16px rgba(0,0,0,0.35)}
-.seed-row{display:flex;align-items:center;gap:.5rem;margin-bottom:1.2rem}
+.t-sub{font-size:.82rem;color:#8eb8dc;letter-spacing:.25em;margin-bottom:1.1rem;font-weight:bold}
+.t-pitch{max-width:460px;text-align:center;font-size:.78rem;color:#cce0f5;
+  line-height:1.45;margin-bottom:1.1rem;border:1px solid #285280;background:#10223a;padding:.65rem 1rem;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,0.3)}
+.seed-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.9rem}
 .seed-row label{font-size:.75rem;color:#8eb8dc;letter-spacing:.1em;font-weight:bold}
 .seed-in{background:#122540;border:1px solid #366092;color:#ffcf40;
   font-family:inherit;font-size:.9rem;padding:.3rem .6rem;width:110px;font-weight:bold}
@@ -265,24 +265,22 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
     <div class="t-logo">BLACKWATER COMMAND</div>
     <div class="t-sub">NAVAL TACTICAL PROTOTYPE v1.0</div>
     <div class="t-pitch">
-      Command a hidden destroyer task force through fog-filled waters.<br>
-      Use sonar, torpedoes, and deception to outmaneuver an AI admiral<br>
-      that infers your position — <em>without cheating.</em>
+      Hunt an intelligent enemy fleet through fog-covered waters using sonar, torpedoes, and tactical deception.
     </div>
-    <div class="seed-row" style="margin-bottom:12px">
+    <div class="seed-row" style="margin-bottom:10px">
       <label>RUN SEED:</label>
       <input type="text" id="seed-in" class="seed-in" placeholder="random">
       <button class="btn" onclick="rollSeed()">ROLL</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;width:100%">
-      <button class="btn" id="btn-campaign" style="width:100%;padding:10px;font-size:.82rem" onclick="startCampaignRun()">▶ START CAMPAIGN RUN (ROGUE-LITE)</button>
-      <button class="btn" id="btn-1v1-online" style="width:100%;border-color:#00e5ff;color:#00e5ff;font-weight:bold" onclick="open1v1Lobby()">⚔ 1v1 TACTICAL ONLINE (20×10)</button>
-      <button class="btn" id="btn-multiplayer" style="width:100%;border-color:#ffcf40;color:#ffcf40" onclick="openMultiplayerArena()">🌐 TACTICAL MULTIPLAYER ARENA (24×24)</button>
-      <button class="btn" style="width:100%" onclick="startGame()">⚡ SKIRMISH DUEL</button>
-      <button class="btn" style="width:100%" onclick="showTut()">📖 TACTICAL BRIEFING & RULES</button>
+    <div style="display:flex;flex-direction:column;gap:7px;width:100%">
+      <button class="btn" id="btn-campaign" style="width:100%;padding:9px;font-size:.82rem" onclick="startCampaignRun()">▶ START CAMPAIGN (ROGUE-LITE)</button>
+      <button class="btn" id="btn-1v1-online" style="width:100%;border-color:#00e5ff;color:#00e5ff;font-weight:bold;padding:9px" onclick="open1v1Lobby()">⚔ 1v1 TACTICAL ONLINE (20×10)</button>
+      <button class="btn" id="btn-multiplayer" style="width:100%;border-color:#ffcf40;color:#ffcf40;padding:8px" onclick="openMultiplayerArena()">🌐 MULTIPLAYER ARENA (24×24)</button>
+      <button class="btn" style="width:100%;padding:8px" onclick="startGame()">⚡ SKIRMISH DUEL</button>
+      <button class="btn" style="width:100%;padding:8px" onclick="showTut()">📖 BRIEFING & RULES</button>
     </div>
-    <div style="font-size:.68rem;color:#8eb8dc;margin-top:1rem;font-weight:bold">
-      Offline Single-Player Roguelite + 4-Player Tactical Simulator
+    <div style="font-size:.68rem;color:#8eb8dc;margin-top:.8rem;font-weight:bold">
+      Offline Single-Player Roguelite · 1v1 Online Duel · 4P Arena
     </div>
   </div>
 </div>
@@ -596,69 +594,69 @@ html,body{width:100%;height:100%;background:#0b192e;overflow:hidden;font-family:
 
 <!-- ── 1v1 TACTICAL ONLINE LOBBY SCREEN ────────────────── -->
 <div id="scr-1v1-lobby" class="screen">
-  <div style="display:flex;flex-direction:column;width:680px;background:#0d1e34;border:2px solid #2d5a8c;border-radius:6px;overflow:hidden;box-shadow:0 14px 44px rgba(0,0,0,0.85)">
-    <div style="display:flex;justify-content:space-between;align-items:center;background:#122744;border-bottom:1px solid #2d5a8c;padding:12px 18px">
-      <div style="font-family:'Cinzel',serif;font-weight:bold;color:#00f5ff;font-size:1.15rem;letter-spacing:1px">
+  <div style="display:flex;flex-direction:column;width:620px;background:#0d1e34;border:2px solid #2d5a8c;border-radius:6px;overflow:hidden;box-shadow:0 14px 44px rgba(0,0,0,0.85)">
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#122744;border-bottom:1px solid #2d5a8c;padding:10px 16px">
+      <div style="font-family:'Cinzel',serif;font-weight:bold;color:#00f5ff;font-size:1.05rem;letter-spacing:1px">
         ⚔ 1v1 TACTICAL ONLINE DUEL (20×10)
       </div>
-      <button class="btn r" style="padding:5px 12px;font-size:.78rem" onclick="close1v1Lobby()">✕ CLOSE</button>
+      <button class="btn r" style="padding:4px 10px;font-size:.74rem" onclick="close1v1Lobby()">✕ CLOSE</button>
     </div>
 
-    <div style="padding:22px;display:flex;flex-direction:column;gap:20px">
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
       <!-- Track A: Quick Match -->
-      <div style="background:#122742;border:1px solid #285280;border-radius:4px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#38ef7d;font-size:.95rem">⚡ QUICK MATCH (AUTOMATIC PAIRING)</div>
-          <span style="font-size:.7rem;background:#0e3620;color:#38ef7d;padding:3px 8px;border-radius:3px;border:1px solid #20683a;font-weight:bold">INSTANT QUEUE</span>
+      <div style="background:#122742;border:1px solid #285280;border-radius:4px;padding:12px 14px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#38ef7d;font-size:.9rem">⚡ QUICK MATCH (AUTOMATIC PAIRING)</div>
+          <span style="font-size:.68rem;background:#0e3620;color:#38ef7d;padding:2px 7px;border-radius:3px;border:1px solid #20683a;font-weight:bold">INSTANT QUEUE</span>
         </div>
-        <div style="font-size:.78rem;color:#cce0f5;margin-bottom:12px;line-height:1.5">
-          Enter matchmaking queue to automatically pair with the next available commander on a 20×10 dual-sector grid (10×10 per fleet).
+        <div style="font-size:.75rem;color:#cce0f5;margin-bottom:8px">
+          Pair with the next available commander on a 20×10 dual-sector grid.
         </div>
         <div style="display:flex;align-items:center;gap:12px">
-          <button class="btn g" id="btn-quick-1v1" style="padding:9px 18px;font-size:.84rem" onclick="startQuick1v1()">⚡ FIND OPPONENT</button>
-          <button class="btn r" id="btn-cancel-quick-1v1" style="display:none;padding:9px 16px;font-size:.84rem" onclick="cancelQuick1v1()">CANCEL QUEUE</button>
-          <div id="quick-1v1-status" style="font-size:.78rem;color:#9ec4ea;font-weight:bold">Ready to queue.</div>
+          <button class="btn g" id="btn-quick-1v1" style="padding:7px 15px;font-size:.8rem" onclick="startQuick1v1()">⚡ FIND OPPONENT</button>
+          <button class="btn r" id="btn-cancel-quick-1v1" style="display:none;padding:7px 14px;font-size:.8rem" onclick="cancelQuick1v1()">CANCEL QUEUE</button>
+          <div id="quick-1v1-status" style="font-size:.74rem;color:#9ec4ea;font-weight:bold">Ready to queue.</div>
         </div>
       </div>
 
       <!-- Track B: Private Room Code -->
-      <div style="background:#122742;border:1px solid #285280;border-radius:4px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#ffcf40;font-size:.95rem">🔒 PRIVATE DUEL (GAME CODE)</div>
-          <span style="font-size:.7rem;background:#362608;color:#ffcf40;padding:3px 8px;border-radius:3px;border:1px solid #7a5a14;font-weight:bold">CUSTOM ROOM</span>
+      <div style="background:#122742;border:1px solid #285280;border-radius:4px;padding:12px 14px;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-family:'Cinzel',serif;font-weight:bold;color:#ffcf40;font-size:.9rem">🔒 PRIVATE DUEL (GAME CODE)</div>
+          <span style="font-size:.68rem;background:#362608;color:#ffcf40;padding:2px 7px;border-radius:3px;border:1px solid #7a5a14;font-weight:bold">CUSTOM ROOM</span>
         </div>
-        <div style="font-size:.78rem;color:#cce0f5;margin-bottom:12px;line-height:1.5">
-          Host a direct match with a 4-letter join code, or enter an opponent's code to duel directly.
+        <div style="font-size:.75rem;color:#cce0f5;margin-bottom:8px">
+          Host a direct match with a join code, or enter an opponent's room code.
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px">
           <!-- Host -->
-          <div style="background:#0e2038;border:1px dashed #346092;border-radius:4px;padding:14px;text-align:center">
-            <div style="font-size:.74rem;color:#8eb8dc;margin-bottom:8px;font-weight:bold">HOST A DUEL</div>
-            <button class="btn" id="btn-create-1v1" style="width:100%;margin-bottom:8px" onclick="createPrivate1v1()">CREATE ROOM</button>
+          <div style="background:#0e2038;border:1px dashed #346092;border-radius:4px;padding:10px;text-align:center">
+            <div style="font-size:.72rem;color:#8eb8dc;margin-bottom:6px;font-weight:bold">HOST A DUEL</div>
+            <button class="btn" id="btn-create-1v1" style="width:100%;padding:6px;margin-bottom:6px" onclick="createPrivate1v1()">CREATE ROOM</button>
             <div id="p1v1-code-wrap" style="display:none">
-              <div style="font-size:.68rem;color:#8eb8dc">ROOM CODE:</div>
-              <div id="lbl-room-code" style="font-size:1.7rem;font-family:monospace;font-weight:bold;color:#00f5ff;letter-spacing:4px;margin:5px 0">----</div>
-              <button class="btn" id="btn-copy-code" style="padding:5px 10px;font-size:.72rem" onclick="copy1v1Link()">📋 COPY INVITE LINK</button>
+              <div style="font-size:.66rem;color:#8eb8dc">ROOM CODE:</div>
+              <div id="lbl-room-code" style="font-size:1.5rem;font-family:monospace;font-weight:bold;color:#00f5ff;letter-spacing:4px;margin:3px 0">----</div>
+              <button class="btn" id="btn-copy-code" style="padding:4px 8px;font-size:.68rem" onclick="copy1v1Link()">📋 COPY LINK</button>
             </div>
           </div>
 
           <!-- Join -->
-          <div style="background:#0e2038;border:1px dashed #346092;border-radius:4px;padding:14px;text-align:center">
-            <div style="font-size:.74rem;color:#8eb8dc;margin-bottom:8px;font-weight:bold">JOIN WITH CODE</div>
-            <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px">
-              <input type="text" id="txt-join-1v1" maxlength="4" placeholder="CODE" style="text-transform:uppercase;width:100px;text-align:center;font-family:monospace;font-size:1.15rem;font-weight:bold;background:#091628;border:1px solid #366092;color:#00f5ff;padding:5px;border-radius:3px">
-              <button class="btn" id="btn-join-1v1" onclick="joinPrivate1v1()">JOIN</button>
+          <div style="background:#0e2038;border:1px dashed #346092;border-radius:4px;padding:10px;text-align:center">
+            <div style="font-size:.72rem;color:#8eb8dc;margin-bottom:6px;font-weight:bold">JOIN WITH CODE</div>
+            <div style="display:flex;gap:6px;justify-content:center;margin-bottom:6px">
+              <input type="text" id="txt-join-1v1" maxlength="4" placeholder="CODE" style="text-transform:uppercase;width:95px;text-align:center;font-family:monospace;font-size:1.1rem;font-weight:bold;background:#091628;border:1px solid #366092;color:#00f5ff;padding:4px;border-radius:3px">
+              <button class="btn" id="btn-join-1v1" style="padding:4px 12px" onclick="joinPrivate1v1()">JOIN</button>
             </div>
-            <div id="join-1v1-status" style="font-size:.72rem;color:#8eb8dc">Enter 4-letter room code</div>
+            <div id="join-1v1-status" style="font-size:.7rem;color:#8eb8dc">Enter 4-letter code</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div style="background:#0d1e34;border-top:1px solid #2d5a8c;padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
-      <div id="lbl-server-endpoint" style="font-size:.74rem;color:#8eb8dc;font-weight:bold">Authoritative Server: ws://localhost:8090</div>
-      <button class="btn" onclick="close1v1Lobby()">RETURN TO BRIDGE</button>
+    <div style="background:#0d1e34;border-top:1px solid #2d5a8c;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+      <div id="lbl-server-endpoint" style="font-size:.72rem;color:#8eb8dc;font-weight:bold">Authoritative Server: ws://localhost:8090</div>
+      <button class="btn" style="padding:5px 12px;font-size:.75rem" onclick="close1v1Lobby()">RETURN TO BRIDGE</button>
     </div>
   </div>
 </div>
